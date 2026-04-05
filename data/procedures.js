@@ -1,0 +1,126 @@
+// 시술 DB — 클리닉 제공 시술 목록
+// 각 시술: 이름, 설명, 효과, 대상, 다운타임, 가격대, 주의사항
+export const procedures = [
+  {
+    id: "botox",
+    name: { ko: "보톡스", en: "Botox", zh: "肉毒素", ar: "البوتوكس", ja: "ボトックス" },
+    category: "face",
+    description: {
+      ko: "보툴리눔 톡신을 주입해 주름을 완화하고 윤곽을 개선하는 시술",
+      en: "Botulinum toxin injection to reduce wrinkles and improve facial contours",
+    },
+    effects: ["주름 개선", "윤곽 교정(사각턱, 종아리)", "과한 땀 억제"],
+    downtime: "당일 복귀 가능, 72시간 내 격렬한 운동 자제",
+    duration: "4~6개월",
+    price_range: "5만~30만원",
+    cautions: ["임신/수유 중 불가", "항생제 복용 시 상담 필요"],
+  },
+  {
+    id: "filler",
+    name: { ko: "필러", en: "Filler", zh: "填充剂", ar: "الفيلر", ja: "フィラー" },
+    category: "face",
+    description: {
+      ko: "히알루론산 등을 주입해 볼륨을 보충하고 윤곽을 개선",
+      en: "Hyaluronic acid injection to add volume and reshape facial contours",
+    },
+    effects: ["팔자주름 개선", "볼륨 보충(볼, 입술)", "코 필러", "턱 라인 교정"],
+    downtime: "1~3일 붓기, 멍 가능",
+    duration: "6~18개월 (부위·제품에 따라)",
+    price_range: "15만~80만원",
+    cautions: ["혈관 주입 위험 — 숙련 의사 필수", "아스피린 1주일 전 중단 권장"],
+  },
+  {
+    id: "laser_toning",
+    name: { ko: "레이저 토닝", en: "Laser Toning", zh: "激光调色", ar: "تونينج الليزر", ja: "レーザートーニング" },
+    category: "skin",
+    description: {
+      ko: "저출력 레이저로 멜라닌을 분해해 피부 톤을 균일하게 개선",
+      en: "Low-energy laser to break down melanin and even out skin tone",
+    },
+    effects: ["기미·잡티 개선", "피부 톤 업", "모공 축소"],
+    downtime: "없음 (즉시 복귀)",
+    duration: "효과 유지를 위해 월 1~2회 권장",
+    price_range: "3만~10만원/회",
+    cautions: ["햇빛 차단 필수", "임신 중 주의"],
+  },
+  {
+    id: "ulthera",
+    name: { ko: "울쎄라", en: "Ultherapy", zh: "超声刀", ar: "ألثيرا", ja: "ウルセラ" },
+    category: "lifting",
+    description: {
+      ko: "초음파 에너지로 SMAS 층을 자극해 피부 리프팅 효과",
+      en: "High-intensity focused ultrasound to stimulate SMAS layer for skin lifting",
+    },
+    effects: ["피부 탄력 개선", "V라인 윤곽", "넥라인 리프팅"],
+    downtime: "없음 (시술 후 붉어짐 2~3시간)",
+    duration: "효과 6~12개월, 시술 후 3개월에 피크",
+    price_range: "30만~150만원",
+    cautions: ["시술 중 통증 있음", "금속 임플란트 부위 제외"],
+  },
+  {
+    id: "thermage",
+    name: { ko: "써마지", en: "Thermage", zh: "热玛吉", ar: "ثيرمج", ja: "サーマクール" },
+    category: "lifting",
+    description: {
+      ko: "고주파 에너지로 콜라겐을 리모델링해 피부를 탄탄하게",
+      en: "Radiofrequency energy to remodel collagen for firmer, tighter skin",
+    },
+    effects: ["전체적 탄력 개선", "눈가·이마 리프팅", "복부·허벅지 탄력"],
+    downtime: "없음",
+    duration: "효과 1~2년",
+    price_range: "50만~200만원",
+    cautions: ["페이스메이커 삽입자 불가"],
+  },
+  {
+    id: "rejuran",
+    name: { ko: "리쥬란 힐러", en: "Rejuran Healer", zh: "婴儿针", ar: "ريجوران", ja: "リジュラン" },
+    category: "skin",
+    description: {
+      ko: "PDRN(폴리뉴클레오타이드)을 진피에 주입해 피부 재생 촉진",
+      en: "PDRN (polynucleotide) injected into the dermis to promote skin regeneration",
+    },
+    effects: ["피부 재생", "잔주름 개선", "아토피·민감성 피부 진정", "탄력 개선"],
+    downtime: "1~3일 붓기, 멍",
+    duration: "3~6개월, 2~3회 코스 권장",
+    price_range: "15만~40만원/회",
+    cautions: ["연어 알레르기 주의"],
+  },
+  {
+    id: "hifu_body",
+    name: { ko: "HIFU 바디", en: "HIFU Body Contouring", zh: "超声波溶脂", ar: "هايفو للجسم", ja: "HIFUボディ" },
+    category: "body",
+    description: {
+      ko: "고강도 집속 초음파로 지방세포를 파괴해 체형을 교정",
+      en: "High-intensity focused ultrasound to destroy fat cells and reshape body contour",
+    },
+    effects: ["복부·옆구리 지방 감소", "허벅지·팔뚝 슬리밍"],
+    downtime: "시술 부위 1~2주 불편감",
+    duration: "효과 3~6개월 (개인차)",
+    price_range: "20만~80만원/부위",
+    cautions: ["임신 중 불가", "체내 금속 장치 주의"],
+  },
+  {
+    id: "chemical_peel",
+    name: { ko: "화학적 박피", en: "Chemical Peel", zh: "化学换肤", ar: "تقشير كيميائي", ja: "ケミカルピーリング" },
+    category: "skin",
+    description: {
+      ko: "산 성분으로 각질을 제거하고 피부 재생을 촉진",
+      en: "Acid-based treatment to exfoliate dead skin and stimulate cell renewal",
+    },
+    effects: ["여드름·모공 개선", "잡티·기미 완화", "피부결 개선"],
+    downtime: "3~7일 (강도에 따라 벗겨짐)",
+    duration: "월 1회 코스 권장",
+    price_range: "5만~30만원",
+    cautions: ["시술 후 2주 자외선 차단 필수"],
+  },
+];
+
+// 클리닉 기본 정보
+export const clinicInfo = {
+  name: "LCAUDE Aesthetic Clinic",
+  location: "강남구 (Gangnam, Seoul)",
+  specialties: ["안티에이징", "피부 재생", "바디 컨투어링", "리프팅", "외국인 환자 특화"],
+  languages: ["Korean", "English", "Chinese", "Arabic", "Japanese"],
+  consultation: "무료 사전 상담 가능 / Free consultation available",
+  booking: "온라인 예약 또는 카카오톡 문의 / Online booking or KakaoTalk",
+};
