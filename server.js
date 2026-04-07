@@ -13,7 +13,7 @@ import { procedures, clinicInfo } from "./data/procedures.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static(join(__dirname, "public")));
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -107,7 +107,8 @@ RULES:
 // POST /api/translate-reply  { text, targetLang }
 // ──────────────────────────────────────────
 app.post("/api/translate-reply", async (req, res) => {
-  const { text, targetLang } = req.body;
+  const text = req.body.text || req.body.replyText;
+  const { targetLang } = req.body;
   if (!text || !targetLang) return res.status(400).json({ error: "text and targetLang required" });
   const lang = LANG_NAME[targetLang] || targetLang;
   try {
@@ -225,5 +226,10 @@ app.post("/api/chat", async (req, res) => {
 // GET /api/procedures
 app.get("/api/procedures", (req, res) => res.json(procedures));
 
+// SPA fallback — React app handles all non-API routes
+app.get("*", (req, res) => {
+  res.sendFile(join(__dirname, "public", "index.html"));
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`LIBHIB Clinic running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`LIBHIB Clinic Staff Dashboard running at http://localhost:${PORT}`));
