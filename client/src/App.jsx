@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import ChatList from './components/chat/ChatList';
 import ChatWindow from './components/chat/ChatWindow';
+import PatientContextPanel from './components/chat/PatientContextPanel';
 import AftercareTab from './components/aftercare/AftercareTab';
 import StatsTab from './components/stats/StatsTab';
 import { conversations as initialConversations } from './data/mockData';
@@ -22,27 +23,35 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Sidebar */}
+      {/* Icon Sidebar */}
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Main content */}
       <main className="flex flex-1 min-w-0 overflow-hidden">
 
-        {/* ── 상담 관리 ── */}
+        {/* ── 상담 관리: 3-column layout ── */}
         {activeTab === 'chat' && (
           <>
+            {/* Col 1: Chat list ~28% */}
             <ChatList
               conversations={conversations}
               selectedId={selectedConvId}
               onSelect={setSelectedConvId}
             />
 
+            {/* Col 2 + 3: chat window + context panel */}
             {selectedConv ? (
-              <ChatWindow
-                key={selectedConv.id}
-                conv={selectedConv}
-                onConvUpdate={handleConvUpdate}
-              />
+              <>
+                {/* Col 2: Chat window ~47% (flex-1) */}
+                <ChatWindow
+                  key={selectedConv.id}
+                  conv={selectedConv}
+                  onConvUpdate={handleConvUpdate}
+                />
+
+                {/* Col 3: Patient context ~25% */}
+                <PatientContextPanel conv={selectedConv} />
+              </>
             ) : (
               <EmptyState />
             )}
@@ -50,14 +59,10 @@ export default function App() {
         )}
 
         {/* ── 애프터케어 ── */}
-        {activeTab === 'aftercare' && (
-          <AftercareTab />
-        )}
+        {activeTab === 'aftercare' && <AftercareTab />}
 
         {/* ── 통계 ── */}
-        {activeTab === 'stats' && (
-          <StatsTab />
-        )}
+        {activeTab === 'stats' && <StatsTab />}
       </main>
     </div>
   );
