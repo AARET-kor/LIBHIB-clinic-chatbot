@@ -6,20 +6,21 @@ import ChatWindow from '../components/chat/ChatWindow';
 import PatientContextPanel from '../components/chat/PatientContextPanel';
 import AftercareTab from '../components/aftercare/AftercareTab';
 import StatsTab from '../components/stats/StatsTab';
+import PatientsTab from '../components/patients/PatientsTab';
 import { conversations as initialConversations } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import { MessageSquare, LogOut, ChevronDown } from 'lucide-react';
 
-// ── Top bar with clinic info ─────────────────────────────────────────────────
+// ── Top bar ───────────────────────────────────────────────────────────────────
 function TopBar({ session, onLogout }) {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
     <div className="h-10 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0 z-10">
-      {/* Clinic name + plan */}
+      {/* TikiChat logo + clinic info */}
       <div className="flex items-center gap-2.5 ml-1">
-        <div className="w-5 h-5 rounded bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center">
-          <span className="text-[9px] font-bold text-white">B</span>
+        <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-purple-600 to-fuchsia-500 flex items-center justify-center shadow-[0_0_6px_rgba(168,85,247,0.4)]">
+          <MessageSquare size={10} className="text-white" fill="white" />
         </div>
         <span className="text-xs font-semibold text-slate-800">{session.clinic.name}</span>
         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${session.clinic.planColor}`}>
@@ -43,10 +44,10 @@ function TopBar({ session, onLogout }) {
         </button>
 
         {showMenu && (
-          <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 py-1 w-36 z-50 animate-fade-in">
+          <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 py-1 w-36 z-50">
             <button
               onClick={() => { setShowMenu(false); onLogout(); }}
-              className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3.5 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors rounded-xl"
             >
               <LogOut size={12} /> 로그아웃
             </button>
@@ -81,18 +82,14 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
-      {/* Top bar */}
       <TopBar session={session} onLogout={handleLogout} />
 
-      {/* Main row */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Icon Sidebar */}
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {/* Content */}
         <main className="flex flex-1 min-w-0 overflow-hidden">
 
-          {/* ── 상담 관리: 3-column ── */}
+          {/* ── 상담 관리 (3-column) ── */}
           {activeTab === 'chat' && (
             <>
               <ChatList
@@ -115,11 +112,15 @@ export default function Dashboard() {
             </>
           )}
 
+          {/* ── 환자 관리 ── */}
+          {activeTab === 'patients' && <PatientsTab />}
+
           {/* ── 애프터케어 ── */}
           {activeTab === 'aftercare' && <AftercareTab />}
 
           {/* ── 통계 ── */}
           {activeTab === 'stats' && <StatsTab />}
+
         </main>
       </div>
     </div>

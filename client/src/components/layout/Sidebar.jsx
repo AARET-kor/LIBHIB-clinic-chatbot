@@ -1,8 +1,9 @@
-import { MessageSquare, Calendar, BarChart3, Settings, Zap } from 'lucide-react';
+import { MessageSquare, Calendar, BarChart3, Settings, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { id: 'chat',      icon: MessageSquare, label: '상담 관리' },
+  { id: 'patients',  icon: Users,         label: '환자 관리' },
   { id: 'aftercare', icon: Calendar,      label: '애프터케어' },
   { id: 'stats',     icon: BarChart3,     label: '통계' },
 ];
@@ -11,10 +12,10 @@ export default function Sidebar({ activeTab, onTabChange }) {
   const { session } = useAuth();
 
   return (
-    <aside className="w-16 flex flex-col items-center bg-navy-950 border-r border-navy-900 py-4 gap-1 shrink-0">
-      {/* Logo */}
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-700 flex items-center justify-center mb-4 shadow-lg">
-        <Zap size={16} className="text-white" fill="white" />
+    <aside className="w-16 flex flex-col items-center bg-white border-r border-slate-200 py-4 gap-1 shrink-0">
+      {/* Logo — Aurora Purple */}
+      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-fuchsia-500 flex items-center justify-center mb-4 shadow-[0_0_12px_rgba(168,85,247,0.35)]">
+        <MessageSquare size={16} className="text-white" fill="white" />
       </div>
 
       {/* Nav items */}
@@ -29,8 +30,8 @@ export default function Sidebar({ activeTab, onTabChange }) {
               className={`
                 w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl transition-all duration-150
                 ${isActive
-                  ? 'bg-navy-700 text-white shadow-sm'
-                  : 'text-slate-500 hover:bg-navy-900 hover:text-slate-300'
+                  ? 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100'
+                  : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 border border-transparent'
                 }
               `}
             >
@@ -43,16 +44,18 @@ export default function Sidebar({ activeTab, onTabChange }) {
 
       {/* Bottom */}
       <div className="flex flex-col items-center gap-2 w-full px-2">
-        <button title="설정"
-          className="w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-slate-600 hover:bg-navy-900 hover:text-slate-300 transition-all">
+        <button
+          title="설정"
+          className="w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all border border-transparent"
+        >
           <Settings size={18} strokeWidth={1.8} />
           <span className="text-[9px] font-medium">설정</span>
         </button>
 
-        {/* Staff avatar — from auth context */}
+        {/* Staff avatar */}
         {session && (
           <div
-            className={`mt-1 w-8 h-8 rounded-full bg-gradient-to-br ${session.staff.avatarColor} flex items-center justify-center text-white text-[11px] font-bold shadow cursor-pointer`}
+            className={`mt-1 w-8 h-8 rounded-full bg-gradient-to-br ${session.staff.avatarColor} flex items-center justify-center text-white text-[11px] font-bold shadow cursor-pointer ring-2 ring-white`}
             title={`${session.staff.name} · ${session.staff.role}`}
           >
             {session.staff.initials}

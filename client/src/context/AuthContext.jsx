@@ -26,17 +26,17 @@ const MOCK_TENANTS = {
     },
     staff: { name: '이수진', role: '코디네이터', initials: '이', avatarColor: 'from-rose-400 to-pink-600' },
   },
-  'admin@beauchat.ai': {
+  'admin@tikichat.ai': {
     password: 'admin123',
     clinic: {
       id: 'demo',
-      name: 'BEAUCHAT 데모 클리닉',
-      nameEn: 'BEAUCHAT Demo',
+      name: 'TikiChat 데모 클리닉',
+      nameEn: 'TikiChat Demo',
       location: '강남구 청담동',
       plan: 'Enterprise',
       planColor: 'bg-amber-100 text-amber-700',
     },
-    staff: { name: '관리자', role: 'Admin', initials: 'A', avatarColor: 'from-amber-400 to-orange-600' },
+    staff: { name: '관리자', role: 'Admin', initials: 'A', avatarColor: 'from-purple-500 to-fuchsia-600' },
   },
 };
 
@@ -46,7 +46,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('beauchat_session');
+      const saved = sessionStorage.getItem('tikichat_session');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -76,14 +76,14 @@ export function AuthProvider({ children }) {
       loginAt: new Date().toISOString(),
     };
 
-    sessionStorage.setItem('beauchat_session', JSON.stringify(newSession));
+    sessionStorage.setItem('tikichat_session', JSON.stringify(newSession));
     setSession(newSession);
     setIsLoggingIn(false);
     return true;
   }, []);
 
   const logout = useCallback(() => {
-    sessionStorage.removeItem('beauchat_session');
+    sessionStorage.removeItem('tikichat_session');
     setSession(null);
   }, []);
 
