@@ -5,6 +5,14 @@ import dotenv from "dotenv";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, ".env"), override: true });
 
+// ── 전역 방어막: 예상치 못한 에러에도 프로세스가 절대 죽지 않도록 ──────────
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException] 프로세스 종료 방지:", err.message, err.stack);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[unhandledRejection] 프로세스 종료 방지:", reason);
+});
+
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 import express from "express";
@@ -381,6 +389,14 @@ app.post("/api/chat", async (req, res) => {
   if (!messages?.length) return res.status(400).json({ error: "messages required" });
   sseStream(res);
 
+  const safeEnd = (errMsg) => {
+    try {
+      if (errMsg) res.write(`data: ${JSON.stringify({ error: errMsg })}\n\n`);
+      else res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch {}
+  };
+
   const procContext = buildFallbackContext(procedureId);
   const systemText = `You are a structured medical aesthetics consultation AI for LIBHIB Clinic, ${clinicInfo.location}.
 LANGUAGE RULE: Always respond in the SAME language as the user's message.
@@ -401,11 +417,10 @@ ${procContext ? `\nFOCUS PROCEDURE:\n${procContext}` : ""}`;
         res.write(`data: ${JSON.stringify({ text: e.delta.text })}\n\n`);
       }
     }
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-    res.end();
+    safeEnd();
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
-    res.end();
+    console.error("[/api/chat] 오류:", err.message);
+    safeEnd(err.message);
   }
 });
 
@@ -417,5 +432,16 @@ app.get("*", (req, res) => {
   res.sendFile(join(__dirname, "public", "index.html"));
 });
 
+// ── Express 전역 에러 미들웨어 (라우터에서 next(err) 로 전달된 에러 처리) ──
+app.use((err, req, res, next) => {
+  console.error("[Express error]", err.message);
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── 0.0.0.0 바인딩: Railway 라우터가 외부 접속을 정상 연결하려면 필수 ──────
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`LIBHIB Clinic Staff Dashboard running at http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () =>
+  console.log(`LIBHIB Clinic Staff Dashboard running on 0.0.0.0:${PORT}`)
+);
