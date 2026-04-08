@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, Pencil, Loader2, ChevronDown, Copy, Check, X } from 'lucide-react';
+import { Sparkles, Send, Pencil, Loader2, ChevronDown, ChevronUp, Copy, Check, X } from 'lucide-react';
 import { useStreamApi } from '../../hooks/useStreamApi';
 
 // 페이즈별 상태 텍스트 (서버 SSE phase 이벤트와 1:1 매핑)
@@ -17,6 +17,7 @@ export default function ReplyArea({ conv, onMessageSent }) {
   const [loadError, setLoadError] = useState(null); // error message string | null
   const [isSending, setIsSending] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(false); // 최소화 토글 — 카드를 숨기지 않고 헤더만 남김
   const [copied, setCopied] = useState(false);
 
   const textareaRef = useRef(null);
@@ -34,6 +35,7 @@ export default function ReplyArea({ conv, onMessageSent }) {
     if (!lastPatientMsg) return;
     setSuggestion('');
     setShowSuggestion(true);
+    setIsMinimized(false); // 대화 전환 시 항상 확장 상태로 리셋
     setPhase(null);
     setLoadError(null);
     loadSuggestion();
@@ -140,19 +142,28 @@ export default function ReplyArea({ conv, onMessageSent }) {
 
   return (
     <div className="border-t border-slate-200 bg-white">
-      {/* AI Suggestion Card */}
+      {/* ── AI Suggestion Card ───────────────────────────────────────────── */}
       {cardVisible && (
         <div className="px-4 pt-3 pb-0 animate-slide-up">
           <div className="ai-card-border rounded-xl bg-white shadow-md overflow-hidden">
 
-            {/* Card header */}
+            {/* ── 카드 헤더 — 항상 표시 ──────────────────────────────────── */}
             <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-navy-50 to-purple-50 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 rounded-full bg-gradient-to-br from-navy-500 to-purple-500 flex items-center justify-center">
                   <Sparkles size={10} className="text-white" fill="white" />
                 </div>
                 <span className="text-xs font-semibold text-navy-700">AI 추천 답변</span>
-                {isLoading ? (
+                {/* 최소화 상태에서는 간략 상태만 표시 */}
+                {isMinimized ? (
+                  <span className="text-[10px] text-slate-400">
+                    {isLoading
+                      ? '· 생성 중...'
+                      : phase === 'done' && suggestion
+                      ? '· 답변 준비됨 — 클릭해서 펼치기'
+                      : '· 클릭해서 펼치기'}
+                  </span>
+                ) : isLoading ? (
                   <span className="text-[10px] text-purple-500 font-medium animate-pulse">
                     · {PHASE_LABEL[phase] ?? 'AI가 처리 중입니다...'}
                   </span>
@@ -162,8 +173,10 @@ export default function ReplyArea({ conv, onMessageSent }) {
                   <span className="text-[10px] text-slate-500">· 한국어로 수정 후 발송 가능</span>
                 )}
               </div>
+
               <div className="flex items-center gap-1">
-                {isLoading && (
+                {/* 생성 취소 — 로딩 중 + 펼쳐진 상태일 때만 */}
+                {isLoading && !isMinimized && (
                   <button
                     onClick={handleCancel}
                     className="flex items-center gap-1 px-2 py-1 text-[10px] text-slate-500 hover:text-red-500 hover:bg-red-50 rounded transition-all"
@@ -173,103 +186,116 @@ export default function ReplyArea({ conv, onMessageSent }) {
                     취소
                   </button>
                 )}
+
+                {/* 최소화 / 최대화 토글 버튼 — 카드를 완전히 숨기지 않고 헤더만 남김 */}
                 <button
-                  onClick={() => setShowSuggestion(false)}
-                  className="text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+                  onClick={() => setIsMinimized(v => !v)}
+                  className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded p-0.5 transition-all"
+                  title={isMinimized ? '답변 펼치기' : '답변 접기'}
                 >
-                  <ChevronDown size={14} />
+                  {isMinimized
+                    ? <ChevronDown size={14} />   /* 접힌 상태 → 아래 화살표로 "펼치기" 암시 */
+                    : <ChevronUp   size={14} />   /* 펼친 상태 → 위 화살표로 "접기" 암시 */
+                  }
                 </button>
               </div>
             </div>
 
-            {/* Suggestion text */}
-            <div className="px-4 py-3 min-h-[60px]">
-              {/* 에러 상태 */}
-              {phase === 'done' && loadError && !suggestion ? (
-                <div className="flex items-start gap-2 text-red-600">
-                  <X size={13} className="mt-0.5 shrink-0" />
-                  <span className="text-xs leading-relaxed">{loadError}</span>
-                </div>
-              ) : isLoading && !suggestion ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Loader2 size={13} className={`animate-spin ${phase === 'rag' ? 'text-blue-500' : 'text-purple-500'}`} />
-                    <span className={`text-xs font-medium ${phase === 'rag' ? 'text-blue-600' : 'text-purple-600'}`}>
-                      {PHASE_LABEL[phase] ?? 'AI가 처리 중입니다...'}
-                    </span>
+            {/* ── 본문 + 액션 버튼 — 최소화 시 height:0으로 부드럽게 숨김 ── */}
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isMinimized ? 'max-h-0' : 'max-h-[500px]'
+              }`}
+            >
+              {/* Suggestion text */}
+              <div className="px-4 py-3 min-h-[60px]">
+                {phase === 'done' && loadError && !suggestion ? (
+                  <div className="flex items-start gap-2 text-red-600">
+                    <X size={13} className="mt-0.5 shrink-0" />
+                    <span className="text-xs leading-relaxed">{loadError}</span>
                   </div>
-                  <div className="space-y-1.5 pt-1">
-                    <div className="h-3 bg-slate-100 rounded animate-pulse w-full" />
-                    <div className="h-3 bg-slate-100 rounded animate-pulse w-4/5" />
-                    <div className="h-3 bg-slate-100 rounded animate-pulse w-3/5" />
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                  {suggestion}
-                  {phase === 'generating' && (
-                    <span className="inline-block w-0.5 h-4 bg-purple-500 ml-0.5 align-text-bottom animate-pulse" />
-                  )}
-                </p>
-              )}
-            </div>
-
-            {/* Action buttons — 완료 또는 에러 후 표시 */}
-            {phase === 'done' && (suggestion || loadError) && (
-              <div className="flex gap-2 px-4 pb-3 flex-wrap">
-                {/* 에러 상태면 재시도만 표시 */}
-                {loadError && !suggestion ? (
-                  <button
-                    onClick={loadSuggestion}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-all"
-                  >
-                    <Sparkles size={11} />
-                    다시 시도
-                  </button>
-                ) : (
-                  <>
-                    {/* Copy */}
-                    <button
-                      onClick={handleCopy}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all"
-                    >
-                      {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
-                      {copied ? '복사됨' : '복사'}
-                    </button>
-
-                    {/* Edit */}
-                    <button
-                      onClick={handleUseSuggestion}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all"
-                    >
-                      <Pencil size={11} />
-                      수정하기
-                    </button>
-
-                    {/* Regenerate */}
-                    <button
-                      onClick={loadSuggestion}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 text-slate-500 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all"
-                    >
-                      <Sparkles size={11} />
-                      재생성
-                    </button>
-
-                    {/* Send as-is */}
-                    <button
-                      onClick={handleSendSuggestion}
-                      disabled={isSending}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-navy-700 hover:bg-navy-800 text-white rounded-lg transition-all shadow-sm disabled:opacity-60 ml-auto"
-                    >
-                      {isSending ? <Loader2 size={11} className="animate-spin" /> : <span>🚀</span>}
-                      이대로 발송
-                      <span className="text-[10px] opacity-80 font-normal hidden sm:inline">
-                        ({conv.patient.langName}으로 번역)
+                ) : isLoading && !suggestion ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Loader2 size={13} className={`animate-spin ${phase === 'rag' ? 'text-blue-500' : 'text-purple-500'}`} />
+                      <span className={`text-xs font-medium ${phase === 'rag' ? 'text-blue-600' : 'text-purple-600'}`}>
+                        {PHASE_LABEL[phase] ?? 'AI가 처리 중입니다...'}
                       </span>
-                    </button>
-                  </>
+                    </div>
+                    <div className="space-y-1.5 pt-1">
+                      <div className="h-3 bg-slate-100 rounded animate-pulse w-full" />
+                      <div className="h-3 bg-slate-100 rounded animate-pulse w-4/5" />
+                      <div className="h-3 bg-slate-100 rounded animate-pulse w-3/5" />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    {suggestion}
+                    {phase === 'generating' && (
+                      <span className="inline-block w-0.5 h-4 bg-purple-500 ml-0.5 align-text-bottom animate-pulse" />
+                    )}
+                  </p>
                 )}
               </div>
+
+              {/* Action buttons — 완료 또는 에러 후 표시 */}
+              {phase === 'done' && (suggestion || loadError) && (
+                <div className="flex gap-2 px-4 pb-3 flex-wrap">
+                  {loadError && !suggestion ? (
+                    <button
+                      onClick={loadSuggestion}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-all"
+                    >
+                      <Sparkles size={11} />
+                      다시 시도
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleCopy}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all"
+                      >
+                        {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                        {copied ? '복사됨' : '복사'}
+                      </button>
+                      <button
+                        onClick={handleUseSuggestion}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all"
+                      >
+                        <Pencil size={11} />
+                        수정하기
+                      </button>
+                      <button
+                        onClick={loadSuggestion}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 text-slate-500 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all"
+                      >
+                        <Sparkles size={11} />
+                        재생성
+                      </button>
+                      <button
+                        onClick={handleSendSuggestion}
+                        disabled={isSending}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-navy-700 hover:bg-navy-800 text-white rounded-lg transition-all shadow-sm disabled:opacity-60 ml-auto"
+                      >
+                        {isSending ? <Loader2 size={11} className="animate-spin" /> : <span>🚀</span>}
+                        이대로 발송
+                        <span className="text-[10px] opacity-80 font-normal hidden sm:inline">
+                          ({conv.patient.langName}으로 번역)
+                        </span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* ── 최소화 상태 힌트 바 ── */}
+            {isMinimized && (
+              <button
+                onClick={() => setIsMinimized(false)}
+                className="w-full py-1 text-[10px] text-slate-400 hover:text-navy-600 hover:bg-slate-50 transition-colors text-center border-t border-slate-100"
+              >
+                ▼ 클릭해서 AI 답변 펼치기
+              </button>
             )}
           </div>
         </div>
