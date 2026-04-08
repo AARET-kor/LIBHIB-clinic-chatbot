@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import ChatList from '../components/chat/ChatList';
 import ChatWindow from '../components/chat/ChatWindow';
@@ -14,31 +14,25 @@ import {
   MessageSquare, LogOut, ChevronDown, User, Sun, Moon, Settings
 } from 'lucide-react';
 
-// ── Top bar ───────────────────────────────────────────────────────────────────
+// ── Top Bar ───────────────────────────────────────────────────────────────────
 function TopBar({ session, onLogout, darkMode, onToggleDark, onOpenSettings }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
     <div className={`h-10 border-b flex items-center justify-between px-4 shrink-0 z-10 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'}`}>
-      {/* TikiChat logo + clinic info */}
       <div className="flex items-center gap-2.5 ml-1">
         <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-purple-600 to-fuchsia-500 flex items-center justify-center shadow-[0_0_6px_rgba(168,85,247,0.4)]">
           <MessageSquare size={10} className="text-white" fill="white" />
         </div>
         <span className={`text-xs font-semibold ${darkMode ? 'text-zinc-200' : 'text-slate-800'}`}>{session.clinic.name}</span>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${session.clinic.planColor}`}>
-          {session.clinic.plan}
-        </span>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${session.clinic.planColor}`}>{session.clinic.plan}</span>
         <span className={`text-[10px] hidden sm:block ${darkMode ? 'text-zinc-500' : 'text-slate-400'}`}>{session.clinic.location}</span>
       </div>
 
-      {/* Staff info + dropdown */}
       <div className="relative">
-        <button
-          onClick={() => setShowMenu(v => !v)}
-          className={`flex items-center gap-2 px-2.5 py-1 rounded-lg transition-colors ${darkMode ? 'hover:bg-zinc-800' : 'hover:bg-slate-50'}`}
-        >
+        <button onClick={() => setShowMenu(v => !v)}
+          className={`flex items-center gap-2 px-2.5 py-1 rounded-lg transition-colors ${darkMode ? 'hover:bg-zinc-800' : 'hover:bg-slate-50'}`}>
           <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${session.staff.avatarColor} flex items-center justify-center text-white text-[10px] font-bold`}>
             {session.staff.initials}
           </div>
@@ -48,41 +42,28 @@ function TopBar({ session, onLogout, darkMode, onToggleDark, onOpenSettings }) {
 
         {showMenu && (
           <div className={`absolute right-0 top-full mt-1 rounded-xl shadow-xl border py-1 w-44 z-50 ${darkMode ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-slate-200'}`}>
-            {/* Profile */}
-            <button
-              onClick={() => { setShowMenu(false); setShowProfileModal(true); }}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}
-            >
+            <button onClick={() => { setShowMenu(false); setShowProfileModal(true); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}>
               <User size={12} className="text-purple-500" /> 내 정보 수정
             </button>
-            {/* Dark/Light mode */}
-            <button
-              onClick={() => { onToggleDark(); setShowMenu(false); }}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}
-            >
+            <button onClick={() => { onToggleDark(); setShowMenu(false); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}>
               {darkMode ? <Sun size={12} className="text-amber-400" /> : <Moon size={12} className="text-slate-500" />}
               {darkMode ? '라이트 모드' : '다크 모드'}
             </button>
-            {/* Settings */}
-            <button
-              onClick={() => { setShowMenu(false); onOpenSettings(); }}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}
-            >
+            <button onClick={() => { setShowMenu(false); onOpenSettings(); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}>
               <Settings size={12} className="text-slate-500" /> 설정
             </button>
             <div className={`my-1 border-t ${darkMode ? 'border-zinc-700' : 'border-slate-100'}`} />
-            {/* Logout */}
-            <button
-              onClick={() => { setShowMenu(false); onLogout(); }}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors"
-            >
+            <button onClick={() => { setShowMenu(false); onLogout(); }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors">
               <LogOut size={12} /> 로그아웃
             </button>
           </div>
         )}
       </div>
 
-      {/* Profile edit modal */}
       {showProfileModal && (
         <ProfileEditModal session={session} darkMode={darkMode} onClose={() => setShowProfileModal(false)} />
       )}
@@ -117,7 +98,7 @@ function ProfileEditModal({ session, darkMode, onClose }) {
               className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-400 ${darkMode ? 'bg-zinc-800 border-zinc-600 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
           </div>
         </div>
-        <div className={`px-6 pb-5 flex gap-2.5 justify-end`}>
+        <div className="px-6 pb-5 flex gap-2.5 justify-end">
           <button onClick={onClose} className={`px-4 py-2 rounded-lg text-xs font-medium border transition-colors ${darkMode ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>취소</button>
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-xs font-medium bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white hover:from-purple-500 hover:to-fuchsia-400 transition-all">저장</button>
         </div>
@@ -126,22 +107,87 @@ function ProfileEditModal({ session, darkMode, onClose }) {
   );
 }
 
+// ── Patient Context Banner (shown in chat when arriving from patients view) ───
+function PatientContextBanner({ fromPatient, onBack, darkMode }) {
+  if (!fromPatient) return null;
+  return (
+    <div className={`flex items-center justify-between px-5 py-2.5 border-b shrink-0 ${darkMode ? 'bg-blue-950/60 border-blue-900' : 'bg-blue-50 border-blue-100'}`}
+      style={{ animation: 'slideUp 0.2s ease-out' }}>
+      <div className="flex items-center gap-2.5">
+        <span className="text-base">{fromPatient.flag}</span>
+        <div>
+          <p className={`text-xs font-bold ${darkMode ? 'text-blue-300' : 'text-blue-800'}`}>
+            {fromPatient.name}님과의 상담
+          </p>
+          <p className={`text-[10px] ${darkMode ? 'text-blue-500' : 'text-blue-500'}`}>
+            환자 관리에서 이동했습니다
+          </p>
+        </div>
+      </div>
+      <button onClick={onBack}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all
+          ${darkMode ? 'bg-blue-900 text-blue-300 hover:bg-blue-800 border border-blue-800' : 'bg-white text-blue-700 hover:bg-blue-100 border border-blue-200 shadow-sm'}`}>
+        ← 환자 관리로 돌아가기
+      </button>
+    </div>
+  );
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { session, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('chat');
+  // ── Tab state — synced with URL param ?tab=xxx ────────────────────────────
+  const activeTab = searchParams.get('tab') || 'chat';
+  const setActiveTab = (tab) => {
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      p.set('tab', tab);
+      // Clear cross-tab params when switching manually
+      if (tab !== 'chat') { p.delete('pid'); p.delete('pname'); p.delete('pflag'); }
+      if (tab !== 'patients') { p.delete('openPid'); }
+      return p;
+    });
+  };
+
+  // ── Patient context — set when navigating from patients → chat ────────────
+  const [fromPatient, setFromPatient] = useState(null);
+
   const [darkMode, setDarkMode] = useState(false);
   const [conversations, setConversations] = useState(initialConversations);
   const [selectedConvId, setSelectedConvId] = useState(initialConversations[0].id);
 
   const selectedConv = conversations.find(c => c.id === selectedConvId);
 
+  // ── React to URL params (patient deep-link into chat) ─────────────────────
+  useEffect(() => {
+    const pid   = searchParams.get('pid');
+    const pname = searchParams.get('pname');
+    const pflag = searchParams.get('pflag');
+    const tab   = searchParams.get('tab');
+
+    if (tab === 'chat' && pname) {
+      const decoded = decodeURIComponent(pname);
+      const decodedFlag = decodeURIComponent(pflag || '');
+      setFromPatient({ id: pid, name: decoded, flag: decodedFlag });
+
+      // Try to find matching conversation by patient name (case-insensitive)
+      const match = conversations.find(c =>
+        c.patient.name.toLowerCase() === decoded.toLowerCase() ||
+        c.patient.nameKo?.toLowerCase() === decoded.toLowerCase()
+      );
+      if (match) setSelectedConvId(match.id);
+    } else if (tab !== 'chat') {
+      // Clear fromPatient banner when leaving chat tab
+      setFromPatient(null);
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleConvUpdate = (convId, updates) => {
-    setConversations(prev =>
-      prev.map(c => c.id === convId ? { ...c, ...updates } : c)
-    );
+    setConversations(prev => prev.map(c => c.id === convId ? { ...c, ...updates } : c));
   };
 
   const handleNewConversation = (newConv) => {
@@ -153,6 +199,19 @@ export default function Dashboard() {
   const handleLogout = () => {
     logout();
     navigate('/', { replace: true });
+  };
+
+  // "← 환자 관리로 돌아가기" — navigate back to patients tab with drawer open
+  const handleBackToPatients = () => {
+    const pid = searchParams.get('pid');
+    setFromPatient(null);
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      p.set('tab', 'patients');
+      if (pid) p.set('openPid', pid);
+      p.delete('pid'); p.delete('pname'); p.delete('pflag');
+      return p;
+    });
   };
 
   const bg = darkMode ? 'bg-zinc-950' : 'bg-slate-50';
@@ -172,7 +231,7 @@ export default function Dashboard() {
 
         <main className="flex flex-1 min-w-0 overflow-hidden">
 
-          {/* ── 상담 관리 (3-column) ── */}
+          {/* ── 상담 관리 ── */}
           {activeTab === 'chat' && (
             <>
               <ChatList
@@ -183,17 +242,32 @@ export default function Dashboard() {
                 darkMode={darkMode}
               />
               {selectedConv ? (
-                <>
-                  <ChatWindow
-                    key={selectedConv.id}
-                    conv={selectedConv}
-                    onConvUpdate={handleConvUpdate}
+                <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
+                  {/* Patient context banner — appears when coming from patients view */}
+                  <PatientContextBanner
+                    fromPatient={fromPatient}
+                    onBack={handleBackToPatients}
                     darkMode={darkMode}
                   />
-                  <PatientContextPanel conv={selectedConv} darkMode={darkMode} />
-                </>
+                  <div className="flex flex-1 min-w-0 overflow-hidden">
+                    <ChatWindow
+                      key={selectedConv.id}
+                      conv={selectedConv}
+                      onConvUpdate={handleConvUpdate}
+                      darkMode={darkMode}
+                    />
+                    <PatientContextPanel conv={selectedConv} darkMode={darkMode} />
+                  </div>
+                </div>
               ) : (
-                <EmptyState darkMode={darkMode} />
+                <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
+                  <PatientContextBanner
+                    fromPatient={fromPatient}
+                    onBack={handleBackToPatients}
+                    darkMode={darkMode}
+                  />
+                  <EmptyState darkMode={darkMode} />
+                </div>
               )}
             </>
           )}
