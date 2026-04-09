@@ -22,8 +22,18 @@ import { createClient } from "@supabase/supabase-js";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
-import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
+// pdf-parse v2.x — ESM named export (PDFParse 클래스)
+import { PDFParse } from "pdf-parse";
+
+// v1.x 호환 래퍼: pdfParse(buffer) → { text }
+async function pdfParse(buffer) {
+  const parser = new PDFParse({ data: buffer });
+  await parser.load();
+  const text = await parser.getText();
+  await parser.destroy();
+  return { text };
+}
 import { procedures, clinicInfo } from "./data/procedures.js";
 import { PROCEDURE_TEMPLATES } from "./data/procedure-templates.js";
 
