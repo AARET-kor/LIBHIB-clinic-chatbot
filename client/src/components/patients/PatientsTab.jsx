@@ -169,14 +169,22 @@ function useUrlFilters() {
   const [sortBy,    setSortBy]    = useState(init.sortBy);
 
   useEffect(() => {
+    // ── 네비게이션 파라미터(tab, openPid, pid 등)는 그대로 유지 ──
+    const current = new URLSearchParams(window.location.search);
     const p = new URLSearchParams();
-    if (search)              p.set('q', search);
+    // 보존할 파라미터: React Router가 관리하는 것들
+    ['tab','openPid','pid','pname','pflag'].forEach(k => {
+      const v = current.get(k);
+      if (v) p.set(k, v);
+    });
+    // 필터 파라미터 추가
+    if (search)                  p.set('q', search);
     if (filterChannel !== '전체') p.set('channel', filterChannel);
     if (filterStatus  !== '전체') p.set('status',  filterStatus);
     if (filterVip     !== '전체') p.set('vip',     filterVip);
     if (filterLang    !== '전체') p.set('lang',    filterLang);
-    if (filterUnresponded)   p.set('unresponded', '1');
-    if (sortBy !== 'lastVisit') p.set('sort', sortBy);
+    if (filterUnresponded)        p.set('unresponded', '1');
+    if (sortBy !== 'lastVisit')   p.set('sort', sortBy);
     const qs = p.toString();
     try { window.history.replaceState(null,'', qs ? `?${qs}` : window.location.pathname); } catch {}
   }, [search, filterChannel, filterStatus, filterVip, filterLang, filterUnresponded, sortBy]);
@@ -773,6 +781,9 @@ function BulkActionsBar({ selectedIds, patients, onClear, onExport }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PatientsTab({ darkMode }) {
   const [urlParams]         = useSearchParams();
+  // ── openPid: URL에서 직접 추출 → React Router가 변경 감지 시 이 값도 변함 ──
+  const openPid = urlParams.get('openPid') || '';
+
   const [patients,  setPatients]  = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [dbError,   setDbError]   = useState(null);
@@ -807,22 +818,36 @@ export default function PatientsTab({ darkMode }) {
   useEffect(() => { fetchPatients(); }, []);
 
   // ── Auto-open drawer when returning from chat (URL: ?openPid=xxx) ──────────
-  // patients.length > 0 조건으로 DB 로드 완료 후 실행 보장
+  // openPid가 의존성에 포함 → 탭 전환으로 URL이 바뀔 때도 즉시 재실행됨
   useEffect(() => {
-    const openPid = urlParams.get('openPid');
-    if (!openPid || patients.length === 0) return;
+    if (!openPid) return;
+    // DB 로드 중이면 잠깐 대기 (loading이 false가 되면 다시 실행됨)
+    if (loading) return;
+    // patients가 비어있으면 아직 데이터 없음
+    if (patients.length === 0) return;
+
     const match = patients.find(p => p.id === openPid);
     if (match) {
+      // 필터가 걸려 있으면 해당 환자가 안 보일 수 있으므로 검색 초기화
+      setSearch('');
+
+      // Drawer 오픈
       setSelectedPatient(match);
-      // URL에서 openPid 제거 (재로드 시 중복 오픈 방지)
-      // — history.replaceState로 React Router 상태를 건드리지 않고 조용히 제거
+
+      // 리스트에서 해당 행으로 부드럽게 스크롤
+      requestAnimationFrame(() => {
+        const row = document.getElementById(`patient-row-${match.id}`);
+        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+
+      // URL에서 openPid 제거 — React Router 상태는 건드리지 않고 history만 조용히 업데이트
       try {
         const url = new URL(window.location.href);
         url.searchParams.delete('openPid');
         window.history.replaceState(null, '', url.toString());
       } catch { /* ignore */ }
     }
-  }, [patients]); // patients가 로드될 때마다 체크 (urlParams 의존 제거로 중복 실행 방지)
+  }, [openPid, patients, loading]); // openPid 변경(탭 전환 포함) + 데이터 로드 완료 시 모두 트리거
 
   // ── Filtered & sorted list ──────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -1132,6 +1157,7 @@ export default function PatientsTab({ darkMode }) {
                 const unresponded = isUnresponded(p);
                 return (
                   <tr key={p.id}
+                    id={`patient-row-${p.id}`}
                     className={`border-b transition-all cursor-pointer group ${darkMode?'border-zinc-800':'border-slate-50'} ${rowHover} ${isSelected?(darkMode?'bg-blue-950/40':'bg-blue-50/70'):''}`}
                     onClick={()=>setSelectedPatient(p)}>
                     {/* Checkbox */}
