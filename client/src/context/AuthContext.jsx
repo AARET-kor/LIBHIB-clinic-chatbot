@@ -15,6 +15,7 @@ const FEATURE_ROLES = {
   stats:        ['owner', 'admin'],
   settings:     ['owner', 'admin'],
   staff_mgmt:   ['owner', 'admin'],
+  procedures:   ['owner', 'admin'],
   // 아래는 모든 역할 허용 (명시 불필요 — 기본값 true)
   chat:         null,
   patients:     null,

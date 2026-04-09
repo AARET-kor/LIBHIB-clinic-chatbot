@@ -8,6 +8,8 @@ import AftercareTab from '../components/aftercare/AftercareTab';
 import StatsTab from '../components/stats/StatsTab';
 import PatientsTab from '../components/patients/PatientsTab';
 import SettingsTab from '../components/settings/SettingsTab';
+import ProceduresTab from '../components/procedures/ProceduresTab';
+import MagicPasteTab from '../components/magic/MagicPasteTab';
 import { conversations as initialConversations } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -219,9 +221,10 @@ export default function Dashboard() {
     setSearchParams(prev => {
       const p = new URLSearchParams(prev);
       p.set('tab', tab);
-      // Clear cross-tab params when switching manually (NOT when navigating via navigate())
+      // Clear cross-tab params when switching manually
       if (tab !== 'chat') { p.delete('pid'); p.delete('pname'); p.delete('pflag'); }
       if (tab !== 'patients') { p.delete('openPid'); }
+      // magic_paste는 별도 파라미터 없음
       return p;
     });
   };
@@ -362,6 +365,11 @@ export default function Dashboard() {
             </>
           )}
 
+          {/* ── Magic Paste ── */}
+          {activeTab === 'magic_paste' && (
+            <MagicPasteTab darkMode={darkMode} />
+          )}
+
           {/* ── 환자 관리 ── */}
           {activeTab === 'patients' && (
             <PatientsTab
@@ -379,6 +387,13 @@ export default function Dashboard() {
             canAccess('stats')
               ? <StatsTab darkMode={darkMode} />
               : <AccessDenied feature="통계 대시보드" darkMode={darkMode} />
+          )}
+
+          {/* ── 시술 관리 (owner/admin 전용) ── */}
+          {activeTab === 'procedures' && (
+            canAccess('procedures')
+              ? <ProceduresTab darkMode={darkMode} />
+              : <AccessDenied feature="시술 관리" darkMode={darkMode} />
           )}
 
           {/* ── 직원 관리 (owner/admin 전용) ── */}

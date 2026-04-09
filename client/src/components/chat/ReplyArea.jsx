@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Sparkles, Send, Pencil, Loader2, ChevronDown, ChevronUp, Copy, Check, X } from 'lucide-react';
 import { useStreamApi } from '../../hooks/useStreamApi';
+import { useAuth } from '../../context/AuthContext';
 
 // 페이즈별 상태 텍스트 (서버 SSE phase 이벤트와 1:1 매핑)
 const PHASE_LABEL = {
@@ -11,6 +12,7 @@ const PHASE_LABEL = {
 };
 
 export default function ReplyArea({ conv, onMessageSent }) {
+  const { clinicId } = useAuth();
   const [input, setInput] = useState('');
   const [suggestion, setSuggestion] = useState('');
   const [phase, setPhase] = useState(null); // null | 'routing' | 'generating' | 'done'
@@ -60,6 +62,7 @@ export default function ReplyArea({ conv, onMessageSent }) {
       patientMessage: lastPatientMsg.translatedText || lastPatientMsg.originalText,
       procedureHint: conv.procedure,
       patientLang: conv.patient.lang,
+      clinicId: clinicId || undefined,
     }, {
       signal: abortRef.current.signal,
       onPhase: (p) => { if (isCurrentGen()) setPhase(p); },

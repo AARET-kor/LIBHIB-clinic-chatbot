@@ -22,6 +22,7 @@ import { createClient } from "@supabase/supabase-js";
 import express from "express";
 import cors from "cors";
 import { procedures, clinicInfo } from "./data/procedures.js";
+import { PROCEDURE_TEMPLATES } from "./data/procedure-templates.js";
 
 // ── Phase 3: 새 모듈 import ───────────────────────────────────────────────────
 import metaWebhookRouter            from "./src/api/webhook/meta.js";
@@ -48,27 +49,96 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY || ""
 );
 
+// 서비스 롤 클라이언트 — RLS bypass, 서버 사이드 CRUD 전용
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL          || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ""
+);
+
+// ── 클리닉 정보 캐시 (TTL 5분) ────────────────────────────────────────────────
+const _clinicCache = new Map(); // clinicId → { data, exp }
+
+async function getClinicInfo(clinicId) {
+  if (!clinicId) return null;
+  const hit = _clinicCache.get(clinicId);
+  if (hit && Date.now() < hit.exp) return hit.data;
+  try {
+    const { data } = await supabaseAdmin
+      .from("clinics")
+      .select("clinic_id, clinic_name, clinic_short_name, location, specialties")
+      .eq("clinic_id", clinicId)
+      .maybeSingle();
+    if (data) {
+      _clinicCache.set(clinicId, { data, exp: Date.now() + 5 * 60_000 });
+      return data;
+    }
+  } catch (e) {
+    console.warn("[getClinicInfo]", e.message);
+  }
+  return null;
+}
+
+async function getClinicProcedures(clinicId) {
+  if (!clinicId) return null;
+  try {
+    const { data } = await supabaseAdmin
+      .from("procedures")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+    return data?.length ? data : null;
+  } catch (e) {
+    console.warn("[getClinicProcedures]", e.message);
+    return null;
+  }
+}
+
 const LANG_NAME = {
   ko: "Korean", en: "English", ja: "Japanese",
   zh: "Chinese (Simplified)", ar: "Arabic",
 };
 
-// ── 의료법 가드레일 + 시스템 프롬프트 (프롬프트 캐싱 대상) ─────────────────────
-const CLINIC_SYSTEM_BASE = `너는 서울 강남 프리미엄 미용의원 'LIBHIB 클리닉'의 AI 코디네이터다.
-클리닉 직원이 환자 문의에 답하는 한국어 초안 메시지를 작성하는 역할을 한다.
+// ── 동적 시스템 프롬프트 빌더 ─────────────────────────────────────────────────
+// clinicName, location은 DB에서 가져오거나 env 기본값 사용
+// procList는 DB 클리닉 시술 or 로컬 fallback
+function buildSystemBase(clinicName, location, procList) {
+  const name     = clinicName || process.env.CLINIC_NAME || "클리닉";
+  const loc      = location   || process.env.CLINIC_LOCATION || "서울";
+  const procs    = procList   || procedures; // data/procedures.js fallback
 
-━━━ 절대 금지 사항 (의료법 위반 방지) ━━━
-• "최고", "최저가", "완벽한", "100% 효과", "부작용 없음", "확실히 낫는다" 등 과장·보장 표현 사용 금지
-• 의료적 진단, 처방, 치료 결정 권유 금지 (의료법 제27조)
-• 환자 개인 의료 정보 언급 및 추측 금지 (개인정보보호법)
+  const procText = procs.map(p => {
+    // DB/로컬 스키마 모두 대응 (name_ko, price_range 통일)
+    const nameKo    = p.name_ko    || p.name?.ko    || p.name || "";
+    const nameEn    = p.name_en    || p.name?.en    || "";
+    const price     = p.price_range || p.price_display || "";
+    const downtime  = p.downtime   || "";
+    const duration  = p.duration   || "";
+    const effects   = Array.isArray(p.effects_ko)  ? p.effects_ko.join(", ")
+                    : Array.isArray(p.effects)      ? p.effects.join(", ")
+                    : "";
+    const cautions  = Array.isArray(p.cautions_ko) ? p.cautions_ko.join("; ")
+                    : Array.isArray(p.cautions)     ? p.cautions.join("; ")
+                    : "";
+    return `[${p.template_id || p.id}] ${nameKo}(${nameEn})\n  가격: ${price} | 다운타임: ${downtime} | 지속: ${duration}\n  효과: ${effects}\n  주의: ${cautions}`;
+  }).join("\n\n");
+
+  return `너는 현재 ${name}의 수석 AI 상담 실장이다.
+클리닉 직원이 환자 문의에 답하는 한국어 초안 메시지를 작성하는 역할을 한다.
+환자에게 답변할 때 반드시 "${name}"를 자연스럽게 언급하며 친절하고 전문적으로 응대한다.
+
+━━━ 절대 금지 (의료법 위반 방지) ━━━
+• "최고", "최저가", "100% 효과", "부작용 없음", "확실히 낫는다" 등 과장·보장 표현 금지
+• 의료적 진단·처방·치료 결정 권유 금지 (의료법 제27조)
+• 환자 개인 의료정보 언급·추측 금지 (개인정보보호법)
 • "AI입니다", "챗봇입니다" 자기 노출 금지
 • RAG CONTEXT에 없는 정보를 사실인 것처럼 서술 금지
 
-━━━ 필수 포함 사항 ━━━
-• 모든 시술 결정은 "전문의와 1:1 상담 후 결정해드리겠습니다" 문구 포함
-• 정보 부족 시 반드시 "정확한 정보는 1:1 상담에서 알려드리겠습니다" 로 대체
-• 답변 근거는 아래 RAG CONTEXT 내용만 사용 (없으면 상담 안내로 대체)
-• 무료 상담 예약 CTA로 마무리 (예: "편하신 시간에 무료 상담을 예약해드릴게요 😊")
+━━━ 필수 포함 ━━━
+• 모든 시술 결정 → "전문의와 1:1 상담 후 결정해드리겠습니다" 문구 포함
+• 정보 부족 시 → "정확한 정보는 1:1 상담에서 알려드리겠습니다" 로 대체
+• 답변 근거는 RAG CONTEXT 내용만 사용 (없으면 상담 안내로 대체)
+• 무료 상담 예약 CTA 마무리 (예: "편하신 시간에 무료 상담을 예약해드릴게요 😊")
 
 ━━━ 답변 형식 ━━━
 • 한국어만 사용 (직원이 검토 후 발송)
@@ -76,17 +146,20 @@ const CLINIC_SYSTEM_BASE = `너는 서울 강남 프리미엄 미용의원 'LIBH
 • 3~5문장 이내로 간결하게
 
 ━━━ 클리닉 정보 ━━━
-• 이름: LIBHIB 클리닉 (리브히브 클리닉)
-• 위치: 서울 강남구 논현동
+• 이름: ${name}
+• 위치: ${loc}
 • 전문: 의료 미용, 피부 시술, 항노화
 
 ━━━ 시술 정보 ━━━
-${procedures.map(p =>
-  `[${p.id}] ${p.name.ko} (${p.name.en})
-  가격: ${p.price_range} | 다운타임: ${p.downtime} | 지속: ${p.duration}
-  효과: ${p.effects.join(", ")}
-  주의사항: ${p.cautions.join("; ")}`
-).join("\n\n")}`;
+${procText}`;
+}
+
+// 기본값 (clinicId 없을 때 fallback — 하위 호환)
+const CLINIC_SYSTEM_BASE = buildSystemBase(
+  process.env.CLINIC_NAME     || "LIBHIB 클리닉",
+  process.env.CLINIC_LOCATION || "서울 강남구 논현동",
+  procedures
+);
 
 // ── SSE 헬퍼 ─────────────────────────────────────────────────────────────────
 function sseHeaders(res) {
@@ -213,13 +286,14 @@ function buildLocalContext(procedureId) {
 }
 
 // ── 전문 답변 스트리밍 (Sonnet → Haiku fallback, 프롬프트 캐싱) ───────────────
-async function streamExpertReply(req, res, ragContext, userMessage) {
+async function streamExpertReply(req, res, ragContext, userMessage, systemBase) {
   const ac = new AbortController();
   const onClose = () => ac.abort();
   req.once("close", onClose);
 
+  const base = systemBase || CLINIC_SYSTEM_BASE;
   const systemBlocks = [
-    { type: "text", text: CLINIC_SYSTEM_BASE, cache_control: { type: "ephemeral" } },
+    { type: "text", text: base, cache_control: { type: "ephemeral" } },
   ];
   if (ragContext) {
     systemBlocks.push({
@@ -275,7 +349,7 @@ async function streamExpertReply(req, res, ragContext, userMessage) {
         {
           model: MODEL_HAIKU,
           max_tokens: 400,
-          system: CLINIC_SYSTEM_BASE,
+          system: base,
           messages: [{ role: "user", content: userMessage }],
         },
         { signal: ac.signal }
@@ -373,7 +447,7 @@ app.post("/api/translate", async (req, res) => {
 // Flow: Haiku(classify) → [RAG search] → Sonnet(generate, cached) → audit
 // POST /api/suggest  { patientMessage, patientLang, procedureHint }
 app.post("/api/suggest", async (req, res) => {
-  const { patientMessage, patientLang, procedureHint } = req.body;
+  const { patientMessage, patientLang, procedureHint, clinicId } = req.body;
   if (!patientMessage) return res.status(400).json({ error: "patientMessage required" });
 
   const startMs = Date.now();
@@ -386,6 +460,19 @@ app.post("/api/suggest", async (req, res) => {
   };
 
   try {
+    // ── 클리닉 동적 시스템 프롬프트 빌드 ────────────────────────────────────
+    const resolvedClinicId = clinicId || process.env.CLINIC_ID;
+    const [clinicInfo_, clinicProcs] = await Promise.all([
+      getClinicInfo(resolvedClinicId),
+      getClinicProcedures(resolvedClinicId),
+    ]);
+    const dynamicSystemBase = buildSystemBase(
+      clinicInfo_?.clinic_name,
+      clinicInfo_?.location,
+      clinicProcs
+    );
+    console.log(`[Suggest] clinic=${resolvedClinicId} name="${clinicInfo_?.clinic_name ?? "default"}"`);
+
     // ── Phase 1: Intent classification (Haiku 4.5) ──────────────────────────
     sseWrite(res, { phase: "routing" });
     const { intent, confidence, query } = await classifyIntent(patientMessage);
@@ -425,7 +512,7 @@ app.post("/api/suggest", async (req, res) => {
       (procedureHint ? `관심 시술 힌트: ${procedureHint}\n` : "") +
       `\n위 환자에게 보낼 한국어 답변을 작성해주세요. 의료법 가드레일을 엄수하고, 전문의 1:1 상담 예약 CTA로 마무리해주세요.`;
 
-    const genResult = await streamExpertReply(req, res, ragResult?.context ?? null, userMessage);
+    const genResult = await streamExpertReply(req, res, ragResult?.context ?? null, userMessage, dynamicSystemBase);
 
     // ── Phase 4: Audit log (비동기, 비차단) ────────────────────────────────
     auditLog({
@@ -461,6 +548,83 @@ app.post("/api/suggest", async (req, res) => {
           ? "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
           : `AI 답변 생성 실패: ${err.message}`;
     safeEnd(userMsg);
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// Magic Paste — 붙여넣기 즉시 AI 답변 3종 생성 (Zero-Integration)
+// POST /api/magic-paste  { message, clinicId?, clinicName? }
+// ════════════════════════════════════════════════════════════════════════════
+app.post("/api/magic-paste", async (req, res) => {
+  const { message, clinicId, clinicName: bodyClinicName } = req.body;
+  if (!message?.trim())
+    return res.status(400).json({ error: "message required" });
+
+  // 병원명 해결: body > DB > env > 기본값
+  let resolvedClinicName = bodyClinicName || process.env.CLINIC_NAME || "클리닉";
+  if (clinicId && !bodyClinicName) {
+    const info = await getClinicInfo(clinicId).catch(() => null);
+    if (info?.clinic_name) resolvedClinicName = info.clinic_name;
+  }
+
+  const SYSTEM_PROMPT = `You are a Korean medical aesthetics clinic AI assistant for "${resolvedClinicName}".
+
+Your ONLY task: analyze the patient message and generate THREE short Korean reply options for clinic staff.
+
+CRITICAL RULES:
+1. Output ONLY valid JSON — no markdown fences, no explanation, no extra text whatsoever.
+2. Every reply MUST be in Korean, 2–4 sentences, warm yet professional.
+3. Each reply should naturally mention "${resolvedClinicName}" at least once.
+4. Follow Korean medical aesthetics etiquette; never guarantee results or diagnose.
+5. Include a free-consultation CTA where appropriate.
+
+Output this exact JSON shape:
+{
+  "detected_language": "<언어명 in Korean, e.g. 일본어 / 중국어 / 영어>",
+  "intent": "<핵심 의도 in Korean, e.g. 가격 문의 및 부작용 우려>",
+  "options": {
+    "kind":    "<친절하고 상세한 답변 — 공감 → 정보 제공 → CTA>",
+    "firm":    "<규정·정책 기반의 단호하지만 예의 바른 답변 — 정책 안내 → 상담 유도>",
+    "booking": "<예약 유도형 답변 — 가치 강조 → 무료 상담 예약 CTA 포함>"
+  }
+}`;
+
+  try {
+    const resp = await anthropic.messages.create({
+      model:      MODEL_HAIKU,
+      max_tokens: 1200,
+      system:     SYSTEM_PROMPT,
+      messages:   [{ role: "user", content: `환자 메시지:\n"${message.trim()}"` }],
+    });
+
+    const raw = resp.content.find(b => b.type === "text")?.text ?? "";
+
+    // JSON 파싱 — 모델이 코드 블록을 감쌀 경우 대비
+    const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0] ?? "{}";
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      // 파싱 실패 시 raw를 kind에 담아 부분 응답
+      parsed = {
+        detected_language: "알 수 없음",
+        intent:            "분석 실패",
+        options: { kind: raw, firm: raw, booking: raw },
+      };
+    }
+
+    // 필수 필드 보정
+    parsed.options = parsed.options ?? {};
+    parsed.options.kind    = parsed.options.kind    || parsed.options.detailed || "";
+    parsed.options.firm    = parsed.options.firm    || parsed.options.policy   || "";
+    parsed.options.booking = parsed.options.booking || parsed.options.action   || "";
+
+    console.log(`[MagicPaste] clinic="${resolvedClinicName}" lang="${parsed.detected_language}" intent="${parsed.intent}"`);
+    res.json(parsed);
+
+  } catch (err) {
+    console.error("[MagicPaste]", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -575,8 +739,173 @@ BOOKING: After 3 exchanges, suggest booking a free consultation.` +
   }
 });
 
-// ── GET /api/procedures
+// ── GET /api/procedures  (기존 — 로컬 fallback 데이터)
 app.get("/api/procedures", (req, res) => res.json(procedures));
+
+// ════════════════════════════════════════════════════════════════════════════
+// 멀티테넌트 시술 관리 API
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── GET /api/procedure-templates — 마스터 템플릿 목록 (전체 공통)
+app.get("/api/procedure-templates", async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("master_procedures")          // ← 마스터 테이블
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order")
+      .order("name_ko");
+    if (!error && data?.length) return res.json({ templates: data });
+  } catch (e) {
+    console.warn("[procedure-templates] Supabase fallback:", e.message);
+  }
+  // Supabase 미설정 또는 빈 테이블 → 로컬 JS 템플릿 fallback
+  res.json({ templates: PROCEDURE_TEMPLATES });
+});
+
+// ── GET /api/clinic-procedures — 병원별 시술 목록
+app.get("/api/clinic-procedures", async (req, res) => {
+  const clinicId = req.query.clinic_id || process.env.CLINIC_ID;
+  if (!clinicId) return res.status(400).json({ error: "clinic_id required" });
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("procedures")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .order("sort_order")
+      .order("name_ko");
+    if (error) throw error;
+    res.json({ procedures: data || [] });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── POST /api/clinic-procedures/copy — 마스터 템플릿 → 병원 시술로 복사
+app.post("/api/clinic-procedures/copy", async (req, res) => {
+  const { clinic_id, template_ids } = req.body;
+  if (!clinic_id || !Array.isArray(template_ids) || !template_ids.length)
+    return res.status(400).json({ error: "clinic_id and template_ids[] required" });
+
+  try {
+    // 이미 존재하는 template_id 조회 (중복 방지)
+    const { data: existing } = await supabaseAdmin
+      .from("procedures")
+      .select("template_id")
+      .eq("clinic_id", clinic_id)
+      .in("template_id", template_ids);
+    const existingIds = new Set((existing || []).map(r => r.template_id));
+
+    // 복사할 템플릿 조회 — Supabase master_procedures 우선, 로컬 fallback
+    let templates = [];
+    try {
+      const { data } = await supabaseAdmin
+        .from("master_procedures")         // ← 마스터 테이블
+        .select("*")
+        .in("template_id", template_ids);
+      templates = data || [];
+    } catch {}
+    // 로컬 fallback (Supabase 미설정 또는 seed 전)
+    if (!templates.length) {
+      templates = PROCEDURE_TEMPLATES.filter(t => template_ids.includes(t.template_id));
+    }
+
+    const newRows = templates
+      .filter(t => !existingIds.has(t.template_id))
+      .map((t, i) => ({
+        clinic_id,
+        template_id:     t.template_id,
+        name_ko:         t.name_ko,
+        name_en:         t.name_en   || "",
+        name_ja:         t.name_ja   || "",
+        name_zh:         t.name_zh   || "",
+        category:        t.category  || "",
+        description_ko:  t.description_ko || "",
+        description_en:  t.description_en || "",
+        price_range:     t.price_range    || "",   // ← price_display 제거, price_range 통일
+        downtime:        t.downtime       || "",
+        duration:        t.duration       || "",
+        effects_ko:      t.effects_ko     || [],
+        cautions_ko:     t.cautions_ko    || [],
+        faq_ko:          t.faq_ko  || "",
+        faq_en:          t.faq_en  || "",
+        faq_ja:          t.faq_ja  || "",
+        faq_zh:          t.faq_zh  || "",
+        is_active:       true,
+        sort_order:      i,
+      }));
+
+    if (!newRows.length) return res.json({ added: 0, skipped: existingIds.size });
+
+    const { data: inserted, error } = await supabaseAdmin
+      .from("procedures")
+      .insert(newRows)
+      .select();
+    if (error) throw error;
+
+    // 클리닉 캐시 무효화
+    _clinicCache.delete(clinic_id);
+
+    res.json({ added: inserted.length, skipped: existingIds.size, procedures: inserted });
+  } catch (e) {
+    console.error("[copy-procedures]", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── PATCH /api/clinic-procedures/:id — 시술 정보 수정
+app.patch("/api/clinic-procedures/:id", async (req, res) => {
+  const { id } = req.params;
+  const { clinic_id, ...updates } = req.body;
+  if (!clinic_id) return res.status(400).json({ error: "clinic_id required" });
+
+  // clinic_id 위조 방지 — 반드시 같은 병원 레코드만 수정
+  const allowed = ["name_ko","name_en","name_ja","name_zh","category",
+    "description_ko","description_en",
+    "price_range","downtime","duration",                // ← price_range 통일
+    "effects_ko","cautions_ko",
+    "faq_ko","faq_en","faq_ja","faq_zh",
+    "custom_note","is_active","sort_order"];
+  const safe = Object.fromEntries(
+    Object.entries(updates).filter(([k]) => allowed.includes(k))
+  );
+  safe.updated_at = new Date().toISOString();
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("procedures")
+      .update(safe)
+      .eq("id", id)
+      .eq("clinic_id", clinic_id) // ← 다른 병원 레코드 수정 불가
+      .select()
+      .single();
+    if (error) throw error;
+    _clinicCache.delete(clinic_id);
+    res.json({ procedure: data });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── DELETE /api/clinic-procedures/:id — 시술 삭제
+app.delete("/api/clinic-procedures/:id", async (req, res) => {
+  const { id } = req.params;
+  const clinic_id = req.query.clinic_id || req.body.clinic_id;
+  if (!clinic_id) return res.status(400).json({ error: "clinic_id required" });
+
+  try {
+    const { error } = await supabaseAdmin
+      .from("procedures")
+      .delete()
+      .eq("id", id)
+      .eq("clinic_id", clinic_id);
+    if (error) throw error;
+    _clinicCache.delete(clinic_id);
+    res.json({ deleted: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ── Express 전역 에러 미들웨어
 app.use((err, req, res, _next) => {

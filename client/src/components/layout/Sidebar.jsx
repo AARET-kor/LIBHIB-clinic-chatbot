@@ -1,4 +1,4 @@
-import { MessageSquare, Calendar, BarChart3, Settings, Users, UserCog, Shield } from 'lucide-react';
+import { MessageSquare, Calendar, BarChart3, Settings, Users, UserCog, Shield, Stethoscope, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,6 +30,12 @@ const NAV_ITEMS = [
     icon:          BarChart3,
     label:         '통계',
     requiredRoles: ['owner', 'admin'],       // owner / admin 전용
+  },
+  {
+    id:            'procedures',
+    icon:          Stethoscope,
+    label:         '시술 관리',
+    requiredRoles: ['owner', 'admin'],
   },
   {
     id:            'staff_mgmt',
@@ -109,6 +115,39 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
 
       {/* ── 메인 네비게이션 ────────────────────────────────────────────────── */}
       <nav className="flex flex-col items-center gap-1 flex-1 w-full px-2">
+
+        {/* ✨ Magic Paste — 포인트 버튼 (상단 고정) */}
+        <button
+          onClick={() => onTabChange('magic_paste')}
+          title="Magic Paste — API 없이 즉시 답변 3종 생성"
+          className={`
+            w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl
+            transition-all duration-150 relative
+            ${activeTab === 'magic_paste'
+              ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md shadow-orange-300/40'
+              : darkMode
+                ? 'bg-gradient-to-br from-amber-500/10 to-orange-500/10 text-amber-400 border border-amber-600/25 hover:from-amber-500/20 hover:to-orange-500/20'
+                : 'bg-gradient-to-br from-amber-50 to-orange-50 text-amber-600 border border-amber-200/70 hover:from-amber-100 hover:to-orange-100'
+            }
+          `}
+        >
+          <Sparkles
+            size={18}
+            strokeWidth={activeTab === 'magic_paste' ? 2.5 : 1.8}
+            className={activeTab === 'magic_paste' ? '' : ''}
+          />
+          <span className="text-[9px] font-bold tracking-tight leading-none">매직</span>
+          {/* 활성 시 글로우 링 */}
+          {activeTab !== 'magic_paste' && (
+            <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${
+              darkMode ? 'bg-amber-400' : 'bg-amber-400'
+            }`} />
+          )}
+        </button>
+
+        {/* 구분선 */}
+        <div className={`w-8 h-px my-0.5 ${darkMode ? 'bg-zinc-700' : 'bg-slate-200'}`} />
+
         {NAV_ITEMS.map(item => {
           const hasAccess = !item.requiredRoles || canAccess(item.id);
           const isActive  = activeTab === item.id;
