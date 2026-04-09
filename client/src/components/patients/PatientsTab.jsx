@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Search, Plus, Upload, X, ChevronDown, ChevronLeft, ChevronRight,
   Edit3, Save, Phone, MessageSquare, Calendar, DollarSign,
@@ -779,11 +779,14 @@ function BulkActionsBar({ selectedIds, patients, onClear, onExport }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Main PatientsTab
 // ─────────────────────────────────────────────────────────────────────────────
-export default function PatientsTab({ darkMode }) {
-  const [urlParams]         = useSearchParams();
-  // ── openPid: URL에서 직접 추출 → React Router가 변경 감지 시 이 값도 변함 ──
-  const openPid = urlParams.get('openPid') || '';
-
+/**
+ * PatientsTab
+ *
+ * @prop {string}   openPid       — Dashboard에서 React Router searchParams으로 읽어 전달.
+ *                                  window.history.replaceState와의 충돌을 원천 차단.
+ * @prop {Function} onDrawerOpened — Drawer가 열리면 호출 → Dashboard가 URL에서 openPid 제거
+ */
+export default function PatientsTab({ darkMode, openPid = '', onDrawerOpened }) {
   const [patients,  setPatients]  = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [dbError,   setDbError]   = useState(null);
@@ -794,7 +797,6 @@ export default function PatientsTab({ darkMode }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showFilterPresets, setShowFilterPresets] = useState(false);
   const [savePresetName,    setSavePresetName]    = useState('');
-  // ReservationModal state
   const [reservationPatient, setReservationPatient] = useState(null);
 
   const { search, setSearch, filterChannel, setFilterChannel, filterStatus, setFilterStatus,
@@ -802,7 +804,49 @@ export default function PatientsTab({ darkMode }) {
           filterUnresponded, setFilterUnresponded, sortBy, setSortBy } = useUrlFilters();
   const { presets, save: savePreset, remove: removePreset } = useSavedFilters();
 
-  // ── Supabase fetch ──────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════════
+  // 1️⃣  Drawer 자동 오픈 (다른 모든 useEffect보다 FIRST 선언)
+  //     openPid: Dashboard → React Router searchParams → prop으로 전달받음
+  //     → window.history.replaceState 오염 완전 차단
+  // ══════════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!openPid) return;
+
+    console.log('[Drawer Auto Open] openPid 감지:', openPid); // 디버그용
+
+    // patients 리스트가 아직 안 불러와졌으면 기다림
+    if (loading || patients.length === 0) {
+      console.log('[Drawer Auto Open] patients 아직 로딩 중...');
+      return;
+    }
+
+    const foundPatient = patients.find(p => p.id === openPid);
+    if (foundPatient) {
+      console.log('[Drawer Auto Open] 환자 발견 → Drawer 열기:', foundPatient.name);
+
+      // 필터 강제 초기화 (openPid가 있으면 무조건 해당 환자 보이게)
+      setSearch('');
+      setSelectedPatient(foundPatient);
+
+      // Drawer가 열릴 시간을 주고 스크롤
+      requestAnimationFrame(() => {
+        const row = document.getElementById(`patient-row-${foundPatient.id}`);
+        if (row) {
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+
+      // Dashboard에 openPid 소비 완료를 알림 → URL에서 cleanly 제거
+      // (React Router의 setSearchParams로 처리 → window.history 충돌 없음)
+      onDrawerOpened?.();
+    } else {
+      console.warn('[Drawer Auto Open] openPid에 해당하는 환자를 찾지 못함:', openPid);
+    }
+  }, [openPid, patients, loading, setSearch, setSelectedPatient]);
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // 2️⃣  Supabase fetch (Drawer 자동 오픈 useEffect 다음에 선언)
+  // ══════════════════════════════════════════════════════════════════════════════
   const fetchPatients = async () => {
     setLoading(true); setDbError(null);
     try {
@@ -816,38 +860,6 @@ export default function PatientsTab({ darkMode }) {
     } finally { setLoading(false); }
   };
   useEffect(() => { fetchPatients(); }, []);
-
-  // ── Auto-open drawer when returning from chat (URL: ?openPid=xxx) ──────────
-  // openPid가 의존성에 포함 → 탭 전환으로 URL이 바뀔 때도 즉시 재실행됨
-  useEffect(() => {
-    if (!openPid) return;
-    // DB 로드 중이면 잠깐 대기 (loading이 false가 되면 다시 실행됨)
-    if (loading) return;
-    // patients가 비어있으면 아직 데이터 없음
-    if (patients.length === 0) return;
-
-    const match = patients.find(p => p.id === openPid);
-    if (match) {
-      // 필터가 걸려 있으면 해당 환자가 안 보일 수 있으므로 검색 초기화
-      setSearch('');
-
-      // Drawer 오픈
-      setSelectedPatient(match);
-
-      // 리스트에서 해당 행으로 부드럽게 스크롤
-      requestAnimationFrame(() => {
-        const row = document.getElementById(`patient-row-${match.id}`);
-        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-
-      // URL에서 openPid 제거 — React Router 상태는 건드리지 않고 history만 조용히 업데이트
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('openPid');
-        window.history.replaceState(null, '', url.toString());
-      } catch { /* ignore */ }
-    }
-  }, [openPid, patients, loading]); // openPid 변경(탭 전환 포함) + 데이터 로드 완료 시 모두 트리거
 
   // ── Filtered & sorted list ──────────────────────────────────────────────────
   const filtered = useMemo(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import ChatList from '../components/chat/ChatList';
@@ -219,12 +219,28 @@ export default function Dashboard() {
     setSearchParams(prev => {
       const p = new URLSearchParams(prev);
       p.set('tab', tab);
-      // Clear cross-tab params when switching manually
+      // Clear cross-tab params when switching manually (NOT when navigating via navigate())
       if (tab !== 'chat') { p.delete('pid'); p.delete('pname'); p.delete('pflag'); }
       if (tab !== 'patients') { p.delete('openPid'); }
       return p;
     });
   };
+
+  // ── openPid: 상담 → 환자 역방향 이동 시 Drawer 자동 오픈 ──────────────────
+  // Dashboard가 React Router의 searchParams에서 직접 읽어 prop으로 내려줌
+  // → PatientsTab 내부의 useSearchParams / window.location 충돌 완전 차단
+  const openPid = searchParams.get('openPid') || '';
+
+  // PatientsTab이 Drawer를 열면 이 callback 호출 → URL에서 openPid 제거
+  // (React Router의 setSearchParams 사용 → window.history와 충돌 없음)
+  const handleDrawerOpened = useCallback(() => {
+    if (!searchParams.has('openPid')) return;
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      p.delete('openPid');
+      return p;
+    }, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // ── Patient context — set when navigating from patients → chat ────────────
   const [fromPatient, setFromPatient] = useState(null);
@@ -347,7 +363,13 @@ export default function Dashboard() {
           )}
 
           {/* ── 환자 관리 ── */}
-          {activeTab === 'patients' && <PatientsTab darkMode={darkMode} />}
+          {activeTab === 'patients' && (
+            <PatientsTab
+              darkMode={darkMode}
+              openPid={openPid}
+              onDrawerOpened={handleDrawerOpened}
+            />
+          )}
 
           {/* ── 애프터케어 ── */}
           {activeTab === 'aftercare' && <AftercareTab darkMode={darkMode} />}
