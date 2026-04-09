@@ -133,9 +133,83 @@ function PatientContextBanner({ fromPatient, onBack, darkMode }) {
   );
 }
 
+// ── Staff Management placeholder ─────────────────────────────────────────────
+function StaffMgmtTab({ darkMode }) {
+  const items = [
+    { name: '김지연', role: '실장',        email: 'jiyeon@libhib.com',    status: '활성' },
+    { name: '박소희', role: '코디네이터',  email: 'sohee@libhib.com',     status: '활성' },
+    { name: '최민준', role: '상담실장',    email: 'minjun@libhib.com',    status: '활성' },
+    { name: '이유나', role: '직원',        email: 'yuna@libhib.com',      status: '비활성' },
+  ];
+  const card = darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200';
+  const th   = darkMode ? 'bg-zinc-800 text-zinc-400' : 'bg-slate-50 text-slate-500';
+  const td   = darkMode ? 'border-zinc-800 text-zinc-300' : 'border-slate-100 text-slate-700';
+  return (
+    <div className="flex-1 overflow-y-auto p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className={`text-base font-extrabold ${darkMode ? 'text-zinc-100' : 'text-slate-800'}`}>직원 관리</h2>
+          <p className={`text-xs mt-0.5 ${darkMode ? 'text-zinc-500' : 'text-slate-500'}`}>클리닉에 등록된 직원 계정을 관리합니다</p>
+        </div>
+        <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white text-xs font-semibold shadow-sm hover:from-purple-500 hover:to-fuchsia-400 transition-all">
+          + 직원 초대
+        </button>
+      </div>
+      {/* Table */}
+      <div className={`rounded-2xl border overflow-hidden shadow-sm ${card}`}>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className={`text-[11px] uppercase tracking-wide font-semibold border-b ${th} ${darkMode ? 'border-zinc-800' : 'border-slate-200'}`}>
+              <th className="px-5 py-3 text-left">이름</th>
+              <th className="px-5 py-3 text-left">역할</th>
+              <th className="px-5 py-3 text-left hidden md:table-cell">이메일</th>
+              <th className="px-5 py-3 text-left">상태</th>
+              <th className="px-5 py-3 text-center">액션</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((s, i) => (
+              <tr key={i} className={`border-b last:border-0 ${td} ${darkMode ? 'border-zinc-800 hover:bg-zinc-800/50' : 'border-slate-100 hover:bg-slate-50'} transition-colors`}>
+                <td className="px-5 py-3.5 font-semibold">{s.name}</td>
+                <td className="px-5 py-3.5">
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border
+                    ${s.role === '실장' || s.role === '상담실장'
+                      ? 'bg-violet-50 text-violet-700 border-violet-200'
+                      : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                    {s.role}
+                  </span>
+                </td>
+                <td className={`px-5 py-3.5 text-xs hidden md:table-cell ${darkMode ? 'text-zinc-400' : 'text-slate-500'}`}>{s.email}</td>
+                <td className="px-5 py-3.5">
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border
+                    ${s.status === '활성' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                    {s.status}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5 text-center">
+                  <button className={`text-[11px] font-semibold px-3 py-1 rounded-lg border transition-colors
+                    ${darkMode ? 'border-zinc-700 text-zinc-400 hover:bg-zinc-700' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+                    편집
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/* Notice */}
+      <div className={`mt-4 flex items-center gap-2.5 px-4 py-3 rounded-xl border ${darkMode ? 'bg-amber-900/20 border-amber-800/40 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+        <span className="text-sm">⚠️</span>
+        <p className="text-xs font-medium">직원 초대 및 권한 변경은 Supabase Auth 연동 후 활성화됩니다.</p>
+      </div>
+    </div>
+  );
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { session, logout } = useAuth();
+  const { session, logout, role, canAccess, authReady } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -278,11 +352,26 @@ export default function Dashboard() {
           {/* ── 애프터케어 ── */}
           {activeTab === 'aftercare' && <AftercareTab darkMode={darkMode} />}
 
-          {/* ── 통계 ── */}
-          {activeTab === 'stats' && <StatsTab darkMode={darkMode} />}
+          {/* ── 통계 (owner/admin 전용) ── */}
+          {activeTab === 'stats' && (
+            canAccess('stats')
+              ? <StatsTab darkMode={darkMode} />
+              : <AccessDenied feature="통계 대시보드" darkMode={darkMode} />
+          )}
 
-          {/* ── 설정 ── */}
-          {activeTab === 'settings' && <SettingsTab darkMode={darkMode} />}
+          {/* ── 직원 관리 (owner/admin 전용) ── */}
+          {activeTab === 'staff_mgmt' && (
+            canAccess('staff_mgmt')
+              ? <StaffMgmtTab darkMode={darkMode} />
+              : <AccessDenied feature="직원 관리" darkMode={darkMode} />
+          )}
+
+          {/* ── 설정 (owner/admin 전용) ── */}
+          {activeTab === 'settings' && (
+            canAccess('settings')
+              ? <SettingsTab darkMode={darkMode} />
+              : <AccessDenied feature="병원 설정" darkMode={darkMode} />
+          )}
 
         </main>
       </div>
@@ -297,6 +386,26 @@ function EmptyState({ darkMode }) {
         <MessageSquare size={28} strokeWidth={1.5} />
       </div>
       <p className={`text-sm font-medium ${darkMode ? 'text-zinc-500' : 'text-slate-500'}`}>상담을 선택하세요</p>
+    </div>
+  );
+}
+
+// ── 권한 없음 화면 ─────────────────────────────────────────────────────────────
+function AccessDenied({ feature, darkMode }) {
+  return (
+    <div className={`flex-1 flex flex-col items-center justify-center gap-4 ${darkMode ? 'bg-zinc-950' : 'bg-slate-50'}`}>
+      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl
+        ${darkMode ? 'bg-zinc-800' : 'bg-slate-100'}`}>
+        🔒
+      </div>
+      <div className="text-center">
+        <p className={`text-sm font-bold ${darkMode ? 'text-zinc-300' : 'text-slate-700'}`}>
+          {feature}에 접근할 수 없습니다
+        </p>
+        <p className={`text-xs mt-1 ${darkMode ? 'text-zinc-500' : 'text-slate-400'}`}>
+          이 기능은 원장 또는 관리자 전용입니다
+        </p>
+      </div>
     </div>
   );
 }
