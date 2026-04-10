@@ -1216,6 +1216,64 @@ app.use((err, req, res, _next) => {
   if (!res.headersSent) res.status(500).json({ error: "Internal server error" });
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// POST /api/auth/register  { clinic_name, email, password }
+// 새 병원 계정 생성 — clinic 레코드 + Supabase user 를 서버에서 원자적으로 생성
+// app_metadata.clinic_id / role 은 DB 트리거가 자동 주입
+// ════════════════════════════════════════════════════════════════════════════
+app.post("/api/auth/register", async (req, res) => {
+  const { clinic_name, email, password } = req.body;
+
+  if (!clinic_name?.trim() || !email?.trim() || !password?.trim())
+    return res.status(400).json({ error: "clinic_name, email, password 모두 필요합니다." });
+
+  if (password.length < 8)
+    return res.status(400).json({ error: "비밀번호는 8자 이상이어야 합니다." });
+
+  try {
+    // 1. Supabase Admin API로 유저 생성
+    //    user_metadata.clinic_name → DB 트리거가 읽어 clinic 레코드 + app_metadata 자동 세팅
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.admin.createUser({
+      email:          email.trim(),
+      password:       password,
+      email_confirm:  true,           // 이메일 인증 없이 즉시 활성화
+      user_metadata:  {
+        clinic_name:  clinic_name.trim(),
+        full_name:    clinic_name.trim(),
+        role:         "owner",
+      },
+    });
+
+    if (userErr) {
+      // 이미 가입된 이메일
+      if (userErr.message?.includes("already")) {
+        return res.status(409).json({ error: "이미 가입된 이메일 주소입니다." });
+      }
+      throw userErr;
+    }
+
+    const userId = userData.user.id;
+
+    // 2. DB 트리거가 clinic 생성 + app_metadata 주입까지 처리함
+    //    트리거가 완료될 때까지 짧게 대기 후 최종 user 조회
+    await new Promise(r => setTimeout(r, 300));
+    const { data: finalUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const clinicId = finalUser?.user?.app_metadata?.clinic_id;
+
+    console.log(`[Register] 신규 병원 생성: "${clinic_name}" → clinic_id=${clinicId} user=${userId}`);
+    res.status(201).json({
+      success:   true,
+      clinic_id: clinicId,
+      user_id:   userId,
+      message:   `${clinic_name} 계정이 생성되었습니다.`,
+    });
+
+  } catch (err) {
+    console.error("[Register]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── SPA fallback
 app.get("*", (req, res) => {
   res.sendFile(join(__dirname, "public", "index.html"));

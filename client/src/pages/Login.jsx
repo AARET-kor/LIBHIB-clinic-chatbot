@@ -158,8 +158,8 @@ export default function Login() {
 
           <p className="text-center text-xs text-zinc-600 mt-5">
             계정이 없으신가요?{' '}
-            <Link to="/#pricing" className="text-purple-400 hover:underline font-medium">
-              도입 문의하기
+            <Link to="/signup" className="text-purple-400 hover:underline font-medium">
+              무료로 시작하기
             </Link>
           </p>
         </div>
