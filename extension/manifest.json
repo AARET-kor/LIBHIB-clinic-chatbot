@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "TikiChat Shadow AI",
-  "version": "1.0.0",
-  "description": "강남 하이엔드 의원 전용 글로벌 AI 비서실장 — 외국인 환자 상담 파이프라인",
+  "name": "TikiDoc Shadow AI",
+  "version": "2.0.0",
+  "description": "해외 환자 상담을 AI로 즉시 해결 — 8개국어 답변 자동 생성 · TikiDoc AI 다국어 상담 솔루션",
   "permissions": [
     "sidePanel",
     "storage",
@@ -28,7 +28,7 @@
       "48":  "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "TikiChat 열기 (Alt+C)"
+    "default_title": "TikiDoc Shadow AI 열기 (Alt+C)"
   },
   "commands": {
     "_execute_action": {
@@ -36,7 +36,7 @@
         "default": "Alt+C",
         "mac":     "Alt+C"
       },
-      "description": "TikiChat 사이드패널 열기/닫기"
+      "description": "TikiDoc Shadow AI 사이드패널 열기/닫기"
     }
   },
   "icons": {

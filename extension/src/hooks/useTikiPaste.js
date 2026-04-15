@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 
-// 개발: 백엔드 서버 절대 경로 하드코딩 (상대 경로 사용 금지)
-const API_BASE = 'http://localhost:3000';
+// Production: app.tikichat.xyz / 로컬 개발: .env.local에서 VITE_API_BASE_URL 변경
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://app.tikichat.xyz';
 
 /**
  * useTikiPaste — /api/tiki-paste 호출 훅

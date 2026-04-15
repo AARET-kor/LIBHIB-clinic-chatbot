@@ -1,5 +1,5 @@
 /**
- * TikiChat Shadow AI — MV3 Background Service Worker
+ * TikiDoc Shadow AI — MV3 Background Service Worker
  *
  * 역할:
  * 1. 설치 시 사이드패널 동작을 "액션 클릭 시 열기"로 설정
@@ -12,9 +12,9 @@
 chrome.runtime.onInstalled.addListener(() => {
   // 사이드패널: 아이콘 클릭 시 자동 열기/닫기 설정
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
-    .catch(err => console.error('[TikiChat] sidePanel 설정 실패:', err));
+    .catch(err => console.error('[TikiDoc] sidePanel 설정 실패:', err));
 
-  console.log('[TikiChat] Shadow AI Extension 설치 완료');
+  console.log('[TikiDoc] Shadow AI Extension 설치 완료');
 });
 
 // ── 아이콘 클릭 핸들러 (setPanelBehavior로 대부분 처리되지만 fallback) ────────

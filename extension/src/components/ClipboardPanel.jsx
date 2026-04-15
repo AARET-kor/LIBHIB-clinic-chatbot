@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTikiPaste } from '../hooks/useTikiPaste';
 import SalesPanel from './SalesPanel';
 
-// ── Design Tokens — Zinc / Vercel-style ──────────────────────────────────────
+// ── Design Tokens — Zinc + Watermelon Splash + Tropical Punch (app.tikichat.xyz 동일)
 const T = {
   bg:        '#ffffff',
   bgSub:     '#fafafa',
@@ -21,25 +21,30 @@ const T = {
   borderMd:  '#d4d4d8',
   black:     '#18181b',
   white:     '#ffffff',
-  // Card accents
-  c1:        '#6366f1',   // indigo  — 공감형
-  c2:        '#0ea5e9',   // sky     — 정보형
-  c3:        '#10b981',   // emerald — 세일즈형
+  // Watermelon Splash + Tropical Punch — 웹 대시보드와 동일
+  coral:     '#FC6C85',   // Watermelon Coral — 공감형 (kind)
+  coralDk:   '#e05572',
+  coralBg:   '#fff0f3',
+  teal:      '#069494',   // Tropical Teal — 정보형 (firm)
+  tealBg:    '#f0fafa',
+  orange:    '#FF8243',   // Tropical Orange — 세일즈형 (booking)
+  orangeBg:  '#fff5f0',
   red:       '#ef4444',
   redBg:     '#fef2f2',
 };
 
 const SANS = "'Pretendard Variable', 'Inter', system-ui, -apple-system, sans-serif";
 
-// ── Card definitions ──────────────────────────────────────────────────────────
+// ── Card definitions — 웹 대시보드 TikiPasteTab과 동일한 색상
 const CARD_DEFS = [
-  { key: 'kind',    label: '공감형',    sublabel: 'Empathetic',  Icon: MessageSquare, color: T.c1 },
-  { key: 'firm',    label: '정보형',    sublabel: 'Informative', Icon: ShieldCheck,   color: T.c2 },
-  { key: 'booking', label: '세일즈형',  sublabel: 'Closing',     Icon: CalendarCheck, color: T.c3 },
+  { key: 'kind',    label: '공감형',   sublabel: 'Empathetic',  Icon: MessageSquare, color: T.coral,  bg: T.coralBg  },
+  { key: 'firm',    label: '정보형',   sublabel: 'Informative', Icon: ShieldCheck,   color: T.teal,   bg: T.tealBg   },
+  { key: 'booking', label: '세일즈형', sublabel: 'Closing',     Icon: CalendarCheck, color: T.orange, bg: T.orangeBg },
 ];
 
 // ── Global CSS ────────────────────────────────────────────────────────────────
 const GLOBAL_CSS = `
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
   @keyframes cardIn {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -53,9 +58,10 @@ const GLOBAL_CSS = `
     50%  { background-position: 100% 50%; }
     100% { background-position: 0%   50%; }
   }
-  @keyframes pulseOpacity {
-    0%, 100% { opacity: 0.7; }
-    50%       { opacity: 1; }
+  @keyframes pulseRing {
+    0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(252,108,133,0.4); }
+    70%  { transform: scale(1);    box-shadow: 0 0 0 8px rgba(252,108,133,0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(252,108,133,0); }
   }
   * { box-sizing: border-box; }
   textarea { outline: none; resize: vertical; }
@@ -70,10 +76,10 @@ function AuroraBorder({ loading, children }) {
   if (!loading) return children;
   return (
     <div style={{ position: 'relative', padding: 2, borderRadius: 14 }}>
-      {/* Gradient border */}
+      {/* Gradient border — Watermelon Coral + Tropical Teal */}
       <div style={{
         position: 'absolute', inset: 0, borderRadius: 14,
-        background: 'linear-gradient(270deg, #6366f1, #8b5cf6, #0ea5e9, #6366f1)',
+        background: 'linear-gradient(270deg, #FC6C85, #FF8243, #069494, #FC6C85)',
         backgroundSize: '400% 400%',
         animation: 'auroraGlow 2.4s ease infinite',
         zIndex: 0,
@@ -224,21 +230,26 @@ export default function ClipboardPanel() {
       <style>{GLOBAL_CSS}</style>
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <div style={{
-        background: T.bg,
-        padding: '10px 14px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        borderBottom: `1px solid ${T.border}`,
-        flexShrink: 0,
-      }}>
+      <div style={{ flexShrink: 0 }}>
+        {/* Coral accent top line */}
+        <div style={{ height: 3, background: `linear-gradient(90deg, ${T.coral}, ${T.orange})` }} />
+        <div style={{
+          background: T.bg,
+          padding: '9px 14px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: `1px solid ${T.border}`,
+        }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 26, height: 26, borderRadius: 7, background: T.black, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 26, height: 26, borderRadius: 7, background: T.black, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
             <MessageSquare size={12} color="#fff" fill="#fff" />
           </div>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: T.text, letterSpacing: '-0.02em', lineHeight: 1 }}>TikiDoc</p>
-            <p style={{ fontSize: 9, color: T.textMt, marginTop: 2, letterSpacing: '0.06em' }}>AI 다국어 상담</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <p style={{ fontSize: 13, fontWeight: 800, color: T.text, letterSpacing: '-0.03em', lineHeight: 1 }}>TikiDoc</p>
+              <span style={{ fontSize: 8, fontWeight: 700, background: T.coral, color: '#fff', borderRadius: 4, padding: '1px 5px', letterSpacing: '0.04em' }}>AI</span>
+            </div>
+            <p style={{ fontSize: 9, color: T.textMt, marginTop: 2, letterSpacing: '0.06em' }}>Shadow AI · 다국어 상담</p>
           </div>
         </div>
 
@@ -265,6 +276,7 @@ export default function ClipboardPanel() {
           >
             <LogOut size={11} strokeWidth={1.5} />
           </button>
+        </div>
         </div>
       </div>
 
@@ -395,13 +407,13 @@ export default function ClipboardPanel() {
             animation: 'cardIn 0.3s ease-out both',
             boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
           }}>
-            <div style={{ height: 3, background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #0ea5e9)' }} />
+            <div style={{ height: 3, background: `linear-gradient(90deg, ${T.coral}, ${T.orange}, ${T.teal})` }} />
             <div style={{ display: 'flex', minHeight: 68 }}>
               {result.detected_language && (
                 <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                    <Globe size={9} color="#6366f1" strokeWidth={2.5} />
-                    <span style={{ fontSize: 8, fontWeight: 700, color: '#6366f1', letterSpacing: '0.2em', textTransform: 'uppercase' }}>감지 언어</span>
+                    <Globe size={9} color={T.coral} strokeWidth={2.5} />
+                    <span style={{ fontSize: 8, fontWeight: 700, color: T.coral, letterSpacing: '0.2em', textTransform: 'uppercase' }}>감지 언어</span>
                   </div>
                   <p style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1 }}>{result.detected_language}</p>
                 </div>
@@ -409,8 +421,8 @@ export default function ClipboardPanel() {
               {result.intent && (
                 <div style={{ flex: 1.6, padding: '12px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'rgba(255,255,255,0.03)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                    <Target size={9} color="#0ea5e9" strokeWidth={2.5} />
-                    <span style={{ fontSize: 8, fontWeight: 700, color: '#0ea5e9', letterSpacing: '0.2em', textTransform: 'uppercase' }}>환자 의도</span>
+                    <Target size={9} color={T.teal} strokeWidth={2.5} />
+                    <span style={{ fontSize: 8, fontWeight: 700, color: T.teal, letterSpacing: '0.2em', textTransform: 'uppercase' }}>환자 의도</span>
                   </div>
                   <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.25 }}>{result.intent}</p>
                 </div>
@@ -449,16 +461,16 @@ export default function ClipboardPanel() {
       {/* ── Footer ───────────────────────────────────────────────────────────── */}
       <div style={{
         borderTop: `1px solid ${T.border}`,
-        padding: '7px 14px',
+        padding: '6px 14px',
         background: T.bg,
         flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
       }}>
-        <div style={{ width: 4, height: 4, borderRadius: '50%', background: T.black }} />
+        <div style={{ width: 3, height: 3, borderRadius: '50%', background: T.coral }} />
         <p style={{ fontSize: 9, color: T.textMt, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-          TikiDoc · Tiki Paste 2.0
+          TikiDoc Shadow AI · v2.0
         </p>
-        <div style={{ width: 4, height: 4, borderRadius: '50%', background: T.black }} />
+        <div style={{ width: 3, height: 3, borderRadius: '50%', background: T.coral }} />
       </div>
     </div>
   );

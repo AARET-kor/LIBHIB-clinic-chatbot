@@ -50,11 +50,12 @@ export default function LoginForm() {
             <MessageSquare size={14} color="#fff" fill="#fff" />
           </div>
           <span style={{ fontSize: 18, fontWeight: 800, color: T.text, letterSpacing: '-0.03em' }}>TikiDoc</span>
+          <span style={{ fontSize: 10, fontWeight: 700, background: T.coral, color: '#fff', borderRadius: 5, padding: '2px 6px', letterSpacing: '0.04em' }}>AI</span>
         </div>
         {/* Coral accent line */}
         <div style={{ width: 36, height: 3, borderRadius: 2, background: T.coral, margin: '0 auto 8px' }} />
         <p style={{ fontSize: 11, color: T.textMt, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          AI 다국어 상담 솔루션
+          Shadow AI · 다국어 상담 솔루션
         </p>
       </div>
 
