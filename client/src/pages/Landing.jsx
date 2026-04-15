@@ -5,55 +5,121 @@ import {
   BarChart3, ArrowRight, Check, Star, Globe, Database, Menu, X
 } from 'lucide-react';
 
+// ── Harbor Haze 팔레트 ────────────────────────────────────────────────────────
+const C = {
+  // Backgrounds
+  white:    '#FFFFFF',
+  bgLight:  '#F4F6F9',    // Harbor light bg
+  bgPanel:  '#EAEDF2',    // Panel/section bg
+  bgCard:   '#F8F9FB',    // Card bg
+
+  // Harbor Haze primaries
+  blue:     '#5C8DC5',    // Vivid Blue — primary CTA
+  blueDk:   '#3E6DA0',    // Darker blue
+  blueBg:   '#E8F1FA',    // Blue tint bg
+  slate:    '#909EAE',    // Slate Blue Gray
+  taupe:    '#AD9E90',    // Warm Taupe
+  olive:    '#736F60',    // Dark Olive
+
+  // Text
+  textDk:   '#1E2535',    // Deep harbor navy (headings)
+  textMd:   '#3A4558',    // Medium (body)
+  textMt:   '#6B7A90',    // Muted (captions)
+  textLt:   '#909EAE',    // Light (hints)
+
+  // Borders
+  border:   '#C5CDD8',
+
+  // Watermelon Splash — 아주 드물게
+  coral:    '#FC6C85',
+  lime:     '#89F336',
+  mint:     '#ADEBB3',
+};
+
 // ── Header ────────────────────────────────────────────────────────────────────
 function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/60">
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <header style={{
+      position:   'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+      background: 'rgba(255,255,255,0.90)',
+      backdropFilter: 'blur(12px)',
+      borderBottom: `1px solid ${C.border}`,
+    }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Logo */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-fuchsia-500 flex items-center justify-center shadow-[0_0_14px_rgba(168,85,247,0.5)]">
-            <MessageSquare size={15} className="text-white" fill="white" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 34, height: 34,
+            background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 8,
+            boxShadow: `0 4px 12px rgba(92,141,197,0.30)`,
+          }}>
+            <MessageSquare size={15} color="#fff" fill="white" />
           </div>
-          <span className="text-lg font-bold text-zinc-100 tracking-tight">TikiChat</span>
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 hidden sm:inline">
-            티키챗
+          <span style={{ fontSize: 18, fontWeight: 700, color: C.textDk, letterSpacing: '-0.01em' }}>TikiDoc</span>
+          <span style={{
+            fontSize: 10, fontWeight: 600,
+            padding: '3px 8px', borderRadius: 999,
+            background: C.blueBg, color: C.blue,
+            border: `1px solid ${C.blue}30`,
+            display: 'none',  // hidden on small; shown via CSS below
+          }} className="sm-badge">
+            티키닥
           </span>
         </div>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6">
-          <a href="#features" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">기능</a>
-          <a href="#pricing" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">요금제</a>
-          <Link to="/login" className="text-sm font-medium px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600 transition-all">
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <a href="#features" style={{ fontSize: 14, color: C.textMt, textDecoration: 'none', transition: 'color 0.15s' }}
+            onMouseOver={e => e.target.style.color = C.textDk}
+            onMouseOut={e => e.target.style.color = C.textMt}>기능</a>
+          <a href="#pricing" style={{ fontSize: 14, color: C.textMt, textDecoration: 'none', transition: 'color 0.15s' }}
+            onMouseOver={e => e.target.style.color = C.textDk}
+            onMouseOut={e => e.target.style.color = C.textMt}>요금제</a>
+          <Link to="/login" style={{
+            fontSize: 14, fontWeight: 500,
+            padding: '8px 16px',
+            border: `1px solid ${C.border}`,
+            borderRadius: 8, color: C.textMd,
+            textDecoration: 'none',
+            transition: 'all 0.15s',
+          }}
+            onMouseOver={e => { e.target.style.background = C.bgPanel; e.target.style.borderColor = C.slate; }}
+            onMouseOut={e => { e.target.style.background = 'transparent'; e.target.style.borderColor = C.border; }}>
             로그인
           </Link>
-          <Link to="/login" className="text-sm font-semibold px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-fuchsia-500 hover:from-purple-500 hover:to-fuchsia-400 text-white transition-all shadow-[0_0_16px_rgba(168,85,247,0.4)]">
+          <Link to="/login" style={{
+            fontSize: 14, fontWeight: 600,
+            padding: '8px 18px', borderRadius: 8,
+            background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`,
+            color: '#fff', textDecoration: 'none',
+            boxShadow: `0 3px 14px rgba(92,141,197,0.35)`,
+            transition: 'all 0.15s',
+          }}>
             무료 시작
           </Link>
         </nav>
-
-        {/* Mobile: CTA + hamburger */}
-        <div className="flex items-center gap-2 md:hidden">
-          <Link to="/login" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.4)]">
-            무료 시작
-          </Link>
-          <button onClick={() => setMobileOpen(v => !v)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-700 text-zinc-400 hover:bg-zinc-800 transition-colors">
-            {mobileOpen ? <X size={16} /> : <Menu size={16} />}
-          </button>
-        </div>
       </div>
 
-      {/* Mobile dropdown menu */}
+      {/* Mobile dropdown */}
       {mobileOpen && (
-        <div className="md:hidden bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex flex-col gap-3">
-          <a href="#features" onClick={() => setMobileOpen(false)} className="text-sm text-zinc-300 hover:text-zinc-100 transition-colors py-2 border-b border-zinc-800">기능</a>
-          <a href="#pricing" onClick={() => setMobileOpen(false)} className="text-sm text-zinc-300 hover:text-zinc-100 transition-colors py-2 border-b border-zinc-800">요금제</a>
-          <Link to="/login" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-zinc-300 py-2">로그인</Link>
+        <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <a href="#features" onClick={() => setMobileOpen(false)} style={{ fontSize: 14, color: C.textMd, textDecoration: 'none', padding: '8px 0', borderBottom: `1px solid ${C.bgPanel}` }}>기능</a>
+          <a href="#pricing" onClick={() => setMobileOpen(false)} style={{ fontSize: 14, color: C.textMd, textDecoration: 'none', padding: '8px 0', borderBottom: `1px solid ${C.bgPanel}` }}>요금제</a>
+          <Link to="/login" onClick={() => setMobileOpen(false)} style={{ fontSize: 14, color: C.textMd, textDecoration: 'none', padding: '8px 0' }}>로그인</Link>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 640px) { .sm-badge { display: none !important; } }
+        @media (min-width: 640px) { .sm-badge { display: inline !important; } }
+        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+      `}</style>
     </header>
   );
 }
@@ -61,117 +127,121 @@ function Header() {
 // ── Dashboard Mockup ──────────────────────────────────────────────────────────
 function DashboardMockup() {
   return (
-    <div className="relative w-full max-w-4xl mx-auto mt-14">
-      {/* Neon glow background */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(168,85,247,0.28)_0%,rgba(217,70,239,0.1)_40%,transparent_70%)] -z-10 scale-110" />
+    <div style={{ position: 'relative', width: '100%', maxWidth: 860, margin: '56px auto 0', animation: 'float 5s ease-in-out infinite' }}>
+      {/* Glow */}
+      <div style={{
+        position: 'absolute', inset: '-20px',
+        background: `radial-gradient(ellipse at center, rgba(92,141,197,0.18) 0%, rgba(144,158,174,0.08) 50%, transparent 75%)`,
+        zIndex: -1,
+      }} />
 
-      {/* Main window */}
-      <div className="bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-700/50 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.2),0_25px_60px_rgba(0,0,0,0.6)]">
+      {/* Window frame */}
+      <div style={{
+        background: C.textDk,
+        borderRadius: 16,
+        overflow: 'hidden',
+        boxShadow: `0 24px 60px rgba(30,37,53,0.25), 0 0 0 1px rgba(255,255,255,0.08)`,
+      }}>
         {/* Window bar */}
-        <div className="h-8 bg-zinc-800 border-b border-zinc-700 flex items-center px-3 gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-          <div className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/70" />
-          <div className="flex-1 mx-6">
-            <div className="h-3.5 bg-zinc-700 rounded-full max-w-52 mx-auto" />
-          </div>
+        <div style={{ height: 32, background: '#2A3348', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 6 }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,100,100,0.7)' }} />
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,190,60,0.7)' }} />
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(100,200,100,0.7)' }} />
+          <div style={{ flex: 1, margin: '0 24px', height: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 999 }} />
         </div>
 
-        {/* App layout — light mode inside dark frame */}
-        <div className="flex h-72 text-[0px] bg-slate-50">
+        {/* App layout */}
+        <div style={{ display: 'flex', height: 288, background: C.bgLight }}>
           {/* Sidebar */}
-          <div className="w-12 bg-white border-r border-slate-100 flex flex-col items-center pt-3 gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-600 to-fuchsia-500 shadow-sm" />
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center ${i === 0 ? 'bg-purple-50 border border-purple-100' : ''}`}>
-                <div className={`w-3.5 h-3.5 rounded-sm ${i === 0 ? 'bg-purple-400' : 'bg-slate-300'}`} />
+          <div style={{ width: 48, background: C.white, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12, gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})` }} />
+            {[0,1,2].map(i => (
+              <div key={i} style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: i === 0 ? C.blueBg : 'transparent' }}>
+                <div style={{ width: 14, height: 14, borderRadius: 4, background: i === 0 ? C.blue : C.border }} />
               </div>
             ))}
           </div>
 
           {/* Chat list */}
-          <div className="w-44 border-r border-slate-100 bg-white pt-2 px-2 space-y-1">
-            {[
-              { active: true, badge: 2 },
-              { active: false, badge: 1 },
-              { active: false, badge: 0 },
-              { active: false, badge: 3 },
-            ].map((c, i) => (
-              <div key={i} className={`px-2 py-1.5 rounded-lg border ${c.active ? 'bg-purple-50 border-purple-100' : 'border-transparent'}`}>
-                <div className="flex items-center justify-between">
-                  <div className="h-2 bg-slate-700 rounded-full" style={{ width: `${42 + i * 6}px` }} />
-                  {c.badge > 0 && <div className="w-3 h-3 rounded-full bg-fuchsia-500" />}
+          <div style={{ width: 176, background: C.white, borderRight: `1px solid ${C.border}`, padding: '8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {[{ a: true, b: 2 }, { a: false, b: 1 }, { a: false, b: 0 }, { a: false, b: 3 }].map((c, i) => (
+              <div key={i} style={{ padding: '6px 8px', borderRadius: 8, background: c.a ? C.blueBg : 'transparent', border: `1px solid ${c.a ? C.blue + '30' : 'transparent'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ height: 8, background: c.a ? C.textMd : C.border, borderRadius: 4, width: 42 + i * 6 }} />
+                  {c.b > 0 && <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue }} />}
                 </div>
-                <div className="h-1.5 bg-slate-200 rounded-full mt-1 w-3/4" />
+                <div style={{ height: 6, background: C.bgPanel, borderRadius: 4, marginTop: 4, width: '75%' }} />
               </div>
             ))}
           </div>
 
-          {/* Chat window */}
-          <div className="flex-1 bg-slate-50 flex flex-col">
-            <div className="h-9 bg-white border-b border-slate-100 flex items-center px-3 gap-2">
-              <div className="w-5 h-5 rounded-full bg-rose-200" />
-              <div className="h-2 bg-slate-300 rounded-full w-20" />
-              <div className="ml-2 h-1.5 bg-purple-200 rounded-full w-10" />
+          {/* Chat area */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: C.bgLight }}>
+            <div style={{ height: 36, background: C.white, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8 }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', background: C.taupe + '60' }} />
+              <div style={{ height: 8, background: C.border, borderRadius: 4, width: 80 }} />
+              <div style={{ height: 6, background: C.blueBg, borderRadius: 4, width: 40 }} />
             </div>
-            <div className="flex-1 p-3 space-y-2.5 overflow-hidden">
-              <div className="flex gap-2 items-end">
-                <div className="w-5 h-5 rounded-full bg-rose-200 shrink-0" />
-                <div className="space-y-1">
-                  <div className="bg-white rounded-2xl rounded-bl-sm px-3 py-2 shadow-sm border border-slate-100">
-                    <div className="h-1.5 bg-slate-200 rounded w-40 mb-1" />
-                    <div className="h-1.5 bg-slate-200 rounded w-28" />
+            <div style={{ flex: 1, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Patient message */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: C.taupe + '60', flexShrink: 0 }} />
+                <div>
+                  <div style={{ background: C.white, borderRadius: '12px 12px 12px 2px', padding: '8px 12px', border: `1px solid ${C.border}` }}>
+                    <div style={{ height: 6, background: C.bgPanel, borderRadius: 4, width: 120, marginBottom: 4 }} />
+                    <div style={{ height: 6, background: C.bgPanel, borderRadius: 4, width: 88 }} />
                   </div>
-                  <div className="bg-purple-50 rounded-xl px-2.5 py-1.5 flex gap-1.5 border border-purple-100">
-                    <div className="w-2 h-2 rounded-full bg-purple-400 shrink-0 mt-0.5" />
+                  <div style={{ marginTop: 4, background: C.blueBg, borderRadius: 8, padding: '6px 10px', display: 'flex', gap: 6, border: `1px solid ${C.blue}20` }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.blue, marginTop: 2, flexShrink: 0 }} />
                     <div>
-                      <div className="h-1 bg-purple-300 rounded w-8 mb-0.5" />
-                      <div className="h-1.5 bg-purple-200 rounded w-32" />
+                      <div style={{ height: 4, background: C.blue + '60', borderRadius: 4, width: 32, marginBottom: 2 }} />
+                      <div style={{ height: 6, background: C.blueBg, borderRadius: 4, width: 120, border: `1px solid ${C.blue}20` }} />
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2 items-end justify-end">
-                <div className="bg-gradient-to-r from-purple-600 to-fuchsia-500 rounded-2xl rounded-br-sm px-3 py-2 shadow-sm">
-                  <div className="h-1.5 bg-white/50 rounded w-44 mb-1" />
-                  <div className="h-1.5 bg-white/50 rounded w-32" />
+              {/* Reply */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
+                <div style={{ background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`, borderRadius: '12px 12px 2px 12px', padding: '8px 12px' }}>
+                  <div style={{ height: 6, background: 'rgba(255,255,255,0.4)', borderRadius: 4, width: 120, marginBottom: 4 }} />
+                  <div style={{ height: 6, background: 'rgba(255,255,255,0.4)', borderRadius: 4, width: 88 }} />
                 </div>
-                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-400 to-fuchsia-500 shrink-0" />
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: `linear-gradient(135deg, ${C.slate}, ${C.blue})`, flexShrink: 0 }} />
               </div>
             </div>
-            <div className="mx-3 mb-2 rounded-xl border border-purple-200 bg-white p-2 shadow-sm">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-500 to-fuchsia-400" />
-                <div className="h-1.5 bg-purple-300 rounded w-16" />
+            <div style={{ margin: '0 12px 8px', background: C.white, border: `1px solid ${C.blue}30`, borderRadius: 10, padding: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue }} />
+                <div style={{ height: 6, background: C.blueBg, borderRadius: 4, width: 64 }} />
               </div>
-              <div className="h-1.5 bg-slate-200 rounded w-full mb-1" />
-              <div className="h-1.5 bg-slate-200 rounded w-3/4" />
-              <div className="flex gap-1.5 mt-2">
-                <div className="h-4 w-16 bg-slate-100 rounded-md" />
-                <div className="h-4 w-24 bg-gradient-to-r from-purple-600 to-fuchsia-500 rounded-md" />
+              <div style={{ height: 6, background: C.bgPanel, borderRadius: 4, width: '100%', marginBottom: 4 }} />
+              <div style={{ height: 6, background: C.bgPanel, borderRadius: 4, width: '75%' }} />
+              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                <div style={{ height: 16, width: 60, background: C.bgPanel, borderRadius: 6 }} />
+                <div style={{ height: 16, width: 88, background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`, borderRadius: 6 }} />
               </div>
             </div>
           </div>
 
           {/* Context panel */}
-          <div className="w-44 border-l border-slate-100 bg-white p-2 space-y-2">
-            <div className="flex items-center gap-1.5">
-              <div className="w-7 h-7 rounded-full bg-rose-100" />
+          <div style={{ width: 160, background: C.white, borderLeft: `1px solid ${C.border}`, padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.taupe + '40' }} />
               <div>
-                <div className="h-1.5 bg-slate-300 rounded w-16 mb-1" />
-                <div className="h-1 bg-slate-200 rounded w-10" />
+                <div style={{ height: 6, background: C.border, borderRadius: 4, width: 60, marginBottom: 4 }} />
+                <div style={{ height: 4, background: C.bgPanel, borderRadius: 4, width: 40 }} />
               </div>
             </div>
-            <div className="flex gap-1">
-              <div className="h-3 w-8 bg-amber-100 rounded-full" />
-              <div className="h-3 w-12 bg-purple-100 rounded-full" />
+            <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ height: 12, width: 32, background: C.taupe + '30', borderRadius: 999 }} />
+              <div style={{ height: 12, width: 48, background: C.blueBg, borderRadius: 999 }} />
             </div>
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-slate-100 shrink-0" />
+            {[0,1,2].map(i => (
+              <div key={i} style={{ display: 'flex', gap: 6 }}>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.bgPanel, flexShrink: 0 }} />
                 <div>
-                  <div className="h-1 bg-slate-200 rounded w-12 mb-0.5" />
-                  <div className="h-1.5 bg-slate-100 rounded w-20" />
+                  <div style={{ height: 4, background: C.bgPanel, borderRadius: 4, width: 48, marginBottom: 3 }} />
+                  <div style={{ height: 6, background: C.bgLight, borderRadius: 4, width: 80 }} />
                 </div>
               </div>
             ))}
@@ -190,14 +260,14 @@ const CLINIC_LOGOS = [
 
 function Marquee() {
   return (
-    <div className="overflow-hidden py-10 border-y border-zinc-800/60 bg-zinc-900/40">
-      <p className="text-center text-xs font-medium text-zinc-600 tracking-widest uppercase mb-6">
-        이미 트렌드를 아는 강남의 프리미엄 의원들이 티키챗과 함께합니다
+    <div style={{ overflow: 'hidden', padding: '40px 0', borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, background: C.bgPanel }}>
+      <p style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: C.textLt, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 20 }}>
+        이미 트렌드를 아는 강남의 프리미엄 의원들이 TikiDoc과 함께합니다
       </p>
-      <div className="flex gap-0 whitespace-nowrap animate-[marquee_25s_linear_infinite]">
+      <div style={{ display: 'flex', gap: 0, whiteSpace: 'nowrap', animation: 'marquee 25s linear infinite' }}>
         {[...CLINIC_LOGOS, ...CLINIC_LOGOS].map((name, i) => (
-          <span key={i} className="inline-flex items-center gap-2 px-8 text-zinc-500 font-semibold text-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500/50" />
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 32px', color: C.textMt, fontWeight: 600, fontSize: 14 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.blue + '60', display: 'inline-block' }} />
             {name}
           </span>
         ))}
@@ -208,109 +278,132 @@ function Marquee() {
 
 // ── Bento Features ────────────────────────────────────────────────────────────
 function BentoFeatures() {
+  const cardBase = {
+    background: C.white,
+    border: `1px solid ${C.border}`,
+    borderRadius: 16,
+    padding: 28,
+    transition: 'all 0.2s',
+  };
+
   return (
-    <section id="features" className="max-w-5xl mx-auto px-6 py-24">
-      <div className="text-center mb-14">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs font-semibold mb-4 border border-purple-500/30">
+    <section id="features" style={{ maxWidth: 960, margin: '0 auto', padding: '80px 24px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 56 }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '6px 14px', borderRadius: 999,
+          background: C.blueBg, color: C.blue,
+          fontSize: 11, fontWeight: 600, marginBottom: 16,
+          border: `1px solid ${C.blue}30`,
+        }}>
           <Sparkles size={12} fill="currentColor" /> 핵심 기능
         </span>
-        <h2 className="text-3xl font-extrabold text-zinc-100 tracking-tight">
+        <h2 style={{ fontSize: 30, fontWeight: 800, color: C.textDk, letterSpacing: '-0.02em', margin: 0 }}>
           코디네이터 없이 가능한 일들
         </h2>
-        <p className="text-zinc-500 mt-3 text-base">월 350만원의 다국어 코디네이터를 AI로 대체하세요.</p>
+        <p style={{ color: C.textMt, marginTop: 12, fontSize: 15 }}>월 350만원의 다국어 코디네이터를 AI로 대체하세요.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 auto-rows-auto gap-4">
-        {/* Card 1 — wide (2 cols on md+) */}
-        <div className="md:col-span-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-7 hover:-translate-y-1 transition-all duration-200 hover:border-purple-500/40 hover:shadow-[0_0_24px_rgba(168,85,247,0.12)]">
-          <div className="w-11 h-11 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 border border-purple-500/30">
-            <Languages size={22} className="text-purple-400" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, autoRows: 'auto' }}>
+        {/* Card 1 — wide */}
+        <div style={{ ...cardBase, gridColumn: 'span 2' }}
+          onMouseOver={e => { e.currentTarget.style.borderColor = C.blue + '60'; e.currentTarget.style.boxShadow = `0 8px 28px rgba(92,141,197,0.12)`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+          onMouseOut={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
+          <div style={{ width: 44, height: 44, background: C.blueBg, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: `1px solid ${C.blue}25` }}>
+            <Languages size={22} color={C.blue} />
           </div>
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: C.blueBg, color: C.blue, border: `1px solid ${C.blue}25` }}>
             실시간 AI 번역
           </span>
-          <h3 className="text-lg font-bold text-zinc-100 mt-3 mb-2">어떤 언어든 막힘없이 탁, 탁!</h3>
-          <p className="text-sm text-zinc-400 leading-relaxed">
-            왓츠앱, 인스타 DM, 카톡. 어디로 문의가 오든 AI가 병원의 시술 매뉴얼을 기반으로
-            완벽한 다국어 답변 초안을 1초 만에 세팅합니다.
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: C.textDk, margin: '12px 0 8px' }}>어떤 언어든 막힘없이 탁, 탁!</h3>
+          <p style={{ fontSize: 13, color: C.textMt, lineHeight: 1.7, margin: 0 }}>
+            왓츠앱, 인스타 DM, 카톡. 어디로 문의가 오든 AI가 병원의 시술 매뉴얼을 기반으로 완벽한 다국어 답변 초안을 1초 만에 세팅합니다.
           </p>
-          <div className="flex gap-2 mt-5 flex-wrap">
+          <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
             {['🇯🇵 日本語', '🇨🇳 中文', '🇸🇦 عربي', '🇺🇸 English', '🇰🇷 한국어', '🇻🇳 Tiếng Việt'].map(l => (
-              <span key={l} className="px-2.5 py-1 bg-zinc-800 text-zinc-300 text-xs rounded-full font-medium border border-zinc-700">
+              <span key={l} style={{ padding: '4px 10px', background: C.bgPanel, color: C.textMd, fontSize: 11, borderRadius: 999, fontWeight: 500, border: `1px solid ${C.border}` }}>
                 {l}
               </span>
             ))}
           </div>
         </div>
 
-        {/* Card 2 — tall (row-span-2 on md+), aurora purple gradient */}
-        <div className="md:row-span-2 bg-gradient-to-br from-purple-600 to-fuchsia-600 rounded-2xl p-7 text-white shadow-[0_0_40px_rgba(168,85,247,0.3)] hover:-translate-y-1 transition-transform duration-200">
-          <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-            <Sparkles size={22} className="text-white" />
+        {/* Card 2 — tall, harbor blue gradient */}
+        <div style={{ ...cardBase, gridRow: 'span 2', background: `linear-gradient(145deg, ${C.blueDk} 0%, ${C.blue} 100%)`, border: 'none', boxShadow: `0 12px 40px rgba(92,141,197,0.35)`, color: '#fff', transition: 'transform 0.2s' }}
+          onMouseOver={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'none'}>
+          <div style={{ width: 44, height: 44, background: 'rgba(255,255,255,0.18)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Sparkles size={22} color="#fff" />
           </div>
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/20 text-white">
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
             Chat-to-Chart
           </span>
-          <h3 className="text-lg font-bold mt-3 mb-2">대화가 끝나면 차트가 짠!</h3>
-          <p className="text-sm text-white/80 leading-relaxed">
+          <h3 style={{ fontSize: 17, fontWeight: 700, margin: '12px 0 8px' }}>대화가 끝나면 차트가 짠!</h3>
+          <p style={{ fontSize: 13, lineHeight: 1.7, opacity: 0.85, margin: 0 }}>
             AI가 대화 문맥을 파악해 환자 DB에 자동으로 입력합니다. 데스크의 타이핑을 없애세요.
           </p>
-          <div className="mt-6 space-y-2.5">
+          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {['환자명', '관심 시술', '방문 횟수', '특이사항'].map((label, i) => (
-              <div key={label} className="flex items-center gap-2">
-                <span className="text-[10px] text-white/60 w-14 shrink-0">{label}</span>
-                <div className="h-2 rounded-full bg-white/30 flex-1" style={{ maxWidth: `${55 + i * 12}%` }} />
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 10, opacity: 0.6, width: 56, flexShrink: 0 }}>{label}</span>
+                <div style={{ height: 8, borderRadius: 999, background: 'rgba(255,255,255,0.3)', flex: 1, maxWidth: `${55 + i * 12}%` }} />
               </div>
             ))}
           </div>
-          <div className="mt-5 text-[11px] text-white/60 leading-relaxed">
+          <div style={{ marginTop: 20, fontSize: 11, opacity: 0.6, lineHeight: 1.65 }}>
             대화가 끝나면 환자 카드에<br />자동으로 기록됩니다.
           </div>
         </div>
 
         {/* Card 3 */}
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 hover:-translate-y-1 transition-all duration-200 hover:border-purple-500/40 hover:shadow-[0_0_24px_rgba(168,85,247,0.12)]">
-          <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center mb-3 border border-purple-500/30">
-            <CalendarCheck size={20} className="text-purple-400" />
+        <div style={{ ...cardBase }}
+          onMouseOver={e => { e.currentTarget.style.borderColor = C.blue + '60'; e.currentTarget.style.boxShadow = `0 8px 28px rgba(92,141,197,0.10)`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+          onMouseOut={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
+          <div style={{ width: 40, height: 40, background: C.blueBg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, border: `1px solid ${C.blue}20` }}>
+            <CalendarCheck size={20} color={C.blue} />
           </div>
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 999, background: C.blueBg, color: C.blue, border: `1px solid ${C.blue}25` }}>
             자동 애프터케어
           </span>
-          <h3 className="text-sm font-bold text-zinc-100 mt-2.5 mb-1.5">본국으로 돌아가도 알아서 착, 착!</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: C.textDk, margin: '10px 0 6px' }}>본국으로 돌아가도 알아서 착, 착!</h3>
+          <p style={{ fontSize: 12, color: C.textMt, lineHeight: 1.7, margin: 0 }}>
             시술 항목에 맞춘 사후관리 메시지를 AI가 환자의 언어로 자동 발송해 VIP 팬덤을 구축합니다.
           </p>
-          <div className="flex gap-1.5 mt-3">
+          <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
             {['D+1', 'D+3', 'D+7'].map(d => (
-              <span key={d} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-purple-400 rounded-full border border-zinc-700">{d}</span>
+              <span key={d} style={{ fontSize: 10, padding: '3px 8px', background: C.bgPanel, color: C.blue, borderRadius: 999, border: `1px solid ${C.border}` }}>{d}</span>
             ))}
           </div>
         </div>
 
         {/* Card 4 */}
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 hover:-translate-y-1 transition-all duration-200 hover:border-purple-500/40 hover:shadow-[0_0_24px_rgba(168,85,247,0.12)]">
-          <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center mb-3 border border-purple-500/30">
-            <Database size={20} className="text-purple-400" />
+        <div style={{ ...cardBase }}
+          onMouseOver={e => { e.currentTarget.style.borderColor = C.blue + '60'; e.currentTarget.style.boxShadow = `0 8px 28px rgba(92,141,197,0.10)`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+          onMouseOut={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
+          <div style={{ width: 40, height: 40, background: C.blueBg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, border: `1px solid ${C.blue}20` }}>
+            <Database size={20} color={C.blue} />
           </div>
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 999, background: C.blueBg, color: C.blue, border: `1px solid ${C.blue}25` }}>
             스마트 DB 통합
           </span>
-          <h3 className="text-sm font-bold text-zinc-100 mt-2.5 mb-1.5">기존 환자 DB, 바로 연동</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: C.textDk, margin: '10px 0 6px' }}>기존 환자 DB, 바로 연동</h3>
+          <p style={{ fontSize: 12, color: C.textMt, lineHeight: 1.7, margin: 0 }}>
             엑셀·베가스 데이터를 AI가 컬럼을 분석해 자동 매칭합니다. 귀찮은 이관 없이 바로 시작.
           </p>
         </div>
 
         {/* Card 5 */}
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 hover:-translate-y-1 transition-all duration-200 hover:border-purple-500/40 hover:shadow-[0_0_24px_rgba(168,85,247,0.12)]">
-          <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center mb-3 border border-purple-500/30">
-            <BarChart3 size={20} className="text-purple-400" />
+        <div style={{ ...cardBase }}
+          onMouseOver={e => { e.currentTarget.style.borderColor = C.blue + '60'; e.currentTarget.style.boxShadow = `0 8px 28px rgba(92,141,197,0.10)`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+          onMouseOut={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
+          <div style={{ width: 40, height: 40, background: C.blueBg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, border: `1px solid ${C.blue}20` }}>
+            <BarChart3 size={20} color={C.blue} />
           </div>
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 999, background: C.blueBg, color: C.blue, border: `1px solid ${C.blue}25` }}>
             통합 통계
           </span>
-          <h3 className="text-sm font-bold text-zinc-100 mt-2.5 mb-1.5">채널별 전환율 한눈에</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: C.textDk, margin: '10px 0 6px' }}>채널별 전환율 한눈에</h3>
+          <p style={{ fontSize: 12, color: C.textMt, lineHeight: 1.7, margin: 0 }}>
             채널별 전환율, 언어별 문의량, 월간 응대 시간 절감 비용을 실시간으로 확인합니다.
           </p>
         </div>
@@ -340,45 +433,68 @@ const PLANS = [
 
 function Pricing() {
   return (
-    <section id="pricing" className="py-24 bg-zinc-900/30 border-y border-zinc-800/60">
-      <div className="max-w-5xl mx-auto px-6">
-        <div className="text-center mb-14">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs font-semibold mb-4 border border-purple-500/30">
+    <section id="pricing" style={{ padding: '80px 0', background: C.bgPanel, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 14px', borderRadius: 999,
+            background: C.blueBg, color: C.blue,
+            fontSize: 11, fontWeight: 600, marginBottom: 16,
+            border: `1px solid ${C.blue}30`,
+          }}>
             <Star size={12} fill="currentColor" /> 요금제
           </span>
-          <h2 className="text-3xl font-extrabold text-zinc-100 tracking-tight">
+          <h2 style={{ fontSize: 30, fontWeight: 800, color: C.textDk, letterSpacing: '-0.02em', margin: 0 }}>
             코디네이터 1명 인건비보다 저렴합니다
           </h2>
-          <p className="text-zinc-500 mt-3">월 350만원짜리 다국어 코디네이터, 이제 필요 없습니다.</p>
+          <p style={{ color: C.textMt, marginTop: 12, fontSize: 15 }}>월 350만원짜리 다국어 코디네이터, 이제 필요 없습니다.</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
           {PLANS.map(plan => (
-            <div key={plan.name}
-              className={`rounded-2xl p-7 transition-transform ${plan.highlight
-                ? 'bg-gradient-to-br from-purple-600 to-fuchsia-600 ring-2 ring-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.3)] lg:scale-105'
-                : 'bg-zinc-900 border border-zinc-800 hover:-translate-y-1'}`}
-            >
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${plan.highlight ? 'bg-white/20 text-white' : 'bg-zinc-800 text-zinc-400'}`}>
+            <div key={plan.name} style={{
+              borderRadius: 16,
+              padding: '28px',
+              transition: 'transform 0.2s',
+              ...(plan.highlight ? {
+                background: `linear-gradient(145deg, ${C.blueDk}, ${C.blue})`,
+                boxShadow: `0 16px 48px rgba(92,141,197,0.35)`,
+                transform: 'scale(1.03)',
+              } : {
+                background: C.white,
+                border: `1px solid ${C.border}`,
+              }),
+            }}>
+              <span style={{
+                fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 999,
+                ...(plan.highlight
+                  ? { background: 'rgba(255,255,255,0.2)', color: '#fff' }
+                  : { background: C.bgPanel, color: C.textMt }),
+              }}>
                 {plan.name}
               </span>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className={`text-3xl font-extrabold ${plan.highlight ? 'text-white' : 'text-zinc-100'}`}>{plan.price}</span>
-                <span className={`text-sm ${plan.highlight ? 'text-white/70' : 'text-zinc-500'}`}>{plan.unit}</span>
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 30, fontWeight: 800, color: plan.highlight ? '#fff' : C.textDk }}>{plan.price}</span>
+                <span style={{ fontSize: 13, color: plan.highlight ? 'rgba(255,255,255,0.7)' : C.textMt }}>{plan.unit}</span>
               </div>
-              <p className={`text-xs mt-1 mb-6 ${plan.highlight ? 'text-white/70' : 'text-zinc-500'}`}>{plan.desc}</p>
-              <ul className="space-y-2.5 mb-7">
+              <p style={{ fontSize: 12, margin: '4px 0 24px', color: plan.highlight ? 'rgba(255,255,255,0.7)' : C.textMt }}>{plan.desc}</p>
+              <ul style={{ listStyle: 'none', margin: '0 0 28px', padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {plan.features.map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm">
-                    <Check size={14} className={plan.highlight ? 'text-white/80' : 'text-purple-400'} strokeWidth={3} />
-                    <span className={plan.highlight ? 'text-white/90' : 'text-zinc-300'}>{f}</span>
+                  <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                    <Check size={14} color={plan.highlight ? 'rgba(255,255,255,0.85)' : C.blue} strokeWidth={3} />
+                    <span style={{ color: plan.highlight ? 'rgba(255,255,255,0.92)' : C.textMd }}>{f}</span>
                   </li>
                 ))}
               </ul>
-              <Link to="/login"
-                className={`block w-full text-center py-2.5 rounded-xl text-sm font-semibold transition-all ${plan.highlight
-                  ? 'bg-white text-purple-700 hover:bg-purple-50'
-                  : 'bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white hover:from-purple-500 hover:to-fuchsia-400 shadow-[0_0_16px_rgba(168,85,247,0.3)]'}`}
-              >
+              <Link to="/login" style={{
+                display: 'block', width: '100%', textAlign: 'center',
+                padding: '11px 0', borderRadius: 10,
+                fontSize: 14, fontWeight: 600, textDecoration: 'none',
+                transition: 'all 0.15s',
+                ...(plan.highlight
+                  ? { background: '#fff', color: C.blueDk }
+                  : { background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`, color: '#fff', boxShadow: `0 4px 14px rgba(92,141,197,0.30)` }),
+              }}>
                 {plan.cta}
               </Link>
             </div>
@@ -392,34 +508,49 @@ function Pricing() {
 // ── CTA Section ───────────────────────────────────────────────────────────────
 function CTASection() {
   return (
-    <section className="py-28">
-      <div className="max-w-3xl mx-auto px-6 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/20 text-purple-400 text-sm font-medium mb-7 border border-purple-500/30">
+    <section style={{ padding: '100px 0' }}>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '8px 18px', borderRadius: 999,
+          background: C.blueBg, color: C.blue,
+          fontSize: 14, fontWeight: 500, marginBottom: 28,
+          border: `1px solid ${C.blue}25`,
+        }}>
           <Globe size={14} />
           강남에서 세계로 — 언어 장벽 없는 의원을 만드세요
         </div>
-        <h2 className="text-4xl md:text-5xl font-extrabold text-zinc-100 tracking-tight leading-tight mb-5">
+        <h2 style={{ fontSize: 40, fontWeight: 800, color: C.textDk, letterSpacing: '-0.02em', lineHeight: 1.2, margin: '0 0 20px' }}>
           월 350만 원의 다국어<br />코디네이터 인건비,<br />
-          <span className="bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
-            티키챗으로 0원에 수렴하세요.
+          <span style={{ background: `linear-gradient(135deg, ${C.blue}, ${C.slate})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            TikiDoc으로 0원에 수렴하세요.
           </span>
         </h2>
-        <p className="text-zinc-400 text-base mb-10 leading-relaxed">
-          지금 바로 티키챗을 도입하고,<br />글로벌 매출의 한계를 지워버리세요.
+        <p style={{ color: C.textMt, fontSize: 16, marginBottom: 40, lineHeight: 1.7 }}>
+          지금 바로 TikiDoc을 도입하고,<br />글로벌 매출의 한계를 지워버리세요.
         </p>
-        <div className="flex items-center justify-center gap-4 flex-wrap">
-          <Link to="/login"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-500 hover:from-purple-500 hover:to-fuchsia-400 text-white font-semibold text-base shadow-[0_0_32px_rgba(168,85,247,0.45)] hover:shadow-[0_0_44px_rgba(168,85,247,0.55)] transition-all"
-          >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <Link to="/login" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '14px 32px', borderRadius: 12,
+            background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`,
+            color: '#fff', fontWeight: 600, fontSize: 16, textDecoration: 'none',
+            boxShadow: `0 6px 28px rgba(92,141,197,0.40)`,
+            transition: 'all 0.15s',
+          }}>
             지금 바로 시작하기 <ArrowRight size={16} />
           </Link>
-          <Link to="/login"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-zinc-700 text-zinc-300 font-semibold text-base hover:bg-zinc-800 hover:border-zinc-600 transition-all"
-          >
+          <Link to="/login" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '14px 32px', borderRadius: 12,
+            border: `1px solid ${C.border}`, color: C.textMd,
+            fontWeight: 600, fontSize: 16, textDecoration: 'none',
+            transition: 'all 0.15s',
+          }}>
             로그인
           </Link>
         </div>
-        <p className="text-xs text-zinc-700 mt-5">신용카드 불필요 · 2주 무료 체험 · 언제든 해지 가능</p>
+        <p style={{ fontSize: 12, color: C.textLt, marginTop: 20 }}>신용카드 불필요 · 2주 무료 체험 · 언제든 해지 가능</p>
       </div>
     </section>
   );
@@ -428,21 +559,23 @@ function CTASection() {
 // ── Footer ────────────────────────────────────────────────────────────────────
 function Footer() {
   return (
-    <footer className="border-t border-zinc-800/60 bg-zinc-900/40 py-10">
-      <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-600 to-fuchsia-500 flex items-center justify-center">
-            <MessageSquare size={11} className="text-white" fill="white" />
+    <footer style={{ borderTop: `1px solid ${C.border}`, background: C.bgPanel, padding: '40px 0' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 6, background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <MessageSquare size={11} color="#fff" fill="white" />
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.textMd }}>TikiDoc 티키닥</span>
+            <span style={{ color: C.border }}>|</span>
+            <span style={{ fontSize: 12, color: C.textLt }}>사업자등록번호: 000-00-00000 | 서울특별시 강남구 테헤란로 123</span>
           </div>
-          <span className="text-sm font-bold text-zinc-400">TikiChat 티키챗</span>
-          <span className="text-zinc-700 mx-2">|</span>
-          <span className="text-xs text-zinc-600">사업자등록번호: 000-00-00000 | 서울특별시 강남구 테헤란로 123</span>
-        </div>
-        <div className="flex items-center gap-5 text-xs text-zinc-600">
-          <a href="#" className="hover:text-zinc-400 transition-colors">이용약관</a>
-          <a href="#" className="hover:text-zinc-400 transition-colors">개인정보처리방침</a>
-          <a href="#" className="hover:text-zinc-400 transition-colors">문의하기</a>
-          <span>© 2026 TikiChat. All rights reserved.</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            {['이용약관', '개인정보처리방침', '문의하기'].map(t => (
+              <a key={t} href="#" style={{ fontSize: 12, color: C.textLt, textDecoration: 'none' }}>{t}</a>
+            ))}
+            <span style={{ fontSize: 12, color: C.textLt }}>© 2026 TikiDoc. All rights reserved.</span>
+          </div>
         </div>
       </div>
     </footer>
@@ -452,42 +585,56 @@ function Footer() {
 // ── Main Landing ──────────────────────────────────────────────────────────────
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-zinc-950 overflow-x-hidden">
+    <div style={{ minHeight: '100vh', background: C.white, overflowX: 'hidden', fontFamily: "system-ui, -apple-system, 'Inter', sans-serif" }}>
       <Header />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 px-6 text-center">
-        <div className="max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-400 text-xs font-semibold mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-            ✨ TikiChat 1.0 — 이제 외국인 환자 응대가 달라집니다
+      <section style={{ paddingTop: 128, paddingBottom: 64, paddingLeft: 24, paddingRight: 24, textAlign: 'center' }}>
+        <div style={{ maxWidth: 800, margin: '0 auto' }}>
+          {/* Announce badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '6px 16px', borderRadius: 999,
+            border: `1px solid ${C.blue}35`, background: C.blueBg,
+            color: C.blue, fontSize: 12, fontWeight: 600, marginBottom: 32,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.blue, animation: 'pulse 2s ease-in-out infinite', display: 'inline-block' }} />
+            ✨ TikiDoc 1.0 — 이제 외국인 환자 응대가 달라집니다
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6">
-            <span className="text-zinc-100">외국인 환자와의<br />완벽한 티키타카.</span>
-            {' '}
-            <span className="bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
-              티키챗
+          <h1 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.15, color: C.textDk, margin: '0 0 24px' }}>
+            외국인 환자와의<br />완벽한 티키타카.{' '}
+            <span style={{ background: `linear-gradient(135deg, ${C.blue}, ${C.slate})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              TikiDoc
             </span>
           </h1>
 
-          <p className="text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed mb-10">
+          <p style={{ fontSize: 17, color: C.textMt, maxWidth: 600, margin: '0 auto 40px', lineHeight: 1.75 }}>
             영어, 일본어, 중국어부터 아랍어까지.<br />
             K-뷰티를 찾는 글로벌 환자들의 문의를 코디네이터 없이<br />
             AI로 막힘없이 받아치는 미용 의원 전용 상담 CRM.
           </p>
 
-          <div className="flex items-center justify-center gap-4 mb-4 flex-wrap">
-            <Link to="/login"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-500 hover:from-purple-500 hover:to-fuchsia-400 text-white font-semibold text-base shadow-[0_0_28px_rgba(168,85,247,0.45)] hover:shadow-[0_0_36px_rgba(168,85,247,0.55)] transition-all"
-            >
-              티키챗 무료 도입하기 <ArrowRight size={16} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+            <Link to="/login" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '14px 28px', borderRadius: 12,
+              background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`,
+              color: '#fff', fontWeight: 600, fontSize: 16, textDecoration: 'none',
+              boxShadow: `0 6px 28px rgba(92,141,197,0.38)`,
+            }}>
+              TikiDoc 무료 도입하기 <ArrowRight size={16} />
             </Link>
-            <button className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl border border-zinc-700 text-zinc-300 font-semibold text-base hover:bg-zinc-800 hover:border-zinc-600 transition-all">
+            <button style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '14px 28px', borderRadius: 12,
+              border: `1px solid ${C.border}`, color: C.textMd,
+              fontWeight: 600, fontSize: 16, background: 'transparent', cursor: 'pointer',
+            }}>
               데모 영상 보기
             </button>
           </div>
-          <p className="text-xs text-zinc-600">신용카드 불필요 · 2주 무료 체험 · 언제든 해지 가능</p>
+          <p style={{ fontSize: 12, color: C.textLt }}>신용카드 불필요 · 2주 무료 체험 · 언제든 해지 가능</p>
         </div>
 
         <DashboardMockup />

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 
-// Vite가 빌드 시 환경변수를 문자열로 인라인함
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+// 개발: 백엔드 서버 절대 경로 하드코딩 (상대 경로 사용 금지)
+const API_BASE = 'http://localhost:3000';
 
 /**
  * useTikiPaste — /api/tiki-paste 호출 훅
@@ -46,8 +46,12 @@ export function useTikiPaste() {
       const data = await res.json();
       setResult(data);
     } catch (err) {
-      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-        setError(`서버에 연결할 수 없습니다. 서버가 실행 중인지 확인하세요.\n(${API_BASE})`);
+      const isNetwork = err.message.includes('Failed to fetch')
+        || err.message.includes('NetworkError')
+        || err.message.includes('net::ERR');
+      console.error('[TikiPaste] fetch 오류:', err.message, '\n  URL:', `${API_BASE}/api/tiki-paste`);
+      if (isNetwork) {
+        setError(`서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인하세요.\n대상: ${API_BASE}`);
       } else {
         setError(err.message);
       }

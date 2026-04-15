@@ -9,6 +9,7 @@ import {
   MessageCircle, Activity, Image as ImageIcon, Sliders
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 import ReservationModal from './ReservationModal';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -787,6 +788,7 @@ function BulkActionsBar({ selectedIds, patients, onClear, onExport }) {
  * @prop {Function} onDrawerOpened — Drawer가 열리면 호출 → Dashboard가 URL에서 openPid 제거
  */
 export default function PatientsTab({ darkMode, openPid = '', onDrawerOpened }) {
+  const { clinicId } = useAuth();
   const [patients,  setPatients]  = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [dbError,   setDbError]   = useState(null);
@@ -850,7 +852,9 @@ export default function PatientsTab({ darkMode, openPid = '', onDrawerOpened }) 
   const fetchPatients = async () => {
     setLoading(true); setDbError(null);
     try {
-      const { data, error } = await supabase.from('patients').select('*').order('created_at', { ascending: false });
+      let query = supabase.from('patients').select('*').order('created_at', { ascending: false });
+      if (clinicId) query = query.eq('clinic_id', clinicId);
+      const { data, error } = await query;
       if (error) throw error;
       setPatients(data && data.length > 0 ? data.map(mapDbRow) : INITIAL_PATIENTS);
     } catch (err) {
@@ -859,7 +863,7 @@ export default function PatientsTab({ darkMode, openPid = '', onDrawerOpened }) 
       setPatients(INITIAL_PATIENTS);
     } finally { setLoading(false); }
   };
-  useEffect(() => { fetchPatients(); }, []);
+  useEffect(() => { fetchPatients(); }, [clinicId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filtered & sorted list ──────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -897,6 +901,7 @@ export default function PatientsTab({ darkMode, openPid = '', onDrawerOpened }) 
     setPatients(prev => [...newPatients, ...prev]);
     try {
       const rows = newPatients.map(p => ({
+        clinic_id:clinicId||undefined,
         name:p.name,name_en:p.nameEn,flag:p.flag,country:p.country,lang:p.lang,
         gender:p.gender,age:p.age,channel:p.channel,procedure:p.procedure,
         last_visit:p.lastVisit,next_booking:p.nextBooking,status:p.status,
@@ -911,7 +916,7 @@ export default function PatientsTab({ darkMode, openPid = '', onDrawerOpened }) 
       const idx = prev.findIndex(p=>p.id===data.id);
       return idx >= 0 ? prev.map(p=>p.id===data.id?data:p) : [data,...prev];
     });
-    const row = { name:data.name,name_en:data.nameEn,flag:data.flag,country:data.country,lang:data.lang,gender:data.gender,age:data.age,channel:data.channel,procedure:data.procedure,last_visit:data.lastVisit||null,next_booking:data.nextBooking||null,status:data.status,total_spent:data.totalSpent||0,phone:data.phone,email:data.email,note:data.note,tags:data.tags||[] };
+    const row = { clinic_id:clinicId||undefined,name:data.name,name_en:data.nameEn,flag:data.flag,country:data.country,lang:data.lang,gender:data.gender,age:data.age,channel:data.channel,procedure:data.procedure,last_visit:data.lastVisit||null,next_booking:data.nextBooking||null,status:data.status,total_spent:data.totalSpent||0,phone:data.phone,email:data.email,note:data.note,tags:data.tags||[] };
     try {
       if (/^[0-9a-f-]{36}$/.test(data.id)) {
         const { error } = await supabase.from('patients').update(row).eq('id',data.id);

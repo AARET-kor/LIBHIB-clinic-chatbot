@@ -5,6 +5,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import QuotePage from './pages/QuotePage';
 
 export default function App() {
   return (
@@ -15,6 +16,9 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+
+          {/* Public — 견적서 공유 링크 (인증 불필요) */}
+          <Route path="/quote/:id" element={<QuotePage />} />
 
           {/* Protected — /app/* */}
           <Route

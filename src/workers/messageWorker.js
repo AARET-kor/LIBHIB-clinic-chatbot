@@ -15,7 +15,7 @@ import { Worker }         from "bullmq";
 import { createHash }     from "crypto";
 import Anthropic          from "@anthropic-ai/sdk";
 import { redisConnection } from "../lib/queue.js";
-import { supabaseAdmin, writeAuditLog } from "../lib/supabase-server.js";
+import { getSupabaseAdmin, writeAuditLog } from "../lib/supabase-server.js";
 import { sendMetaMessage }  from "../api/meta.js";
 import { sendKakaoMessage } from "../api/solapi.js";
 
@@ -73,7 +73,7 @@ function extractMessages(payload) {
 async function findPatient(clinicId, channel, senderId) {
   const field = channel === "whatsapp" ? "phone" : "instagram_id";
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("patients")
     .select("id, name, nationality, phone, instagram_id, preferred_lang")
     .eq("clinic_id", clinicId)   // ← RLS 명시적 강제
@@ -145,7 +145,7 @@ async function generateReply(text, lang, clinicId) {
 // ── Supabase messages 테이블 저장 ─────────────────────────────────────
 async function saveMessage({ clinicId, patientId, channel, direction, text, rawMessageId }) {
   try {
-    await supabaseAdmin.from("messages").insert({
+    await getSupabaseAdmin().from("messages").insert({
       clinic_id:      clinicId,
       patient_id:     patientId,
       channel,

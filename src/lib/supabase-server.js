@@ -20,26 +20,50 @@
  * ─────────────────────────────────────────────────────────────────
  */
 
+// ESM hoisting 방어: 이 모듈이 server.js보다 먼저 초기화되더라도 env가 로드되어 있음
+import 'dotenv/config';
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL     = process.env.SUPABASE_URL            || "";
-const SUPABASE_SVC_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+// ── Lazy initialization ───────────────────────────────────────────────────────
+// undefined = 아직 초기화 안 됨 / null = URL 미설정 → 연결 없음 / SupabaseClient = 정상
+let _adminClient;
 
-if (!SUPABASE_SVC_KEY) {
-  console.warn("[Supabase] SUPABASE_SERVICE_ROLE_KEY 미설정 — ANON KEY로 fallback (RLS 적용됨)");
+/**
+ * Supabase Admin 클라이언트를 lazy하게 반환.
+ * 최초 호출 시 env를 읽어 createClient — 이후 캐시된 인스턴스 반환.
+ * @returns {import("@supabase/supabase-js").SupabaseClient | null}
+ */
+export function getSupabaseAdmin() {
+  if (_adminClient !== undefined) return _adminClient;
+
+  const url    = process.env.SUPABASE_URL || "";
+  const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+
+  if (!url) {
+    console.warn("[Supabase] SUPABASE_URL 미설정 — Supabase 없이 실행 중 (DB 기능 비활성화)");
+    return (_adminClient = null);
+  }
+  if (!svcKey) {
+    console.warn("[Supabase] SUPABASE_SERVICE_ROLE_KEY 미설정 — ANON KEY로 fallback (RLS 적용됨)");
+  }
+
+  _adminClient = createClient(url, svcKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  console.log("[Supabase] Admin 클라이언트 초기화 완료");
+  return _adminClient;
 }
-
-export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SVC_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
 
 /**
  * audit_logs 테이블에 기록 (fire-and-forget, 실패해도 앱 크래시 없음)
  * @param {object} entry
  */
 export async function writeAuditLog(entry) {
+  const admin = getSupabaseAdmin();
+  if (!admin) return; // Supabase 미설정 — 조용히 skip
+
   try {
-    await supabaseAdmin.from("audit_logs").insert({
+    await admin.from("audit_logs").insert({
       event_type:           entry.eventType        || "ai_reply",
       clinic_id:            entry.clinicId          || process.env.CLINIC_ID || null,
       patient_id:           entry.patientId         || null,

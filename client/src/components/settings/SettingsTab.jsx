@@ -20,7 +20,7 @@ const DAYS_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
 // ── General Settings ──────────────────────────────────────────────────────────
 function GeneralSection({ darkMode }) {
-  const [clinicName, setClinicName] = useState('TikiChat 클리닉');
+  const [clinicName, setClinicName] = useState('TikiDoc 클리닉');
   const [address, setAddress] = useState('서울특별시 강남구 압구정로 00길 00');
   const [phone, setPhone] = useState('+82-2-0000-0000');
   const [hours, setHours] = useState({
@@ -157,7 +157,7 @@ function AISection({ darkMode }) {
   const [language, setLanguage] = useState('auto');
   const [emoji, setEmoji] = useState(true);
   const [signature, setSignature] = useState(true);
-  const [signatureText, setSignatureText] = useState('감사합니다 😊\n— TikiChat 클리닉 상담팀');
+  const [signatureText, setSignatureText] = useState('감사합니다 😊\n— TikiDoc 클리닉 상담팀');
   const [saved, setSaved] = useState(false);
 
   const card = darkMode ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-slate-200';
@@ -389,7 +389,7 @@ function ChannelsSection({ darkMode }) {
         <div className="flex items-start gap-2.5">
           <Link2 size={14} className="text-purple-500 mt-0.5 shrink-0" />
           <p className={`text-xs leading-relaxed ${darkMode ? 'text-zinc-400' : 'text-slate-600'}`}>
-            각 채널을 연결하면 TikiChat에서 모든 메시지를 통합 관리할 수 있습니다.
+            각 채널을 연결하면 TikiDoc에서 모든 메시지를 통합 관리할 수 있습니다.
             연결 시 해당 서비스의 공식 인증 페이지로 이동합니다.
           </p>
         </div>

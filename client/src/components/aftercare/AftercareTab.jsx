@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle2, Clock, Circle, Send, Loader2, Calendar, LayoutGrid, List } from 'lucide-react';
-import { aftercarePatients } from '../../data/mockData';
+import { aftercarePatients as mockAftercarePatients } from '../../data/mockData';
+import { useAuth } from '../../context/AuthContext';
 import ChannelBadge from '../chat/ChannelBadge';
 import KanbanBoard from './KanbanBoard';
 
@@ -102,7 +103,17 @@ function TableRow({ ac }) {
 
 // ── Main ──────────────────────────────────────────────────────
 export default function AftercareTab() {
+  const { clinicId } = useAuth();
   const [view, setView] = useState('kanban'); // 'kanban' | 'table'
+  const [aftercarePatients, setAftercarePatients] = useState(mockAftercarePatients);
+
+  useEffect(() => {
+    if (!clinicId) return;
+    fetch(`/api/aftercare?clinicId=${encodeURIComponent(clinicId)}`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => { if (data.length > 0) setAftercarePatients(data); })
+      .catch(() => {}); // keep mockData on error
+  }, [clinicId]);
 
   const sentCount = aftercarePatients.reduce((acc, ac) =>
     acc + [ac.d1, ac.d3, ac.d7].filter(d => d.status === 'sent').length, 0);

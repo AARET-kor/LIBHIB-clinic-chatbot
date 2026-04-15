@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { Phone, Video, MoreHorizontal, X, PhoneOff, Mic, MicOff, Camera, CameraOff, Maximize2, UserSquare2 } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import ReplyArea from './ReplyArea';
@@ -118,8 +119,9 @@ function CallModal({ type, patient, onClose }) {
 export default function ChatWindow({ conv, onConvUpdate, darkMode }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { clinicId } = useAuth();
   const messagesEndRef = useRef(null);
-  const [messages, setMessages] = useState(conv.messages);
+  const [messages, setMessages] = useState(conv.messages || []);
   const [callType, setCallType] = useState(null); // null | 'voice' | 'video'
 
   // URL에서 환자 ID를 읽어 환자 관리 탭으로 역방향 이동
@@ -136,19 +138,35 @@ export default function ChatWindow({ conv, onConvUpdate, darkMode }) {
     }
   };
 
+  // Load messages from API when conversation changes
   useEffect(() => {
-    setMessages(conv.messages);
-  }, [conv.id]);
+    if (!conv?.id) return;
+    // Always start with whatever is in conv.messages (mock or previously loaded)
+    setMessages(conv.messages || []);
+    // If we have a clinicId, try to fetch from API
+    if (!clinicId) return;
+    fetch(`/api/conversations/${conv.id}/messages`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => { if (data.length > 0) setMessages(data); })
+      .catch(() => {}); // silently keep mockData on failure
+  }, [conv.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleMessageSent = (newMsg) => {
-    const updated = [...messages, newMsg];
-    setMessages(updated);
-    onConvUpdate?.(conv.id, { messages: updated, status: 'replied' });
-  };
+  const handleMessageSent = useCallback((newMsg) => {
+    setMessages(prev => [...prev, newMsg]);
+    onConvUpdate?.(conv.id, { status: 'replied', preview: newMsg.originalText?.slice(0, 80) });
+    // Persist to API
+    if (clinicId) {
+      fetch(`/api/conversations/${conv.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, message: newMsg }),
+      }).catch(() => {});
+    }
+  }, [conv.id, clinicId, onConvUpdate]);
 
   const headerBg = darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200';
   const bodyBg = darkMode ? 'bg-zinc-950' : 'bg-slate-50';

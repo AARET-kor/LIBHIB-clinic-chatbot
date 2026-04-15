@@ -69,8 +69,8 @@ const MOCK_TENANTS = {
     role: 'owner',
     clinic: {
       id: 'demo',
-      name: 'TikiChat 데모 클리닉',
-      nameEn: 'TikiChat Demo',
+      name: 'TikiDoc 데모 클리닉',
+      nameEn: 'TikiDoc Demo',
       location: '강남구 청담동',
       plan: 'Enterprise',
       planColor: 'bg-amber-100 text-amber-700',

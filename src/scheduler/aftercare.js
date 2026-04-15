@@ -20,7 +20,7 @@
 
 import { Worker }               from "bullmq";
 import { aftercareQueue, redisConnection, safeEnqueue, messageQueue } from "../lib/queue.js";
-import { supabaseAdmin, writeAuditLog } from "../lib/supabase-server.js";
+import { getSupabaseAdmin, writeAuditLog } from "../lib/supabase-server.js";
 
 const CRON_10AM_KST = "0 10 * * *"; // 매일 오전 10시
 const TIMEZONE      = "Asia/Seoul";
@@ -73,7 +73,7 @@ function startAftercareWorker() {
 
       // ── 애프터케어 대상 환자 조회 ──────────────────────────────────
       // needs_d1_care, needs_d3_care, needs_d7_care 중 하나라도 true인 환자
-      const { data: patients, error } = await supabaseAdmin
+      const { data: patients, error } = await getSupabaseAdmin()
         .from("patients")
         .select("id, name, phone, instagram_id, preferred_channel, preferred_lang, procedure_id, clinic_id, needs_d1_care, needs_d3_care, needs_d7_care")
         .eq("clinic_id", clinicId)      // ← RLS 명시적 강제
@@ -111,7 +111,7 @@ function startAftercareWorker() {
         if (day === 3) updateFields.needs_d3_care = false;
         if (day === 7) updateFields.needs_d7_care = false;
 
-        await supabaseAdmin
+        await getSupabaseAdmin()
           .from("patients")
           .update(updateFields)
           .eq("id", patient.id)

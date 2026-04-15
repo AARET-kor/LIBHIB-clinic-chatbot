@@ -1,46 +1,20 @@
-import { MessageSquare, Calendar, BarChart3, Settings, Users, UserCog, Shield, Stethoscope, Sparkles } from 'lucide-react';
+import { BarChart3, Settings, Shield, Stethoscope, Sparkles, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 네비게이션 아이템 정의
-// requiredRoles: null → 모든 역할 접근 가능
-//               ['owner','admin'] → 해당 역할만 가능
+// 원장 전용 관제탑 — 티키 Paste · 시술 관리 · 통계 · 설정만 노출
 // ─────────────────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  {
-    id:            'chat',
-    icon:          MessageSquare,
-    label:         '상담 관리',
-    requiredRoles: null,                     // 전체 허용
-  },
-  {
-    id:            'patients',
-    icon:          Users,
-    label:         '환자 관리',
-    requiredRoles: null,
-  },
-  {
-    id:            'aftercare',
-    icon:          Calendar,
-    label:         '애프터케어',
-    requiredRoles: null,
-  },
   {
     id:            'stats',
     icon:          BarChart3,
     label:         '통계',
-    requiredRoles: ['owner', 'admin'],       // owner / admin 전용
+    requiredRoles: ['owner', 'admin'],
   },
   {
     id:            'procedures',
     icon:          Stethoscope,
     label:         '시술 관리',
-    requiredRoles: ['owner', 'admin'],
-  },
-  {
-    id:            'staff_mgmt',
-    icon:          UserCog,
-    label:         '직원 관리',
     requiredRoles: ['owner', 'admin'],
   },
 ];
@@ -52,9 +26,9 @@ function RoleBadge({ role, darkMode }) {
   if (!role) return null;
 
   const configs = {
-    owner: { label: '원장',   bg: 'bg-amber-400/20',   text: 'text-amber-400',   dot: 'bg-amber-400' },
-    admin: { label: '관리자', bg: 'bg-violet-400/20',  text: 'text-violet-400',  dot: 'bg-violet-400' },
-    staff: { label: '직원',   bg: 'bg-slate-400/20',   text: 'text-slate-400',   dot: 'bg-slate-400'  },
+    owner: { label: '원장',   bg: 'bg-[#AD9E90]/20',   text: 'text-[#7A6858]',   dot: 'bg-[#AD9E90]' },
+    admin: { label: '관리자', bg: 'bg-[#5C8DC5]/20',  text: 'text-[#3E6DA0]',  dot: 'bg-[#5C8DC5]' },
+    staff: { label: '직원',   bg: 'bg-[#909EAE]/20',   text: 'text-[#636E7E]',   dot: 'bg-[#909EAE]'  },
   };
   const c = configs[role] || configs.staff;
 
@@ -94,13 +68,13 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
   const { session, role, canAccess } = useAuth();
 
   // ── 스타일 ──────────────────────────────────────────────────────────────────
-  const base         = darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200';
+  const base         = darkMode ? 'bg-[#1E2535] border-[#2A3348]' : 'bg-white border-[#C5CDD8]';
   const activeClass  = darkMode
-    ? 'bg-purple-500/20 text-purple-400 shadow-sm border border-purple-500/30'
-    : 'bg-purple-50 text-purple-700 shadow-sm border border-purple-100';
+    ? 'bg-[#5C8DC5]/20 text-[#5C8DC5] shadow-sm border border-[#5C8DC5]/30'
+    : 'bg-[#E8F1FA] text-[#3E6DA0] shadow-sm border border-[#5C8DC5]/25';
   const inactiveClass = darkMode
-    ? 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 border border-transparent'
-    : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 border border-transparent';
+    ? 'text-[#909EAE] hover:bg-[#2A3348] hover:text-[#C5CDD8] border border-transparent'
+    : 'text-[#909EAE] hover:bg-[#F4F6F9] hover:text-[#3A4558] border border-transparent';
 
   // ── role이 null(로딩 중)이면 전체 허용으로 안전 처리 ──────────────────────
   const isAdminOrAbove = !role || role === 'owner' || role === 'admin';
@@ -109,7 +83,7 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
     <aside className={`w-16 flex flex-col items-center ${base} border-r py-4 gap-1 shrink-0`}>
 
       {/* ── 로고 ──────────────────────────────────────────────────────────── */}
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-fuchsia-500 flex items-center justify-center mb-4 shadow-[0_0_12px_rgba(168,85,247,0.35)]">
+      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3E6DA0] to-[#5C8DC5] flex items-center justify-center mb-4 shadow-[0_4px_14px_rgba(92,141,197,0.35)]">
         <MessageSquare size={16} className="text-white" fill="white" />
       </div>
 
@@ -121,29 +95,27 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
           onClick={() => onTabChange('tiki_paste')}
           title="Tiki Paste — 붙여넣기 즉시 AI 답변 3종 자동 생성"
           style={activeTab === 'tiki_paste' ? {
-            background: 'linear-gradient(135deg, #D4AF37 0%, #B8962E 50%, #F0D060 100%)',
-            backgroundSize: '200% 200%',
-            animation: 'goldShimmer 3s ease infinite',
-            boxShadow: '0 2px 14px rgba(212,175,55,0.50)',
+            background: 'linear-gradient(135deg, #3E6DA0 0%, #5C8DC5 60%, #7AAAD8 100%)',
+            boxShadow: '0 2px 14px rgba(92,141,197,0.45)',
             border: 'none',
           } : darkMode ? {
-            background: 'rgba(212,175,55,0.07)',
-            border: '1px solid rgba(212,175,55,0.22)',
+            background: 'rgba(92,141,197,0.07)',
+            border: '1px solid rgba(92,141,197,0.22)',
           } : {
             background: '#ffffff',
-            border: '1px solid #e8d878',
-            boxShadow: '0 1px 6px rgba(212,175,55,0.12)',
+            border: '1px solid #5C8DC530',
+            boxShadow: '0 1px 6px rgba(92,141,197,0.10)',
           }}
           className={`
             w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl
             transition-all duration-150 relative
-            ${activeTab === 'tiki_paste' ? 'text-amber-50' : darkMode ? 'text-amber-500' : 'text-amber-700'}
+            ${activeTab === 'tiki_paste' ? 'text-white' : darkMode ? 'text-[#5C8DC5]' : 'text-[#3E6DA0]'}
           `}
         >
           <Sparkles size={18} strokeWidth={activeTab === 'tiki_paste' ? 2.5 : 1.8} />
           <span className="text-[9px] font-bold tracking-tight leading-none">티키</span>
           {activeTab !== 'tiki_paste' && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#5C8DC5]" />
           )}
         </button>
 

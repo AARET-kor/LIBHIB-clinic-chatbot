@@ -1,10 +1,13 @@
+// ESM hoisting 근본 해결: 모든 import 중 가장 먼저 실행되어 env를 로드
+import 'dotenv/config';
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { createHash } from "crypto";
 import dotenv from "dotenv";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dirname, ".env"), override: true });
+// 사용자 지정 경로로 한 번 더 로드 — 개발/배포 경로 차이 대응 (이미 로드된 키는 override: false 기본값으로 덮어쓰지 않음)
+dotenv.config({ path: join(__dirname, ".env") });
 
 // ── 전역 방어막 ───────────────────────────────────────────────────────────────
 // uncaughtException은 프로세스 상태를 신뢰할 수 없으므로 exit(1) → Railway 즉시 재시작
@@ -47,7 +50,20 @@ const MODEL_HAIKU  = process.env.MODEL_HAIKU  || "claude-haiku-4-5-20251001";
 const MODEL_SONNET = process.env.MODEL_SONNET || "claude-sonnet-4-6-20260217";
 
 const app = express();
-app.use(cors());
+
+// ── CORS 설정 ─────────────────────────────────────────────────────────────────
+// 개발 중: origin: true (요청 origin 그대로 반영), credentials: true로 최대 개방
+// 프로덕션 전환 시: origin 화이트리스트로 교체 필요
+const corsOptions = {
+  origin: true,          // 모든 origin 허용 — chrome-extension://* 포함
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  credentials: true,     // 쿠키/인증 헤더 허용
+};
+
+app.use(cors(corsOptions));
+// Preflight(OPTIONS) 요청을 모든 경로에서 즉시 응답
+app.options("*", cors(corsOptions));
 
 // ⚠️  Meta Webhook은 raw body가 필요 (HMAC 검증) — express.json() 보다 먼저 등록
 app.use("/webhook/meta", express.raw({ type: "application/json" }), metaWebhookRouter);
@@ -57,16 +73,29 @@ app.use(express.static(join(__dirname, "public")));
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const supabase = createClient(
-  process.env.SUPABASE_URL    || "",
-  process.env.SUPABASE_ANON_KEY || ""
-);
+// ── Supabase 클라이언트 — lazy initialization ─────────────────────────────────
+// createClient를 import 시점이 아닌 첫 사용 시점에 호출
+let _supabase, _supabaseAdmin;
 
-// 서비스 롤 클라이언트 — RLS bypass, 서버 사이드 CRUD 전용
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL          || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ""
-);
+function getSbClient() {
+  if (_supabase !== undefined) return _supabase;
+  const url  = process.env.SUPABASE_URL       || "";
+  const anon = process.env.SUPABASE_ANON_KEY   || "";
+  if (!url) {
+    console.warn("[Supabase] SUPABASE_URL 미설정 — Supabase 없이 실행 중 (DB 기능 비활성화)");
+    return (_supabase = null);
+  }
+  return (_supabase = createClient(url, anon));
+}
+
+function getSbAdmin() {
+  if (_supabaseAdmin !== undefined) return _supabaseAdmin;
+  const url    = process.env.SUPABASE_URL       || "";
+  const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+  if (!url) return (_supabaseAdmin = null);
+  // 서비스 롤 클라이언트 — RLS bypass, 서버 사이드 CRUD 전용
+  return (_supabaseAdmin = createClient(url, svcKey));
+}
 
 // ── 클리닉 정보 캐시 (TTL 5분) ────────────────────────────────────────────────
 const _clinicCache = new Map(); // clinicId → { data, exp }
@@ -221,7 +250,7 @@ async function ragSearch(query, matchCount = 5, clinicId = null) {
   const embedding = await embedQuery(query);
   if (embedding) {
     try {
-      const { data, error } = await supabase.rpc("match_procedures", {
+      const { data, error } = await getSbClient().rpc("match_procedures", {
         query_embedding:  embedding,
         query_text:       query,
         match_count:      matchCount,
@@ -241,7 +270,7 @@ async function ragSearch(query, matchCount = 5, clinicId = null) {
 
   // 2) 키워드 전용 fallback
   try {
-    const { data, error } = await supabase.rpc("search_procedures_keyword", {
+    const { data, error } = await getSbClient().rpc("search_procedures_keyword", {
       query_text:       query,
       match_count:      matchCount,
       clinic_id_filter: filter,            // ← 병원 격리
@@ -447,7 +476,9 @@ async function auditLog(event) {
       ? createHash("sha256").update(event.patientMessage).digest("hex").slice(0, 16)
       : null;
 
-    await supabase.from("audit_logs").insert({
+    const _sb = getSbClient();
+    if (!_sb) return;
+    await _sb.from("audit_logs").insert({
       event_type:           event.type        || "suggest",
       clinic_id:            process.env.CLINIC_ID || null,
       patient_lang:         event.patientLang || null,
@@ -696,70 +727,91 @@ Output this exact JSON shape:
 
 // ════════════════════════════════════════════════════════════════════════════
 // POST /api/tiki-paste  { message, clinicId?, clinicName? }
-// 강남 10년차 수석 상담실장 페르소나 — reply(환자 언어) + ko_translation(한국어 해석)
+// 15년 경력 수석 실장 페르소나 — 실제 시술 DB 100% 기반 답변
 // ════════════════════════════════════════════════════════════════════════════
 app.post("/api/tiki-paste", async (req, res) => {
   const { message, clinicId, clinicName: bodyClinicName } = req.body;
   if (!message?.trim())
     return res.status(400).json({ error: "message required" });
 
-  // 병원명 해결: body > DB > env > 기본값
-  let resolvedClinicName = bodyClinicName || process.env.CLINIC_NAME || "클리닉";
-  let resolvedClinicId   = clinicId || null;
+  const resolvedClinicId = clinicId || null;
 
-  if (resolvedClinicId && !bodyClinicName) {
-    const info = await getClinicInfo(resolvedClinicId).catch(() => null);
-    if (info?.clinic_name) resolvedClinicName = info.clinic_name;
-  }
+  // ── 병원 정보 + 실제 시술 DB 병렬 조회 ──────────────────────────────────
+  const [clinicInfoData, clinicProcs] = await Promise.all([
+    getClinicInfo(resolvedClinicId).catch(() => null),
+    getClinicProcedures(resolvedClinicId).catch(() => null),
+  ]);
 
-  // RAG 지식 베이스 검색 (clinic 격리)
+  const resolvedClinicName = bodyClinicName
+    || clinicInfoData?.clinic_name
+    || process.env.CLINIC_NAME
+    || "클리닉";
+
+  // ── RAG 지식 베이스 검색 (procedures_knowledge) ──────────────────────────
   let ragContext = "";
   try {
-    const ragResult = await ragSearch(message.trim(), 4, resolvedClinicId);
-    if (ragResult?.length) {
-      ragContext = "\n\n[병원 DB 참고 정보]\n" +
-        ragResult.map(r => `- ${r.procedure_name}: ${r.content}`).join("\n");
+    const ragResult = await ragSearch(message.trim(), 5, resolvedClinicId);
+    if (ragResult?.context) {
+      ragContext = ragResult.context;
+      console.log(`[TikiPaste] RAG method=${ragResult.method} chunks=${ragResult.chunks}`);
     }
   } catch (e) {
     console.warn("[TikiPaste] RAG search failed:", e.message);
   }
 
-  const SYSTEM_PROMPT = `You are the chief senior coordinator of "${resolvedClinicName}", a premium aesthetic clinic in Gangnam, Seoul. You have 10 years of experience consulting thousands of international patients.
+  // ── 실제 시술 목록 텍스트 빌드 ─────────────────────────────────────────
+  const procSource = clinicProcs || procedures; // 등록 시술 없으면 로컬 fallback
+  const procText = procSource.map(p => {
+    const nameKo   = p.name_ko    || p.name?.ko    || p.name || "";
+    const nameEn   = p.name_en    || p.name?.en    || "";
+    const price    = p.price_range || p.price_display || "상담 후 결정";
+    const downtime = p.downtime   || "";
+    const effects  = Array.isArray(p.effects_ko) ? p.effects_ko.join(", ")
+                   : Array.isArray(p.effects)    ? p.effects.join(", ") : "";
+    const faq      = Array.isArray(p.faq_ko)     ? p.faq_ko.map(f => `Q: ${f.q} A: ${f.a}`).join(" / ")
+                   : "";
+    return `• ${nameKo}${nameEn ? ` (${nameEn})` : ""} — 가격: ${price}${downtime ? ` / 다운타임: ${downtime}` : ""}${effects ? ` / 효과: ${effects}` : ""}${faq ? `\n  FAQ: ${faq}` : ""}`;
+  }).join("\n");
 
-━━━━━━━━━━━━━━━━━━━━━━━━━
-🔴 ABSOLUTE RULE — LANGUAGE (NEVER VIOLATE):
-━━━━━━━━━━━━━━━━━━━━━━━━━
-- DETECT the language of the patient's message.
-- The "reply" field MUST be written in THE EXACT SAME LANGUAGE as the patient's message.
-  • Patient wrote in Chinese → reply MUST be in Chinese (中文)
-  • Patient wrote in Japanese → reply MUST be in Japanese (日本語)
-  • Patient wrote in English → reply MUST be in English
-  • Patient wrote in Arabic → reply MUST be in Arabic
-  • Patient wrote in Thai → reply MUST be in Thai
-- NEVER write the "reply" field in Korean, regardless of any other instruction.
-- The "ko_translation" field is the ONLY field that should be in Korean (for staff reference).
-━━━━━━━━━━━━━━━━━━━━━━━━━
+  console.log(`[TikiPaste] clinic="${resolvedClinicName}" id="${resolvedClinicId}" procs=${procSource.length} ragCtx=${ragContext.length > 0}`);
 
-Communication style:
-- Human, warm, direct — never robotic or scripted.
-- Read the patient's emotional state precisely.
-- Reassuring yet professional. No guaranteed outcomes or diagnoses.
+  const SYSTEM_PROMPT = `너는 ${resolvedClinicName}의 15년 경력 수석 상담 실장이다.
+수천 명의 외국인 환자를 상담한 풍부한 경험을 가지고 있으며, 우리 병원 시술에 대해 누구보다 정확히 알고 있다.
 
-Additional rules:
-1. Output ONLY valid JSON — no markdown fences, no explanation text whatsoever.
-2. Each reply: 2–4 sentences. Naturally include "${resolvedClinicName}" at least once.
-3. booking reply must end with the booking link: [예약: app.tikichat.xyz/book]${ragContext}
+━━━ 핵심 규칙 (절대 위반 금지) ━━━
+1. 아래 [우리 병원 시술 정보]와 [참고 지식]을 100% 기반으로만 답변한다.
+2. 목록에 없는 시술, 확인되지 않은 가격, 보장성 표현은 절대 사용하지 않는다.
+3. "최고", "100% 효과", "부작용 없음", "확실히 낫는다" 등 과장 표현 금지 (의료법)
+4. "AI입니다", "챗봇입니다" 자기 노출 금지
+5. 모든 시술 결정은 반드시 "전문의 1:1 상담 후 결정" 문구로 마무리
 
-Output format (pure JSON only):
+━━━ 언어 규칙 (절대 위반 금지) ━━━
+- 환자 메시지 언어를 정확히 감지한다.
+- "reply" 필드는 반드시 환자 메시지와 동일한 언어로 작성한다.
+  • 중국어 메시지 → reply는 중국어(中文)
+  • 일본어 메시지 → reply는 일본어(日本語)
+  • 영어 메시지   → reply는 영어(English)
+  • 아랍어 메시지 → reply는 아랍어(العربية)
+  • 태국어 메시지 → reply는 태국어(ภาษาไทย)
+- "ko_translation" 필드만 한국어 (직원 검토용)
+- reply 필드에 절대 한국어 사용 금지
+
+━━━ 우리 병원 시술 정보 (이 정보를 기반으로 답변하라) ━━━
+${procText || "등록된 시술 정보가 없습니다. 일반적인 미용의료 안내만 제공하세요."}
+
+${ragContext ? `━━━ 참고 지식 베이스 ━━━\n${ragContext}\n` : ""}
+━━━ 출력 형식 (반드시 순수 JSON만 출력, 마크다운 금지) ━━━
 {
-  "detected_language": "<언어명 in Korean — e.g. 중국어 / 일본어 / 영어>",
-  "intent": "<환자 의도 in Korean — e.g. 가격 문의 및 부작용 우려>",
+  "detected_language": "<언어명 in Korean — 예: 중국어, 일본어, 영어>",
+  "intent": "<환자 의도 in Korean — 예: 보톡스 가격 문의>",
   "options": {
-    "kind":    { "reply": "<MUST be in patient's language — empathetic, detailed, CTA>", "ko_translation": "<natural Korean translation>" },
-    "firm":    { "reply": "<MUST be in patient's language — policy-based, firm but kind>", "ko_translation": "<natural Korean translation>" },
-    "booking": { "reply": "<MUST be in patient's language — value + booking link>",       "ko_translation": "<natural Korean translation>" }
+    "kind":    { "reply": "<환자 언어로 — 공감·상세·CTA 포함>", "ko_translation": "<자연스러운 한국어 번역>" },
+    "firm":    { "reply": "<환자 언어로 — 규정 기반·단호하지만 친절>", "ko_translation": "<자연스러운 한국어 번역>" },
+    "booking": { "reply": "<환자 언어로 — 가치 강조 + 예약 링크>",   "ko_translation": "<자연스러운 한국어 번역>" }
   }
-}`;
+}
+
+각 reply: 2~4문장. "${resolvedClinicName}" 자연스럽게 1회 이상 포함. booking reply는 반드시 [예약: app.tikichat.xyz/book] 링크로 마무리.`;
 
   try {
     const resp = await anthropic.messages.create({
@@ -1244,7 +1296,9 @@ app.post("/api/auth/register", async (req, res) => {
   try {
     // 1. Supabase Admin API로 유저 생성
     //    user_metadata.clinic_name → DB 트리거가 읽어 clinic 레코드 + app_metadata 자동 세팅
-    const { data: userData, error: userErr } = await supabaseAdmin.auth.admin.createUser({
+    const _sbAdmin = getSbAdmin();
+    if (!_sbAdmin) return res.status(503).json({ error: "Supabase가 설정되지 않았습니다." });
+    const { data: userData, error: userErr } = await _sbAdmin.auth.admin.createUser({
       email:          email.trim(),
       password:       password,
       email_confirm:  true,           // 이메일 인증 없이 즉시 활성화
@@ -1268,7 +1322,7 @@ app.post("/api/auth/register", async (req, res) => {
     // 2. DB 트리거가 clinic 생성 + app_metadata 주입까지 처리함
     //    트리거가 완료될 때까지 짧게 대기 후 최종 user 조회
     await new Promise(r => setTimeout(r, 300));
-    const { data: finalUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const { data: finalUser } = await _sbAdmin.auth.admin.getUserById(userId);
     const clinicId = finalUser?.user?.app_metadata?.clinic_id;
 
     console.log(`[Register] 신규 병원 생성: "${clinic_name}" → clinic_id=${clinicId} user=${userId}`);
@@ -1281,6 +1335,527 @@ app.post("/api/auth/register", async (req, res) => {
 
   } catch (err) {
     console.error("[Register]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// CONVERSATIONS + MESSAGES  (Option A — Mock → Supabase)
+// ════════════════════════════════════════════════════════════════════════════
+
+// GET /api/conversations?clinicId=X
+app.get("/api/conversations", async (req, res) => {
+  const { clinicId } = req.query;
+  if (!clinicId) return res.status(400).json({ error: "clinicId required" });
+  try {
+    const sb = getSbAdmin();
+    const { data, error } = await sb
+      .from("conversations")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .order("updated_at", { ascending: false });
+    if (error) {
+      if (error.code === "42P01") return res.json([]); // table not yet created
+      throw error;
+    }
+    // Normalize: map DB rows → frontend shape
+    const convs = (data || []).map(row => ({
+      id:            row.id,
+      patient:       row.patient || {},
+      channel:       row.channel,
+      procedure:     row.procedure,
+      procedureName: row.procedure_name,
+      status:        row.status,
+      unreadCount:   row.unread_count,
+      preview:       row.preview,
+      timeline:      row.timeline || [],
+      gallery:       row.gallery  || [],
+      notes:         row.notes,
+      aftercareSummary: row.aftercare_summary,
+      messages:      [],   // loaded separately
+      time:          row.updated_at,
+    }));
+    res.json(convs);
+  } catch (err) {
+    console.error("[Conversations/Get]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/conversations  { clinicId, conversation }
+app.post("/api/conversations", async (req, res) => {
+  const { clinicId, conversation } = req.body;
+  if (!clinicId || !conversation) return res.status(400).json({ error: "clinicId + conversation required" });
+  try {
+    const sb = getSbAdmin();
+    const row = {
+      id:               conversation.id,
+      clinic_id:        clinicId,
+      patient:          conversation.patient || {},
+      channel:          conversation.channel,
+      procedure:        conversation.procedure,
+      procedure_name:   conversation.procedureName,
+      status:           conversation.status || "unread",
+      unread_count:     conversation.unreadCount || 0,
+      preview:          conversation.preview,
+      timeline:         conversation.timeline || [],
+      gallery:          conversation.gallery  || [],
+      notes:            conversation.notes,
+      aftercare_summary: conversation.aftercareSummary,
+    };
+    const { data, error } = await sb.from("conversations").upsert(row).select().single();
+    if (error) throw error;
+    res.json({ id: data.id });
+  } catch (err) {
+    console.error("[Conversations/Post]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/conversations/:id  { updates }
+app.patch("/api/conversations/:id", async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  try {
+    const sb = getSbAdmin();
+    // Map frontend keys → DB column names
+    const dbUpdates = {};
+    if (updates.status       !== undefined) dbUpdates.status        = updates.status;
+    if (updates.unreadCount  !== undefined) dbUpdates.unread_count  = updates.unreadCount;
+    if (updates.preview      !== undefined) dbUpdates.preview       = updates.preview;
+    if (updates.notes        !== undefined) dbUpdates.notes         = updates.notes;
+    if (updates.timeline     !== undefined) dbUpdates.timeline      = updates.timeline;
+    if (updates.gallery      !== undefined) dbUpdates.gallery       = updates.gallery;
+    if (updates.aftercareSummary !== undefined) dbUpdates.aftercare_summary = updates.aftercareSummary;
+    const { error } = await sb.from("conversations").update(dbUpdates).eq("id", id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[Conversations/Patch]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/conversations/:id/messages
+app.get("/api/conversations/:id/messages", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const sb = getSbAdmin();
+    const { data, error } = await sb
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", id)
+      .order("created_at", { ascending: true });
+    if (error) {
+      if (error.code === "42P01") return res.json([]);
+      throw error;
+    }
+    const msgs = (data || []).map(m => ({
+      id:            m.id,
+      from:          m.from_role,
+      originalText:  m.original_text,
+      translatedText: m.translated_text,
+      time:          m.time || new Date(m.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
+    }));
+    res.json(msgs);
+  } catch (err) {
+    console.error("[Messages/Get]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/conversations/:id/messages  { clinicId, message }
+app.post("/api/conversations/:id/messages", async (req, res) => {
+  const { id } = req.params;
+  const { clinicId, message } = req.body;
+  if (!clinicId || !message) return res.status(400).json({ error: "clinicId + message required" });
+  try {
+    const sb = getSbAdmin();
+    const row = {
+      id:              message.id || crypto.randomUUID(),
+      conversation_id: id,
+      clinic_id:       clinicId,
+      from_role:       message.from,
+      original_text:   message.originalText,
+      translated_text: message.translatedText,
+      time:            message.time,
+    };
+    const { error: msgErr } = await sb.from("messages").insert(row);
+    if (msgErr && msgErr.code !== "42P01") throw msgErr;
+
+    // Update conversation preview + updated_at
+    const { error: convErr } = await sb
+      .from("conversations")
+      .update({ preview: message.originalText?.slice(0, 80), status: "active" })
+      .eq("id", id);
+    if (convErr && convErr.code !== "42P01") console.warn("[Messages/Post] conv update:", convErr.message);
+
+    res.json({ id: row.id });
+  } catch (err) {
+    console.error("[Messages/Post]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// PATIENTS
+// ════════════════════════════════════════════════════════════════════════════
+
+// GET /api/patients?clinicId=X
+app.get("/api/patients", async (req, res) => {
+  const { clinicId } = req.query;
+  if (!clinicId) return res.status(400).json({ error: "clinicId required" });
+  try {
+    const sb = getSbAdmin();
+    const { data, error } = await sb
+      .from("patients")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .order("updated_at", { ascending: false });
+    if (error) {
+      if (error.code === "42P01") return res.json([]);
+      throw error;
+    }
+    const patients = (data || []).map(r => ({
+      id:          r.id,
+      name:        r.name,
+      nameEn:      r.name_en,
+      flag:        r.flag,
+      country:     r.country,
+      lang:        r.lang,
+      gender:      r.gender,
+      age:         r.age,
+      channel:     r.channel,
+      procedure:   r.procedure,
+      lastVisit:   r.last_visit,
+      nextBooking: r.next_booking,
+      status:      r.status,
+      totalSpent:  r.total_spent,
+      phone:       r.phone,
+      email:       r.email,
+      note:        r.note,
+      tags:        r.tags || [],
+      timeline:    r.timeline || [],
+    }));
+    res.json(patients);
+  } catch (err) {
+    console.error("[Patients/Get]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/patients  { clinicId, patient }
+app.post("/api/patients", async (req, res) => {
+  const { clinicId, patient } = req.body;
+  if (!clinicId || !patient) return res.status(400).json({ error: "clinicId + patient required" });
+  try {
+    const sb = getSbAdmin();
+    const row = {
+      id:          patient.id || crypto.randomUUID(),
+      clinic_id:   clinicId,
+      name:        patient.name,
+      name_en:     patient.nameEn,
+      flag:        patient.flag,
+      country:     patient.country,
+      lang:        patient.lang,
+      gender:      patient.gender,
+      age:         patient.age,
+      channel:     patient.channel,
+      procedure:   patient.procedure,
+      last_visit:  patient.lastVisit,
+      next_booking: patient.nextBooking,
+      status:      patient.status || "consulting",
+      total_spent: patient.totalSpent || 0,
+      phone:       patient.phone,
+      email:       patient.email,
+      note:        patient.note,
+      tags:        patient.tags || [],
+      timeline:    patient.timeline || [],
+    };
+    const { data, error } = await sb.from("patients").upsert(row).select().single();
+    if (error) throw error;
+    res.json({ id: data.id });
+  } catch (err) {
+    console.error("[Patients/Post]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/patients/:id  { updates }
+app.patch("/api/patients/:id", async (req, res) => {
+  const { id } = req.params;
+  const u = req.body;
+  try {
+    const sb = getSbAdmin();
+    const dbU = {};
+    if (u.name        !== undefined) dbU.name        = u.name;
+    if (u.nameEn      !== undefined) dbU.name_en     = u.nameEn;
+    if (u.status      !== undefined) dbU.status      = u.status;
+    if (u.nextBooking !== undefined) dbU.next_booking = u.nextBooking;
+    if (u.totalSpent  !== undefined) dbU.total_spent  = u.totalSpent;
+    if (u.note        !== undefined) dbU.note        = u.note;
+    if (u.tags        !== undefined) dbU.tags        = u.tags;
+    if (u.timeline    !== undefined) dbU.timeline    = u.timeline;
+    if (u.phone       !== undefined) dbU.phone       = u.phone;
+    if (u.email       !== undefined) dbU.email       = u.email;
+    const { error } = await sb.from("patients").update(dbU).eq("id", id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[Patients/Patch]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// AFTERCARE
+// ════════════════════════════════════════════════════════════════════════════
+
+// GET /api/aftercare?clinicId=X
+app.get("/api/aftercare", async (req, res) => {
+  const { clinicId } = req.query;
+  if (!clinicId) return res.status(400).json({ error: "clinicId required" });
+  try {
+    const sb = getSbAdmin();
+    const { data, error } = await sb
+      .from("aftercare_records")
+      .select("*")
+      .eq("clinic_id", clinicId)
+      .order("updated_at", { ascending: false });
+    if (error) {
+      if (error.code === "42P01") return res.json([]);
+      throw error;
+    }
+    const records = (data || []).map(r => ({
+      id:            r.id,
+      kanbanStage:   r.kanban_stage,
+      patient:       r.patient || {},
+      procedure:     r.procedure,
+      treatmentDate: r.treatment_date,
+      channel:       r.channel,
+      d1:            r.d1 || { status: "pending" },
+      d3:            r.d3 || { status: "pending" },
+      d7:            r.d7 || { status: "pending" },
+    }));
+    res.json(records);
+  } catch (err) {
+    console.error("[Aftercare/Get]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/aftercare  { clinicId, record }
+app.post("/api/aftercare", async (req, res) => {
+  const { clinicId, record } = req.body;
+  if (!clinicId || !record) return res.status(400).json({ error: "clinicId + record required" });
+  try {
+    const sb = getSbAdmin();
+    const row = {
+      id:             record.id || crypto.randomUUID(),
+      clinic_id:      clinicId,
+      kanban_stage:   record.kanbanStage || "consulting",
+      patient:        record.patient || {},
+      procedure:      record.procedure,
+      treatment_date: record.treatmentDate,
+      channel:        record.channel,
+      d1:             record.d1 || { status: "pending" },
+      d3:             record.d3 || { status: "pending" },
+      d7:             record.d7 || { status: "pending" },
+    };
+    const { data, error } = await sb.from("aftercare_records").upsert(row).select().single();
+    if (error) throw error;
+    res.json({ id: data.id });
+  } catch (err) {
+    console.error("[Aftercare/Post]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/aftercare/:id  { updates }
+app.patch("/api/aftercare/:id", async (req, res) => {
+  const { id } = req.params;
+  const u = req.body;
+  try {
+    const sb = getSbAdmin();
+    const dbU = {};
+    if (u.kanbanStage   !== undefined) dbU.kanban_stage   = u.kanbanStage;
+    if (u.treatmentDate !== undefined) dbU.treatment_date = u.treatmentDate;
+    if (u.d1            !== undefined) dbU.d1             = u.d1;
+    if (u.d3            !== undefined) dbU.d3             = u.d3;
+    if (u.d7            !== undefined) dbU.d7             = u.d7;
+    const { error } = await sb.from("aftercare_records").update(dbU).eq("id", id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[Aftercare/Patch]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// POST /api/procedures/suggest  { message, clinicId }
+// RAG + AI 매칭 → 환자 메시지에 적합한 시술 2~3개 추천
+// ════════════════════════════════════════════════════════════════════════════
+app.post("/api/procedures/suggest", async (req, res) => {
+  const { message, clinicId } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: "message required" });
+
+  // 1. 클리닉 시술 목록 조회 (procedures → master_procedures fallback)
+  const _sbAdmin = getSbAdmin();
+  let clinicProcs = [];
+  if (_sbAdmin && clinicId) {
+    const { data: cp } = await _sbAdmin
+      .from("procedures")
+      .select("id, name_ko, name_en, category, price_range, description_ko")
+      .eq("clinic_id", clinicId)
+      .eq("is_active", true)
+      .order("sort_order");
+    clinicProcs = cp || [];
+  }
+
+  // 클리닉 시술 없으면 master_procedures fallback
+  if (!clinicProcs.length && _sbAdmin) {
+    const { data: mp } = await _sbAdmin
+      .from("master_procedures")
+      .select("template_id as id, name_ko, name_en, category, price_range, description_ko")
+      .eq("is_active", true)
+      .order("sort_order")
+      .limit(20);
+    clinicProcs = mp || [];
+  }
+
+  // 2. RAG 검색 (procedures_knowledge)
+  const ragResult = await ragSearch(message.trim(), 5, clinicId || null);
+  const ragContext = ragResult?.context || "";
+
+  // 3. Claude Haiku: 환자 의도 → 시술 2~3개 매칭
+  const procList = clinicProcs.length
+    ? clinicProcs
+        .map((p, i) => `${i + 1}. [ID:${p.id}] ${p.name_ko}${p.name_en ? ` / ${p.name_en}` : ""} (${p.category || "기타"}) | 가격: ${p.price_range || "문의"} | ${p.description_ko || ""}`)
+        .join("\n")
+    : "(등록된 시술 없음)";
+
+  const systemPrompt = `당신은 강남 프리미엄 의원의 시술 추천 전문가입니다.
+환자 메시지를 분석하고 아래 시술 목록에서 2~3개를 추천하세요.
+반드시 순수 JSON 배열만 출력하세요. 마크다운 없이.`;
+
+  const userPrompt = `환자 메시지: "${message.trim()}"
+
+이 클리닉 시술 목록:
+${procList}
+
+${ragContext ? `지식베이스 참고:\n${ragContext.slice(0, 1000)}` : ""}
+
+위에서 환자 메시지에 가장 적합한 시술 2~3개를 선택하고 아래 형식으로 반환하세요:
+[
+  {
+    "id": "<시술 ID 또는 null>",
+    "name_ko": "<시술명 한국어>",
+    "name_en": "<시술명 영어>",
+    "category": "<카테고리>",
+    "price_range": "<가격범위>",
+    "description_ko": "<간략한 설명 1~2문장>",
+    "reason": "<이 환자에게 추천하는 이유 한국어 1문장>"
+  }
+]`;
+
+  try {
+    const resp = await anthropic.messages.create({
+      model:      MODEL_HAIKU,
+      max_tokens: 900,
+      system:     systemPrompt,
+      messages:   [{ role: "user", content: userPrompt }],
+    });
+
+    const raw = resp.content.find(b => b.type === "text")?.text ?? "[]";
+    const jsonStr = raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]";
+    let suggestions = [];
+    try { suggestions = JSON.parse(jsonStr); } catch { suggestions = []; }
+
+    console.log(`[ProcSuggest] clinic=${clinicId} procs=${clinicProcs.length} RAG=${ragResult?.method || "none"} → ${suggestions.length} suggestions`);
+    res.json({ suggestions: suggestions.slice(0, 3) });
+
+  } catch (err) {
+    console.error("[ProcSuggest]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// POST /api/quotes  { clinicId, clinicName, patientMessage, patientLanguage,
+//                     procedures, notes }
+// 견적서 생성 → Supabase quotations 테이블 저장 → URL 반환
+// ════════════════════════════════════════════════════════════════════════════
+app.post("/api/quotes", async (req, res) => {
+  const { clinicId, clinicName, patientMessage, patientLanguage, procedures, notes } = req.body;
+  if (!clinicId || !procedures?.length)
+    return res.status(400).json({ error: "clinicId and procedures are required" });
+
+  const _sbAdmin = getSbAdmin();
+  if (!_sbAdmin)
+    return res.status(503).json({ error: "Supabase가 설정되지 않았습니다." });
+
+  try {
+    const { data, error } = await _sbAdmin
+      .from("quotations")
+      .insert({
+        clinic_id:           clinicId,
+        clinic_name:         clinicName || "",
+        patient_language:    patientLanguage || "",
+        patient_message:     patientMessage || "",
+        selected_procedures: procedures,
+        notes:               notes || "",
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      // quotations 테이블이 아직 생성되지 않은 경우 명확한 안내
+      if (error.message?.includes("does not exist") || error.code === "42P01") {
+        return res.status(503).json({
+          error: "quotations 테이블이 없습니다. supabase/migrations/007_quotations.sql 을 실행하세요.",
+        });
+      }
+      throw error;
+    }
+
+    const url = `https://app.tikichat.xyz/quote/${data.id}`;
+    console.log(`[Quotes] 견적서 생성: id=${data.id} clinic=${clinicId} procs=${procedures.length}`);
+    res.json({ id: data.id, url });
+
+  } catch (err) {
+    console.error("[Quotes]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// GET /api/quotes/:id
+// 공개 견적서 조회 (견적서 공유 링크용)
+// ════════════════════════════════════════════════════════════════════════════
+app.get("/api/quotes/:id", async (req, res) => {
+  const { id } = req.params;
+  // UUID 형식 간단 검증
+  if (!/^[0-9a-f-]{36}$/i.test(id))
+    return res.status(400).json({ error: "유효하지 않은 견적서 ID입니다." });
+
+  const _sbAdmin = getSbAdmin();
+  if (!_sbAdmin)
+    return res.status(503).json({ error: "Supabase 미설정" });
+
+  try {
+    const { data, error } = await _sbAdmin
+      .from("quotations")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !data)
+      return res.status(404).json({ error: "견적서를 찾을 수 없습니다." });
+
+    res.json(data);
+  } catch (err) {
+    console.error("[Quotes/Get]", err.message);
     res.status(500).json({ error: err.message });
   }
 });

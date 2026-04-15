@@ -10,7 +10,11 @@
     "activeTab",
     "tabs"
   ],
-  "host_permissions": [],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*",
+    "https://*/*"
+  ],
   "background": {
     "service_worker": "src/background.js",
     "type": "module"

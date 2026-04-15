@@ -1,6 +1,20 @@
 import { useState } from 'react';
-import { Stethoscope, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+// ── TikiDoc 디자인 토큰 — Harbor Haze 팔레트 ──────────────────────────────────
+const T = {
+  bg:      '#F4F6F9',    // Harbor light blue-gray
+  beige:   '#EAEDF2',    // Panel bg
+  dark:    '#1E2535',    // Deep harbor navy
+  blue:    '#5C8DC5',    // Harbor Vivid Blue (primary)
+  blueDk:  '#3E6DA0',    // Darker blue
+  gray:    '#909EAE',    // Harbor Slate
+  border:  '#C5CDD8',    // Border
+  muted:   '#B0BACC',    // Muted
+  red:     '#B84040',
+  redBg:   '#FDF2F2',
+};
 
 export default function LoginForm() {
   const { login, loginError, isLoggingIn } = useAuth();
@@ -14,39 +28,79 @@ export default function LoginForm() {
   };
 
   return (
-    <div style={{ background: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      {/* 로고 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px' }}>
+    <div style={{
+      background:     T.bg,
+      minHeight:      '100vh',
+      display:        'flex',
+      flexDirection:  'column',
+      alignItems:     'center',
+      justifyContent: 'center',
+      padding:        '32px 24px',
+      fontFamily:     "system-ui, -apple-system, 'Inter', sans-serif",
+    }}>
+
+      {/* ── 로고 ── */}
+      <div style={{ textAlign: 'center', marginBottom: 40 }}>
+        <div style={{ width: 40, height: 1, background: T.blue, margin: '0 auto 18px' }} />
         <div style={{
-          width: 40, height: 40, borderRadius: 10,
-          background: '#003b63',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(0,59,99,0.25)',
+          fontFamily:    "Georgia, 'Times New Roman', serif",
+          fontSize:      28,
+          fontWeight:    400,
+          color:         T.dark,
+          letterSpacing: '0.14em',
         }}>
-          <Stethoscope size={22} color="#f2a14b" />
+          TikiDoc
         </div>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#003b63', letterSpacing: '-0.3px' }}>TikiChat</div>
-          <div style={{ fontSize: 11, color: '#5a8aaa', marginTop: 1 }}>Shadow AI</div>
+        <div style={{
+          fontSize:      9,
+          letterSpacing: '0.32em',
+          color:         T.gray,
+          textTransform: 'uppercase',
+          marginTop:     6,
+        }}>
+          Global Medical AI
         </div>
+        <div style={{ width: 40, height: 1, background: T.blue, margin: '18px auto 0' }} />
       </div>
 
-      {/* 카드 */}
+      {/* ── 카드 ── */}
       <div style={{
-        width: '100%', maxWidth: 320,
-        background: '#fff',
-        borderRadius: 14,
-        boxShadow: '0 8px 32px rgba(0,59,99,0.12), 0 2px 8px rgba(0,0,0,0.06)',
-        padding: '24px',
-        border: '1px solid #e8f0f6',
+        width:     '100%',
+        maxWidth:  316,
+        background: '#FFFFFF',
+        border:    `1px solid ${T.border}`,
+        padding:   '32px 28px 28px',
+        boxShadow: '0 2px 32px rgba(44,44,44,0.07)',
       }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#003b63', marginBottom: 4 }}>병원 로그인</h2>
-        <p style={{ fontSize: 12, color: '#7a9ab5', marginBottom: 20 }}>클리닉 계정으로 로그인하세요</p>
+        <div style={{
+          fontFamily:    "Georgia, 'Times New Roman', serif",
+          fontSize:      15,
+          fontWeight:    400,
+          color:         T.dark,
+          marginBottom:  4,
+          letterSpacing: '0.04em',
+        }}>
+          클리닉 로그인
+        </div>
+        <div style={{ fontSize: 11, color: T.gray, marginBottom: 28, letterSpacing: '0.01em' }}>
+          해외 환자 상담의 새로운 표준
+        </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
           {/* 이메일 */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#003b63', display: 'block', marginBottom: 5 }}>이메일</label>
+            <label style={{
+              fontSize:      9,
+              fontWeight:    600,
+              color:         T.gray,
+              display:       'block',
+              marginBottom:  8,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+            }}>
+              이메일
+            </label>
             <input
               type="email"
               value={email}
@@ -54,20 +108,37 @@ export default function LoginForm() {
               placeholder="clinic@example.com"
               required
               style={{
-                width: '100%', padding: '9px 12px',
-                border: '1.5px solid #d0dfe8',
-                borderRadius: 8, fontSize: 13, color: '#1a2d3d',
-                outline: 'none', boxSizing: 'border-box',
-                transition: 'border-color 0.15s',
+                width:           '100%',
+                padding:         '8px 0',
+                border:          'none',
+                borderBottom:    `1px solid ${T.border}`,
+                borderRadius:    0,
+                fontSize:        13,
+                color:           T.dark,
+                outline:         'none',
+                boxSizing:       'border-box',
+                background:      'transparent',
+                transition:      'border-color 0.2s',
+                fontFamily:      'inherit',
               }}
-              onFocus={e => e.target.style.borderColor = '#003b63'}
-              onBlur={e => e.target.style.borderColor = '#d0dfe8'}
+              onFocus={e => e.target.style.borderBottomColor = T.blue}
+              onBlur={e  => e.target.style.borderBottomColor = T.border}
             />
           </div>
 
           {/* 비밀번호 */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#003b63', display: 'block', marginBottom: 5 }}>비밀번호</label>
+            <label style={{
+              fontSize:      9,
+              fontWeight:    600,
+              color:         T.gray,
+              display:       'block',
+              marginBottom:  8,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+            }}>
+              비밀번호
+            </label>
             <div style={{ position: 'relative' }}>
               <input
                 type={showPw ? 'text' : 'password'}
@@ -76,28 +147,47 @@ export default function LoginForm() {
                 placeholder="••••••••"
                 required
                 style={{
-                  width: '100%', padding: '9px 36px 9px 12px',
-                  border: '1.5px solid #d0dfe8',
-                  borderRadius: 8, fontSize: 13, color: '#1a2d3d',
-                  outline: 'none', boxSizing: 'border-box',
-                  transition: 'border-color 0.15s',
+                  width:        '100%',
+                  padding:      '8px 28px 8px 0',
+                  border:       'none',
+                  borderBottom: `1px solid ${T.border}`,
+                  borderRadius: 0,
+                  fontSize:     13,
+                  color:        T.dark,
+                  outline:      'none',
+                  boxSizing:    'border-box',
+                  background:   'transparent',
+                  transition:   'border-color 0.2s',
+                  fontFamily:   'inherit',
                 }}
-                onFocus={e => e.target.style.borderColor = '#003b63'}
-                onBlur={e => e.target.style.borderColor = '#d0dfe8'}
+                onFocus={e => e.target.style.borderBottomColor = T.gold}
+                onBlur={e  => e.target.style.borderBottomColor = T.border}
               />
               <button
                 type="button"
                 onClick={() => setShowPw(p => !p)}
-                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#7a9ab5' }}
+                style={{
+                  position:  'absolute', right: 0, top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none', border: 'none',
+                  cursor:    'pointer', color: T.muted, padding: 0,
+                }}
               >
-                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                {showPw ? <EyeOff size={13} /> : <Eye size={13} />}
               </button>
             </div>
           </div>
 
-          {/* 오류 메시지 */}
+          {/* 에러 */}
           {loginError && (
-            <div style={{ fontSize: 11, color: '#e53e3e', background: '#fff5f5', padding: '7px 10px', borderRadius: 6, border: '1px solid #fed7d7' }}>
+            <div style={{
+              fontSize:   11,
+              color:      T.red,
+              background: T.redBg,
+              padding:    '8px 12px',
+              borderLeft: `2px solid ${T.red}`,
+              letterSpacing: '0.01em',
+            }}>
               {loginError}
             </div>
           )}
@@ -107,34 +197,50 @@ export default function LoginForm() {
             type="submit"
             disabled={isLoggingIn}
             style={{
-              background: isLoggingIn ? '#7a9ab5' : '#003b63',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: isLoggingIn ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'background 0.15s',
-              marginTop: 4,
-              boxShadow: '0 3px 10px rgba(0,59,99,0.25)',
+              background:    isLoggingIn ? T.gray : `linear-gradient(135deg, ${T.blueDk}, ${T.blue})`,
+              color:         '#fff',
+              border:        'none',
+              padding:       '13px',
+              fontSize:      10,
+              fontWeight:    600,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              cursor:        isLoggingIn ? 'not-allowed' : 'pointer',
+              display:       'flex',
+              alignItems:    'center',
+              justifyContent:'center',
+              gap:           8,
+              marginTop:     4,
+              transition:    'background 0.2s',
+              fontFamily:    'inherit',
             }}
           >
-            {isLoggingIn && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
-            {isLoggingIn ? '로그인 중...' : '로그인'}
+            {isLoggingIn && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
+            {isLoggingIn ? '확인 중' : '입장하기'}
           </button>
         </form>
 
-        {/* 데모 힌트 */}
-        <div style={{ marginTop: 14, padding: '8px 10px', background: '#f0f6fb', borderRadius: 6, border: '1px solid #d0e4f0' }}>
-          <div style={{ fontSize: 10, color: '#5a8aaa', fontWeight: 600, marginBottom: 3 }}>데모 계정</div>
-          <div style={{ fontSize: 10, color: '#7a9ab5' }}>admin@tikichat.ai / admin123</div>
+        {/* 데모 계정 */}
+        <div style={{
+          marginTop:  20,
+          paddingTop: 16,
+          borderTop:  `1px solid ${T.beige}`,
+        }}>
+          <div style={{ fontSize: 9, color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>
+            데모 계정
+          </div>
+          <div style={{ fontSize: 10, color: T.gray }}>admin@tikichat.ai / admin123</div>
         </div>
       </div>
+
+      {/* 푸터 */}
+      <div style={{ marginTop: 28, fontSize: 9, color: T.muted, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+        TikiDoc · 해외 환자 상담의 새로운 표준
+      </div>
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

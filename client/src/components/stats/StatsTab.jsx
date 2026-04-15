@@ -704,7 +704,7 @@ export default function StatsTab() {
               <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
                 <Zap size={16} className="text-white" fill="white" />
               </div>
-              <h3 className="text-sm font-bold">AI 티키챗 절감 효과</h3>
+              <h3 className="text-sm font-bold">AI TikiDoc 절감 효과</h3>
             </div>
 
             <div className="space-y-3">
