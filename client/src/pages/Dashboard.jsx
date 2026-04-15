@@ -16,14 +16,15 @@ function TopBar({ session, onLogout, darkMode, onToggleDark, onOpenSettings }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
-    <div className={`h-10 border-b flex items-center justify-between px-4 shrink-0 z-10 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'}`}>
+    <div className={`h-10 border-b flex items-center justify-between px-4 shrink-0 z-10 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}
+      style={{ fontFamily: "'Pretendard Variable', 'Inter', system-ui, sans-serif" }}>
       <div className="flex items-center gap-2.5 ml-1">
-        <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-purple-600 to-fuchsia-500 flex items-center justify-center shadow-[0_0_6px_rgba(168,85,247,0.4)]">
+        <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: '#18181b', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
           <MessageSquare size={10} className="text-white" fill="white" />
         </div>
-        <span className={`text-xs font-semibold ${darkMode ? 'text-zinc-200' : 'text-slate-800'}`}>{session.clinic.name}</span>
+        <span className={`text-xs font-semibold ${darkMode ? 'text-zinc-200' : 'text-zinc-900'}`}>{session.clinic.name}</span>
         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${session.clinic.planColor}`}>{session.clinic.plan}</span>
-        <span className={`text-[10px] hidden sm:block ${darkMode ? 'text-zinc-500' : 'text-slate-400'}`}>{session.clinic.location}</span>
+        <span className={`text-[10px] hidden sm:block ${darkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>{session.clinic.location}</span>
       </div>
 
       <div className="relative">

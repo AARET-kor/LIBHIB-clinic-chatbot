@@ -55,24 +55,24 @@ function GeneralSection({ darkMode }) {
           <div>
             <label className={`block text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${label}`}>병원명</label>
             <input value={clinicName} onChange={e => setClinicName(e.target.value)}
-              className={`w-full px-3 py-2.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-400 ${input}`} />
+              className={`w-full px-3 py-2.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-zinc-400 ${input}`} />
           </div>
           <div>
             <label className={`block text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${label}`}>주소</label>
             <input value={address} onChange={e => setAddress(e.target.value)}
-              className={`w-full px-3 py-2.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-400 ${input}`} />
+              className={`w-full px-3 py-2.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-zinc-400 ${input}`} />
           </div>
           <div>
             <label className={`block text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${label}`}>대표 전화</label>
             <input value={phone} onChange={e => setPhone(e.target.value)}
-              className={`w-full px-3 py-2.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-400 ${input}`} />
+              className={`w-full px-3 py-2.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-zinc-400 ${input}`} />
           </div>
 
           {/* Logo upload */}
           <div>
             <label className={`block text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${label}`}>로고 이미지</label>
             <div className={`flex items-center gap-3 p-3 rounded-lg border-2 border-dashed ${darkMode ? 'border-zinc-600 bg-zinc-700/50' : 'border-slate-200 bg-slate-50'}`}>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-fuchsia-500 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-700 flex items-center justify-center shrink-0">
                 <Building2 size={20} className="text-white" />
               </div>
               <div className="flex-1 min-w-0">
@@ -103,11 +103,11 @@ function GeneralSection({ darkMode }) {
                 <div className="flex items-center gap-2 flex-1">
                   <input type="time" value={hours[day].open}
                     onChange={e => setHours(h => ({ ...h, [day]: { ...h[day], open: e.target.value } }))}
-                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-400 ${input}`} />
+                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg border focus:outline-none focus:ring-2 focus:ring-zinc-400 ${input}`} />
                   <span className={`text-[11px] ${label}`}>~</span>
                   <input type="time" value={hours[day].close}
                     onChange={e => setHours(h => ({ ...h, [day]: { ...h[day], close: e.target.value } }))}
-                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-400 ${input}`} />
+                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg border focus:outline-none focus:ring-2 focus:ring-zinc-400 ${input}`} />
                 </div>
               ) : (
                 <span className={`text-xs ${label}`}>휴무</span>
@@ -132,7 +132,7 @@ function GeneralSection({ darkMode }) {
         </div>
         {autoReply && (
           <textarea value={autoReplyMsg} onChange={e => setAutoReplyMsg(e.target.value)} rows={3}
-            className={`w-full px-3 py-2.5 text-xs rounded-lg border resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed ${input}`} />
+            className={`w-full px-3 py-2.5 text-xs rounded-lg border resize-none focus:outline-none focus:ring-2 focus:ring-zinc-400 leading-relaxed ${input}`} />
         )}
       </div>
 
@@ -141,7 +141,7 @@ function GeneralSection({ darkMode }) {
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm
             ${saved
               ? 'bg-emerald-500 text-white'
-              : 'bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white hover:from-purple-500 hover:to-fuchsia-400 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+              : 'bg-gradient-to-r from-zinc-800 to-zinc-700 text-white hover:from-purple-500 hover:to-fuchsia-400 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
             }`}>
           {saved ? <><Check size={15} /> 저장됨</> : <><Save size={15} /> 변경사항 저장</>}
         </button>
@@ -184,7 +184,7 @@ function AISection({ darkMode }) {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <label className={`text-xs font-semibold ${text}`}>친근함 수준</label>
-            <span className="text-xs font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full">{friendlinessLabel}</span>
+            <span className="text-xs font-bold text-purple-500 bg-zinc-50 px-2 py-0.5 rounded-full">{friendlinessLabel}</span>
           </div>
           <input type="range" min={0} max={100} value={friendliness}
             onChange={e => setFriendliness(+e.target.value)}
@@ -214,7 +214,7 @@ function AISection({ darkMode }) {
           <div className="grid grid-cols-3 gap-2">
             {[['auto', '자동 감지'], ['ko', '한국어'], ['en', '영어']].map(([v, l]) => (
               <button key={v} onClick={() => setLanguage(v)}
-                className={`py-2 rounded-lg text-xs font-medium border transition-all ${language === v ? 'bg-purple-50 border-purple-300 text-purple-700' : darkMode ? 'border-zinc-600 text-zinc-400 hover:border-zinc-500' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                className={`py-2 rounded-lg text-xs font-medium border transition-all ${language === v ? 'bg-zinc-50 border-purple-300 text-zinc-800' : darkMode ? 'border-zinc-600 text-zinc-400 hover:border-zinc-500' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
                 {l}
               </button>
             ))}
@@ -243,7 +243,7 @@ function AISection({ darkMode }) {
           </div>
           {signature && (
             <textarea value={signatureText} onChange={e => setSignatureText(e.target.value)} rows={2}
-              className={`w-full px-3 py-2 text-xs rounded-lg border resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 ${input}`} />
+              className={`w-full px-3 py-2 text-xs rounded-lg border resize-none focus:outline-none focus:ring-2 focus:ring-zinc-400 ${input}`} />
           )}
         </div>
       </div>
@@ -265,7 +265,7 @@ function AISection({ darkMode }) {
       <div className="flex justify-end">
         <button onClick={handleSave}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm
-            ${saved ? 'bg-emerald-500 text-white' : 'bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white hover:from-purple-500 hover:to-fuchsia-400 shadow-[0_0_12px_rgba(168,85,247,0.3)]'}`}>
+            ${saved ? 'bg-emerald-500 text-white' : 'bg-gradient-to-r from-zinc-800 to-zinc-700 text-white hover:from-purple-500 hover:to-fuchsia-400 shadow-[0_0_12px_rgba(168,85,247,0.3)]'}`}>
           {saved ? <><Check size={15} /> 저장됨</> : <><Save size={15} /> 변경사항 저장</>}
         </button>
       </div>
@@ -385,7 +385,7 @@ function ChannelCard({ ch, darkMode }) {
 function ChannelsSection({ darkMode }) {
   return (
     <div className="space-y-4">
-      <div className={`rounded-2xl border p-4 ${darkMode ? 'bg-zinc-800/50 border-zinc-700' : 'bg-purple-50/50 border-purple-100'}`}>
+      <div className={`rounded-2xl border p-4 ${darkMode ? 'bg-zinc-800/50 border-zinc-700' : 'bg-zinc-50/50 border-purple-100'}`}>
         <div className="flex items-start gap-2.5">
           <Link2 size={14} className="text-purple-500 mt-0.5 shrink-0" />
           <p className={`text-xs leading-relaxed ${darkMode ? 'text-zinc-400' : 'text-slate-600'}`}>
@@ -447,16 +447,16 @@ function TemplateEditor({ tpl, onSave, onCancel, darkMode }) {
   const text = darkMode ? 'text-zinc-100' : 'text-slate-800';
 
   return (
-    <div className={`rounded-xl border p-4 ${darkMode ? 'bg-zinc-700 border-zinc-600' : 'bg-purple-50 border-purple-200'}`}>
+    <div className={`rounded-xl border p-4 ${darkMode ? 'bg-zinc-700 border-zinc-600' : 'bg-zinc-50 border-purple-200'}`}>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">{tpl.procedure}</span>
+        <span className="text-xs font-semibold text-zinc-800 bg-purple-100 px-2 py-0.5 rounded-full">{tpl.procedure}</span>
         <span className={`text-xs font-medium ${text}`}>{tpl.day}</span>
       </div>
       <textarea value={msg} onChange={e => setMsg(e.target.value)} rows={4}
-        className={`w-full px-3 py-2.5 text-xs rounded-lg border resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed mb-3 ${input}`} />
+        className={`w-full px-3 py-2.5 text-xs rounded-lg border resize-none focus:outline-none focus:ring-2 focus:ring-zinc-400 leading-relaxed mb-3 ${input}`} />
       <div className="flex gap-2 justify-end">
         <button onClick={onCancel} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${darkMode ? 'border-zinc-600 text-zinc-400 hover:bg-zinc-600' : 'border-slate-200 text-slate-500 hover:bg-white'}`}>취소</button>
-        <button onClick={() => onSave(msg)} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 text-white hover:bg-purple-500 transition-colors">저장</button>
+        <button onClick={() => onSave(msg)} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-900 text-white hover:bg-zinc-500 transition-colors">저장</button>
       </div>
     </div>
   );
@@ -485,7 +485,7 @@ function TemplatesSection({ darkMode }) {
       <div className="flex gap-2 flex-wrap">
         {procedures.map(p => (
           <button key={p} onClick={() => setFilterProc(p)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterProc === p ? 'bg-purple-50 border-purple-300 text-purple-700' : darkMode ? 'border-zinc-700 text-zinc-500 hover:border-zinc-600' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${filterProc === p ? 'bg-zinc-50 border-purple-300 text-zinc-800' : darkMode ? 'border-zinc-700 text-zinc-500 hover:border-zinc-600' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
             {p}
           </button>
         ))}
@@ -502,11 +502,11 @@ function TemplatesSection({ darkMode }) {
             <div key={tpl.id} className={`rounded-2xl border p-4 ${card}`}>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{tpl.procedure}</span>
+                  <span className="text-xs font-semibold text-zinc-800 bg-zinc-50 px-2 py-0.5 rounded-full">{tpl.procedure}</span>
                   <span className={`text-xs font-semibold ${text}`}>{tpl.day}</span>
                 </div>
                 <button onClick={() => setEditingId(tpl.id)}
-                  className={`flex items-center gap-1 text-[11px] font-medium transition-colors ${subText} hover:text-purple-600`}>
+                  className={`flex items-center gap-1 text-[11px] font-medium transition-colors ${subText} hover:text-zinc-800`}>
                   <Edit3 size={11} /> 수정
                 </button>
               </div>
@@ -518,7 +518,7 @@ function TemplatesSection({ darkMode }) {
 
       {/* Add new */}
       <button className={`w-full py-3 rounded-2xl border-2 border-dashed text-xs font-medium transition-colors flex items-center justify-center gap-2
-        ${darkMode ? 'border-zinc-700 text-zinc-600 hover:border-purple-500 hover:text-purple-400' : 'border-slate-200 text-slate-400 hover:border-purple-300 hover:text-purple-600'}`}>
+        ${darkMode ? 'border-zinc-700 text-zinc-600 hover:border-purple-500 hover:text-purple-400' : 'border-slate-200 text-slate-400 hover:border-purple-300 hover:text-zinc-800'}`}>
         <Plus size={13} /> 새 템플릿 추가
       </button>
     </div>
@@ -533,7 +533,7 @@ export default function SettingsTab({ darkMode }) {
   const sidebarBg = darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200';
   const text = darkMode ? 'text-zinc-100' : 'text-slate-800';
   const subText = darkMode ? 'text-zinc-500' : 'text-slate-500';
-  const activeItem = darkMode ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-purple-50 text-purple-700 border-purple-100';
+  const activeItem = darkMode ? 'bg-zinc-500/20 text-purple-400 border-purple-500/30' : 'bg-zinc-50 text-zinc-800 border-purple-100';
   const inactiveItem = darkMode ? 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 border-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 border-transparent';
 
   const renderSection = () => {

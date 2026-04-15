@@ -1,20 +1,21 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-// ── TikiDoc 디자인 토큰 — Harbor Haze 팔레트 ──────────────────────────────────
+// ── Design tokens — Zinc + Watermelon Coral accent ───────────────────────────
 const T = {
-  bg:      '#F4F6F9',    // Harbor light blue-gray
-  beige:   '#EAEDF2',    // Panel bg
-  dark:    '#1E2535',    // Deep harbor navy
-  blue:    '#5C8DC5',    // Harbor Vivid Blue (primary)
-  blueDk:  '#3E6DA0',    // Darker blue
-  gray:    '#909EAE',    // Harbor Slate
-  border:  '#C5CDD8',    // Border
-  muted:   '#B0BACC',    // Muted
-  red:     '#B84040',
-  redBg:   '#FDF2F2',
+  bg:      '#fafafa',
+  white:   '#ffffff',
+  text:    '#09090b',
+  textSub: '#71717a',
+  textMt:  '#a1a1aa',
+  border:  '#e4e4e7',
+  black:   '#18181b',
+  coral:   '#FC6C85',
+  red:     '#ef4444',
+  redBg:   '#fef2f2',
 };
+const SANS = "'Pretendard Variable', 'Inter', system-ui, -apple-system, sans-serif";
 
 export default function LoginForm() {
   const { login, loginError, isLoggingIn } = useAuth();
@@ -29,76 +30,51 @@ export default function LoginForm() {
 
   return (
     <div style={{
-      background:     T.bg,
-      minHeight:      '100vh',
-      display:        'flex',
-      flexDirection:  'column',
-      alignItems:     'center',
-      justifyContent: 'center',
-      padding:        '32px 24px',
-      fontFamily:     "system-ui, -apple-system, 'Inter', sans-serif",
+      background: T.bg,
+      minHeight: '100vh',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '32px 20px',
+      fontFamily: SANS,
     }}>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        * { box-sizing: border-box; }
+        input { outline: none; }
+      `}</style>
 
-      {/* ── 로고 ── */}
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <div style={{ width: 40, height: 1, background: T.blue, margin: '0 auto 18px' }} />
-        <div style={{
-          fontFamily:    "Georgia, 'Times New Roman', serif",
-          fontSize:      28,
-          fontWeight:    400,
-          color:         T.dark,
-          letterSpacing: '0.14em',
-        }}>
-          TikiDoc
+      {/* Logo */}
+      <div style={{ textAlign: 'center', marginBottom: 36 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: T.black, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+            <MessageSquare size={14} color="#fff" fill="#fff" />
+          </div>
+          <span style={{ fontSize: 18, fontWeight: 800, color: T.text, letterSpacing: '-0.03em' }}>TikiDoc</span>
         </div>
-        <div style={{
-          fontSize:      9,
-          letterSpacing: '0.32em',
-          color:         T.gray,
-          textTransform: 'uppercase',
-          marginTop:     6,
-        }}>
-          Global Medical AI
-        </div>
-        <div style={{ width: 40, height: 1, background: T.blue, margin: '18px auto 0' }} />
+        {/* Coral accent line */}
+        <div style={{ width: 36, height: 3, borderRadius: 2, background: T.coral, margin: '0 auto 8px' }} />
+        <p style={{ fontSize: 11, color: T.textMt, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          AI 다국어 상담 솔루션
+        </p>
       </div>
 
-      {/* ── 카드 ── */}
+      {/* Card */}
       <div style={{
-        width:     '100%',
-        maxWidth:  316,
-        background: '#FFFFFF',
-        border:    `1px solid ${T.border}`,
-        padding:   '32px 28px 28px',
-        boxShadow: '0 2px 32px rgba(44,44,44,0.07)',
+        width: '100%', maxWidth: 300,
+        background: T.white,
+        border: `1px solid ${T.border}`,
+        borderRadius: 16,
+        padding: '28px 24px',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
       }}>
-        <div style={{
-          fontFamily:    "Georgia, 'Times New Roman', serif",
-          fontSize:      15,
-          fontWeight:    400,
-          color:         T.dark,
-          marginBottom:  4,
-          letterSpacing: '0.04em',
-        }}>
-          클리닉 로그인
-        </div>
-        <div style={{ fontSize: 11, color: T.gray, marginBottom: 28, letterSpacing: '0.01em' }}>
-          해외 환자 상담의 새로운 표준
-        </div>
+        <p style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 4, letterSpacing: '-0.02em' }}>클리닉 로그인</p>
+        <p style={{ fontSize: 11, color: T.textSub, marginBottom: 24 }}>병원 계정으로 로그인하세요</p>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          {/* 이메일 */}
+          {/* Email */}
           <div>
-            <label style={{
-              fontSize:      9,
-              fontWeight:    600,
-              color:         T.gray,
-              display:       'block',
-              marginBottom:  8,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-            }}>
+            <label style={{ fontSize: 10, fontWeight: 600, color: T.textSub, display: 'block', marginBottom: 6, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               이메일
             </label>
             <input
@@ -108,35 +84,19 @@ export default function LoginForm() {
               placeholder="clinic@example.com"
               required
               style={{
-                width:           '100%',
-                padding:         '8px 0',
-                border:          'none',
-                borderBottom:    `1px solid ${T.border}`,
-                borderRadius:    0,
-                fontSize:        13,
-                color:           T.dark,
-                outline:         'none',
-                boxSizing:       'border-box',
-                background:      'transparent',
-                transition:      'border-color 0.2s',
-                fontFamily:      'inherit',
+                width: '100%', padding: '9px 12px',
+                border: `1px solid ${T.border}`, borderRadius: 8,
+                fontSize: 13, color: T.text, background: T.bg,
+                transition: 'border-color 0.15s', fontFamily: SANS,
               }}
-              onFocus={e => e.target.style.borderBottomColor = T.blue}
-              onBlur={e  => e.target.style.borderBottomColor = T.border}
+              onFocus={e => e.target.style.borderColor = T.coral}
+              onBlur={e  => e.target.style.borderColor = T.border}
             />
           </div>
 
-          {/* 비밀번호 */}
+          {/* Password */}
           <div>
-            <label style={{
-              fontSize:      9,
-              fontWeight:    600,
-              color:         T.gray,
-              display:       'block',
-              marginBottom:  8,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-            }}>
+            <label style={{ fontSize: 10, fontWeight: 600, color: T.textSub, display: 'block', marginBottom: 6, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               비밀번호
             </label>
             <div style={{ position: 'relative' }}>
@@ -147,100 +107,64 @@ export default function LoginForm() {
                 placeholder="••••••••"
                 required
                 style={{
-                  width:        '100%',
-                  padding:      '8px 28px 8px 0',
-                  border:       'none',
-                  borderBottom: `1px solid ${T.border}`,
-                  borderRadius: 0,
-                  fontSize:     13,
-                  color:        T.dark,
-                  outline:      'none',
-                  boxSizing:    'border-box',
-                  background:   'transparent',
-                  transition:   'border-color 0.2s',
-                  fontFamily:   'inherit',
+                  width: '100%', padding: '9px 36px 9px 12px',
+                  border: `1px solid ${T.border}`, borderRadius: 8,
+                  fontSize: 13, color: T.text, background: T.bg,
+                  transition: 'border-color 0.15s', fontFamily: SANS,
                 }}
-                onFocus={e => e.target.style.borderBottomColor = T.gold}
-                onBlur={e  => e.target.style.borderBottomColor = T.border}
+                onFocus={e => e.target.style.borderColor = T.coral}
+                onBlur={e  => e.target.style.borderColor = T.border}
               />
               <button
                 type="button"
                 onClick={() => setShowPw(p => !p)}
-                style={{
-                  position:  'absolute', right: 0, top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none', border: 'none',
-                  cursor:    'pointer', color: T.muted, padding: 0,
-                }}
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: T.textMt, padding: 0 }}
               >
                 {showPw ? <EyeOff size={13} /> : <Eye size={13} />}
               </button>
             </div>
           </div>
 
-          {/* 에러 */}
+          {/* Error */}
           {loginError && (
-            <div style={{
-              fontSize:   11,
-              color:      T.red,
-              background: T.redBg,
-              padding:    '8px 12px',
-              borderLeft: `2px solid ${T.red}`,
-              letterSpacing: '0.01em',
-            }}>
+            <div style={{ fontSize: 11, color: T.red, background: T.redBg, padding: '8px 12px', borderRadius: 8, borderLeft: `3px solid ${T.red}` }}>
               {loginError}
             </div>
           )}
 
-          {/* 로그인 버튼 */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={isLoggingIn}
             style={{
-              background:    isLoggingIn ? T.gray : `linear-gradient(135deg, ${T.blueDk}, ${T.blue})`,
-              color:         '#fff',
-              border:        'none',
-              padding:       '13px',
-              fontSize:      10,
-              fontWeight:    600,
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              cursor:        isLoggingIn ? 'not-allowed' : 'pointer',
-              display:       'flex',
-              alignItems:    'center',
-              justifyContent:'center',
-              gap:           8,
-              marginTop:     4,
-              transition:    'background 0.2s',
-              fontFamily:    'inherit',
+              background: isLoggingIn ? T.textMt : T.black,
+              color: '#fff', border: 'none',
+              padding: '11px', borderRadius: 9,
+              fontSize: 13, fontWeight: 700,
+              letterSpacing: '-0.01em',
+              cursor: isLoggingIn ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'opacity 0.15s', fontFamily: SANS,
+              boxShadow: isLoggingIn ? 'none' : '0 3px 12px rgba(0,0,0,0.18)',
             }}
+            onMouseEnter={e => { if (!isLoggingIn) e.currentTarget.style.opacity = '0.85'; }}
+            onMouseLeave={e => { if (!isLoggingIn) e.currentTarget.style.opacity = '1'; }}
           >
-            {isLoggingIn && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
-            {isLoggingIn ? '확인 중' : '입장하기'}
+            {isLoggingIn && <Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} />}
+            {isLoggingIn ? '로그인 중...' : '로그인'}
           </button>
         </form>
 
-        {/* 데모 계정 */}
-        <div style={{
-          marginTop:  20,
-          paddingTop: 16,
-          borderTop:  `1px solid ${T.beige}`,
-        }}>
-          <div style={{ fontSize: 9, color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>
-            데모 계정
-          </div>
-          <div style={{ fontSize: 10, color: T.gray }}>admin@tikichat.ai / admin123</div>
+        {/* Demo account */}
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${T.border}` }}>
+          <p style={{ fontSize: 10, color: T.textMt, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>데모 계정</p>
+          <p style={{ fontSize: 11, color: T.textSub, fontFamily: 'monospace' }}>admin@tikichat.ai / admin123</p>
         </div>
       </div>
 
-      {/* 푸터 */}
-      <div style={{ marginTop: 28, fontSize: 9, color: T.muted, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+      <p style={{ marginTop: 24, fontSize: 10, color: T.textMt, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
         TikiDoc · 해외 환자 상담의 새로운 표준
-      </div>
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
+      </p>
     </div>
   );
 }

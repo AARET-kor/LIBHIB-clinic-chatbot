@@ -57,7 +57,7 @@ const HEATMAP = {
 
 // 언어별 데이터
 const LANG_DATA = [
-  { lang:'일본어', flag:'🇯🇵', count:55, pct:39, prev:44, colorBar:'bg-purple-500', colorDot:'bg-purple-400' },
+  { lang:'일본어', flag:'🇯🇵', count:55, pct:39, prev:44, colorBar:'bg-teal-600', colorDot:'bg-teal-400' },
   { lang:'영어',   flag:'🇺🇸', count:31, pct:22, prev:28, colorBar:'bg-sky-500',    colorDot:'bg-sky-400'    },
   { lang:'중국어', flag:'🇨🇳', count:28, pct:20, prev:22, colorBar:'bg-rose-500',   colorDot:'bg-rose-400'   },
   { lang:'아랍어', flag:'🇸🇦', count:20, pct:14, prev:15, colorBar:'bg-amber-500',  colorDot:'bg-amber-400'  },
@@ -74,10 +74,10 @@ const CHANNEL_STATS = [
 
 // 퍼널 데이터
 const FUNNEL = [
-  { label:'신규 문의',     value:142, color:'from-purple-600 to-fuchsia-500', width:'100%' },
-  { label:'상담 진행',     value:98,  color:'from-purple-500 to-fuchsia-400', width:'69%'  },
-  { label:'예약 확정',     value:51,  color:'from-violet-500 to-purple-400',  width:'36%'  },
-  { label:'내원 완료',     value:44,  color:'from-indigo-500 to-violet-400',  width:'31%'  },
+  { label:'신규 문의',     value:142, color:'bg-zinc-900', width:'100%' },
+  { label:'상담 진행',     value:98,  color:'bg-zinc-800', width:'69%'  },
+  { label:'예약 확정',     value:51,  color:'bg-zinc-700',  width:'36%'  },
+  { label:'내원 완료',     value:44,  color:'bg-zinc-600',  width:'31%'  },
 ];
 
 // ── SVG Line Chart ─────────────────────────────────────────────────────────────
@@ -125,12 +125,12 @@ function LineChart({ data }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
       <defs>
         <linearGradient id="g-inq" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#9333EA" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#9333EA" stopOpacity="0.02" />
+          <stop offset="0%" stopColor="#069494" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#069494" stopOpacity="0.02" />
         </linearGradient>
         <linearGradient id="g-book" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
+          <stop offset="0%" stopColor="#069494" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#069494" stopOpacity="0.02" />
         </linearGradient>
       </defs>
 
@@ -147,8 +147,8 @@ function LineChart({ data }) {
       <path d={areaPath('book', bookPath)} fill="url(#g-book)" />
 
       {/* Lines */}
-      <path d={inqPath}  fill="none" stroke="#9333EA" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={bookPath} fill="none" stroke="#10B981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={inqPath}  fill="none" stroke="#069494" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={bookPath} fill="none" stroke="#069494" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
 
       {/* Dots — only last point */}
       {data.length > 0 && (() => {
@@ -156,8 +156,8 @@ function LineChart({ data }) {
         const li = data.length - 1;
         return (
           <>
-            <circle cx={gx(li)} cy={gy(last.inq)}  r="4" fill="#9333EA" stroke="white" strokeWidth="1.5" />
-            <circle cx={gx(li)} cy={gy(last.book)} r="4" fill="#10B981" stroke="white" strokeWidth="1.5" />
+            <circle cx={gx(li)} cy={gy(last.inq)}  r="4" fill="#069494" stroke="white" strokeWidth="1.5" />
+            <circle cx={gx(li)} cy={gy(last.book)} r="4" fill="#069494" stroke="white" strokeWidth="1.5" />
           </>
         );
       })()}
@@ -175,15 +175,15 @@ function LineChart({ data }) {
 // ── Heatmap ────────────────────────────────────────────────────────────────────
 const HEAT_COLORS = [
   'bg-slate-100',
-  'bg-purple-100',
-  'bg-purple-300',
-  'bg-purple-500',
-  'bg-purple-700',
+  'bg-teal-50',
+  'bg-teal-200',
+  'bg-teal-600',
+  'bg-teal-700',
 ];
 const HEAT_TEXT = [
   'text-slate-300',
-  'text-purple-400',
-  'text-purple-200',
+  'text-teal-400',
+  'text-teal-100',
   'text-white',
   'text-white',
 ];
@@ -226,7 +226,7 @@ function Heatmap() {
                   <div
                     key={ci}
                     className={`flex-1 aspect-square rounded-md flex items-center justify-center transition-all cursor-pointer
-                      ${HEAT_COLORS[val]} ${isHovered ? 'ring-2 ring-purple-400 scale-110' : ''}`}
+                      ${HEAT_COLORS[val]} ${isHovered ? 'ring-2 ring-teal-400 scale-110' : ''}`}
                     onMouseEnter={() => setHovered({ r: ri, c: ci, val })}
                     onMouseLeave={() => setHovered(null)}
                   >
@@ -348,12 +348,12 @@ function DateRangePicker({ onApply, onClose }) {
         <div>
           <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1">시작일</label>
           <input type="date" value={start} onChange={e => setStart(e.target.value)} max={end}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-400" />
+            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-400" />
         </div>
         <div>
           <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1">종료일</label>
           <input type="date" value={end} onChange={e => setEnd(e.target.value)} min={start}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-400" />
+            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-400" />
         </div>
       </div>
       {start && end && start > end && (
@@ -365,7 +365,7 @@ function DateRangePicker({ onApply, onClose }) {
           취소
         </button>
         <button onClick={handleApply} disabled={!start || !end || start > end}
-          className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white disabled:opacity-50 hover:from-purple-500 hover:to-fuchsia-400 transition-all flex items-center justify-center gap-1.5">
+          className="flex-1 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r bg-zinc-900 text-white disabled:opacity-50 hover:from-purple-500 hover:to-fuchsia-400 transition-all flex items-center justify-center gap-1.5">
           <Check size={11} /> 적용
         </button>
       </div>
@@ -603,7 +603,7 @@ export default function StatsTab() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5 text-[11px] text-slate-600">
-                  <span className="w-3 h-1.5 rounded-full bg-purple-500 inline-block" /> 문의
+                  <span className="w-3 h-1.5 rounded-full bg-teal-600 inline-block" /> 문의
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] text-slate-600">
                   <span className="w-3 h-1.5 rounded-full bg-emerald-500 inline-block" /> 예약확정
@@ -615,7 +615,7 @@ export default function StatsTab() {
             {/* Mini summary below chart */}
             <div className="flex gap-4 mt-3 pt-3 border-t border-slate-100">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-purple-500" />
+                <div className="w-2 h-2 rounded-full bg-teal-600" />
                 <span className="text-[11px] text-slate-500">문의 총합</span>
                 <span className="text-xs font-bold text-purple-700">{totalInq}건</span>
               </div>

@@ -1,4 +1,10 @@
 import { BarChart3, Settings, Shield, Stethoscope, Sparkles, MessageSquare } from 'lucide-react';
+
+// ── Design tokens — Zinc base + selective accent colors ───────────────────────
+const CORAL  = '#FC6C85';   // Tiki Paste — Watermelon Splash
+const TEAL   = '#069494';   // Stats — Tropical Punch
+const LIME   = '#89F336';   // Procedures — Watermelon Splash
+const F      = { sans: "'Pretendard Variable', 'Inter', system-ui, sans-serif" };
 import { useAuth } from '../../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -10,12 +16,14 @@ const NAV_ITEMS = [
     icon:          BarChart3,
     label:         '통계',
     requiredRoles: ['owner', 'admin'],
+    accent:        TEAL,
   },
   {
     id:            'procedures',
     icon:          Stethoscope,
     label:         '시술 관리',
     requiredRoles: ['owner', 'admin'],
+    accent:        LIME,
   },
 ];
 
@@ -67,75 +75,69 @@ function LockedNavItem({ item, darkMode, inactiveClass }) {
 export default function Sidebar({ activeTab, onTabChange, darkMode }) {
   const { session, role, canAccess } = useAuth();
 
-  // ── 스타일 ──────────────────────────────────────────────────────────────────
-  const base         = darkMode ? 'bg-[#1E2535] border-[#2A3348]' : 'bg-white border-[#C5CDD8]';
-  const activeClass  = darkMode
-    ? 'bg-[#5C8DC5]/20 text-[#5C8DC5] shadow-sm border border-[#5C8DC5]/30'
-    : 'bg-[#E8F1FA] text-[#3E6DA0] shadow-sm border border-[#5C8DC5]/25';
-  const inactiveClass = darkMode
-    ? 'text-[#909EAE] hover:bg-[#2A3348] hover:text-[#C5CDD8] border border-transparent'
-    : 'text-[#909EAE] hover:bg-[#F4F6F9] hover:text-[#3A4558] border border-transparent';
+  // ── Zinc base styles ────────────────────────────────────────────────────────
+  const base      = darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200';
+  const inactCls  = darkMode
+    ? 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 border border-transparent'
+    : 'text-zinc-400 hover:bg-zinc-50 hover:text-zinc-700 border border-transparent';
 
-  // ── role이 null(로딩 중)이면 전체 허용으로 안전 처리 ──────────────────────
   const isAdminOrAbove = !role || role === 'owner' || role === 'admin';
 
-  return (
-    <aside className={`w-16 flex flex-col items-center ${base} border-r py-4 gap-1 shrink-0`}>
+  // Per-item active style using accent color
+  const activeStyle = (accent) => ({
+    background: `${accent}15`,
+    border: `1px solid ${accent}40`,
+    color: accent,
+    boxShadow: `0 1px 6px ${accent}20`,
+  });
 
-      {/* ── 로고 ──────────────────────────────────────────────────────────── */}
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3E6DA0] to-[#5C8DC5] flex items-center justify-center mb-4 shadow-[0_4px_14px_rgba(92,141,197,0.35)]">
-        <MessageSquare size={16} className="text-white" fill="white" />
+  return (
+    <aside
+      className={`w-16 flex flex-col items-center ${base} border-r py-4 gap-1 shrink-0`}
+      style={{ fontFamily: F.sans }}
+    >
+      {/* ── Logo ───────────────────────────────────────────────────────────── */}
+      <div style={{
+        width: 36, height: 36, borderRadius: 10,
+        background: '#18181b',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: 16,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+      }}>
+        <MessageSquare size={15} className="text-white" fill="white" />
       </div>
 
-      {/* ── 메인 네비게이션 ────────────────────────────────────────────────── */}
+      {/* ── Nav ────────────────────────────────────────────────────────────── */}
       <nav className="flex flex-col items-center gap-1 flex-1 w-full px-2">
 
-        {/* ✨ Tiki Paste — 포인트 버튼 (딥 브론즈 골드) */}
+        {/* Tiki Paste — coral accent */}
         <button
           onClick={() => onTabChange('tiki_paste')}
           title="Tiki Paste — 붙여넣기 즉시 AI 답변 3종 자동 생성"
-          style={activeTab === 'tiki_paste' ? {
-            background: 'linear-gradient(135deg, #3E6DA0 0%, #5C8DC5 60%, #7AAAD8 100%)',
-            boxShadow: '0 2px 14px rgba(92,141,197,0.45)',
-            border: 'none',
-          } : darkMode ? {
-            background: 'rgba(92,141,197,0.07)',
-            border: '1px solid rgba(92,141,197,0.22)',
-          } : {
-            background: '#ffffff',
-            border: '1px solid #5C8DC530',
-            boxShadow: '0 1px 6px rgba(92,141,197,0.10)',
-          }}
-          className={`
-            w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl
-            transition-all duration-150 relative
-            ${activeTab === 'tiki_paste' ? 'text-white' : darkMode ? 'text-[#5C8DC5]' : 'text-[#3E6DA0]'}
-          `}
+          style={activeTab === 'tiki_paste'
+            ? { background: CORAL, border: 'none', boxShadow: `0 4px 14px ${CORAL}55`, color: '#fff' }
+            : darkMode
+              ? { background: `${CORAL}10`, border: `1px solid ${CORAL}25`, color: CORAL }
+              : { background: '#fff', border: `1px solid ${CORAL}30`, color: CORAL, boxShadow: `0 1px 5px ${CORAL}15` }
+          }
+          className="w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl transition-all duration-150 relative"
         >
-          <Sparkles size={18} strokeWidth={activeTab === 'tiki_paste' ? 2.5 : 1.8} />
-          <span className="text-[9px] font-bold tracking-tight leading-none">티키</span>
+          <Sparkles size={17} strokeWidth={activeTab === 'tiki_paste' ? 2.5 : 1.8} />
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1 }}>티키</span>
           {activeTab !== 'tiki_paste' && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#5C8DC5]" />
+            <span style={{ position: 'absolute', top: -2, right: -2, width: 7, height: 7, borderRadius: '50%', background: CORAL }} />
           )}
         </button>
 
-        {/* 구분선 */}
-        <div className={`w-8 h-px my-0.5 ${darkMode ? 'bg-zinc-700' : 'bg-slate-200'}`} />
+        {/* Divider */}
+        <div className={`w-8 h-px my-0.5 ${darkMode ? 'bg-zinc-700' : 'bg-zinc-200'}`} />
 
         {NAV_ITEMS.map(item => {
           const hasAccess = !item.requiredRoles || canAccess(item.id);
           const isActive  = activeTab === item.id;
 
-          // 접근 불가 — 잠긴 상태로 표시 (완전히 숨기지 않고 존재는 알림)
           if (!hasAccess) {
-            return (
-              <LockedNavItem
-                key={item.id}
-                item={item}
-                darkMode={darkMode}
-                inactiveClass={inactiveClass}
-              />
-            );
+            return <LockedNavItem key={item.id} item={item} darkMode={darkMode} inactiveClass={inactCls} />;
           }
 
           return (
@@ -143,14 +145,15 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
               key={item.id}
               onClick={() => onTabChange(item.id)}
               title={item.label}
+              style={isActive ? activeStyle(item.accent) : {}}
               className={`
                 w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl
                 transition-all duration-150
-                ${isActive ? activeClass : inactiveClass}
+                ${isActive ? '' : inactCls}
               `}
             >
-              <item.icon size={18} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className="text-[9px] font-medium tracking-tight leading-none">
+              <item.icon size={17} strokeWidth={isActive ? 2.5 : 1.8} />
+              <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500, letterSpacing: '0.01em', lineHeight: 1 }}>
                 {item.label}
               </span>
             </button>
@@ -158,41 +161,32 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
         })}
       </nav>
 
-      {/* ── 하단: 설정 + 아바타 ───────────────────────────────────────────── */}
+      {/* ── Bottom: settings + avatar ──────────────────────────────────────── */}
       <div className="flex flex-col items-center gap-2 w-full px-2">
-
-        {/* 설정 — owner/admin 전용 */}
         {isAdminOrAbove ? (
           <button
             title="병원 설정"
             onClick={() => onTabChange('settings')}
-            className={`
-              w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl
-              transition-all duration-150
-              ${activeTab === 'settings' ? activeClass : inactiveClass}
-            `}
+            style={activeTab === 'settings'
+              ? { background: '#18181b', border: '1px solid #3f3f46', color: '#fff', boxShadow: '0 1px 6px rgba(0,0,0,0.2)' }
+              : {}
+            }
+            className={`w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl transition-all duration-150 ${activeTab === 'settings' ? '' : inactCls}`}
           >
-            <Settings size={18} strokeWidth={activeTab === 'settings' ? 2.5 : 1.8} />
-            <span className="text-[9px] font-medium">설정</span>
+            <Settings size={17} strokeWidth={activeTab === 'settings' ? 2.5 : 1.8} />
+            <span style={{ fontSize: 9, fontWeight: 500 }}>설정</span>
           </button>
         ) : (
-          /* staff에게는 설정 아이콘 대신 권한 안내 뱃지만 */
-          <div
-            title="설정은 관리자 전용입니다"
-            className={`w-full flex flex-col items-center gap-1 py-2 px-1 rounded-xl opacity-30 cursor-not-allowed ${inactiveClass}`}
-          >
+          <div title="설정은 관리자 전용입니다" className={`w-full flex flex-col items-center gap-1 py-2 px-1 rounded-xl opacity-30 cursor-not-allowed ${inactCls}`}>
             <Shield size={15} strokeWidth={1.5} />
-            <span className="text-[8px]">설정</span>
+            <span style={{ fontSize: 8 }}>설정</span>
           </div>
         )}
 
-        {/* 아바타 + 역할 뱃지 */}
         {session && (
           <div className="flex flex-col items-center gap-1 mt-1">
             <div
-              className={`w-8 h-8 rounded-full bg-gradient-to-br ${session.staff.avatarColor}
-                flex items-center justify-center text-white text-[11px] font-bold shadow
-                cursor-pointer ring-2 ${darkMode ? 'ring-zinc-900' : 'ring-white'}`}
+              className={`w-8 h-8 rounded-full bg-gradient-to-br ${session.staff.avatarColor} flex items-center justify-center text-white text-[11px] font-bold shadow cursor-pointer ring-2 ${darkMode ? 'ring-zinc-900' : 'ring-white'}`}
               title={`${session.staff.name} · ${session.staff.role}`}
             >
               {session.staff.initials}

@@ -56,12 +56,12 @@ function EditModal({ proc, darkMode, onSave, onClose }) {
 
   const modal = darkMode ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-slate-200';
   const input = darkMode
-    ? 'bg-zinc-800 border-zinc-600 text-zinc-100 placeholder-zinc-500 focus:ring-purple-500/40'
-    : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-purple-300';
+    ? 'bg-zinc-800 border-zinc-600 text-zinc-100 placeholder-zinc-500 focus:ring-zinc-400/30'
+    : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:ring-zinc-400';
   const label = darkMode ? 'text-zinc-400' : 'text-slate-500';
   const tabActive = darkMode
     ? 'bg-purple-600/20 text-purple-400 border-purple-600/40'
-    : 'bg-purple-50 text-purple-700 border-purple-200';
+    : 'bg-zinc-900 text-white border-zinc-700';
   const tabInactive = darkMode
     ? 'text-zinc-500 hover:text-zinc-300 border-transparent'
     : 'text-slate-500 hover:text-slate-700 border-transparent';
@@ -173,7 +173,7 @@ function EditModal({ proc, darkMode, onSave, onClose }) {
             취소
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white hover:from-purple-500 hover:to-fuchsia-400 transition-all disabled:opacity-60">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-zinc-800 to-zinc-700 text-white hover:from-purple-500 hover:to-fuchsia-400 transition-all disabled:opacity-60">
             {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
             저장
           </button>
@@ -364,14 +364,14 @@ export default function ProceduresTab({ darkMode }) {
   const panelTitle = darkMode ? 'text-zinc-100' : 'text-slate-800';
   const muted      = darkMode ? 'text-zinc-500' : 'text-slate-400';
   const inputCls   = darkMode
-    ? 'bg-zinc-800 border-zinc-700 text-zinc-200 placeholder-zinc-600 focus:ring-purple-500/30'
-    : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-400 focus:ring-purple-200';
+    ? 'bg-zinc-800 border-zinc-700 text-zinc-200 placeholder-zinc-600 focus:ring-zinc-400/30'
+    : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-400 focus:ring-zinc-300';
   const rowHover   = darkMode ? 'hover:bg-zinc-800/70' : 'hover:bg-slate-50';
   const divider    = darkMode ? 'divide-zinc-800' : 'divide-slate-100';
   const border     = darkMode ? 'border-zinc-800' : 'border-slate-200';
   const catActive  = darkMode
-    ? 'bg-purple-600/20 text-purple-400 border-purple-600/30'
-    : 'bg-purple-50 text-purple-700 border-purple-200';
+    ? 'bg-zinc-900 text-zinc-100 border-zinc-700'
+    : 'bg-zinc-900 text-white border-zinc-700';
   const catInact   = darkMode
     ? 'text-zinc-500 hover:text-zinc-300 border-zinc-700 hover:border-zinc-600'
     : 'text-slate-500 hover:text-slate-700 border-slate-200 hover:border-slate-300';
@@ -392,7 +392,7 @@ export default function ProceduresTab({ darkMode }) {
         <div className={`px-5 py-4 border-b ${border}`}>
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center">
                 <Database size={12} className="text-white" />
               </div>
               <h2 className={`text-sm font-bold ${panelTitle}`}>마스터 시술 목록</h2>
@@ -542,7 +542,7 @@ export default function ProceduresTab({ darkMode }) {
             disabled={availableChecked === 0 || copying || !clinicId}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm
               ${availableChecked > 0 && !copying
-                ? 'bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white hover:from-purple-500 hover:to-fuchsia-400'
+                ? 'bg-gradient-to-r from-zinc-800 to-zinc-700 text-white hover:from-purple-500 hover:to-fuchsia-400'
                 : darkMode
                   ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
