@@ -3,20 +3,20 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { MessageSquare, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-// Harbor Haze
 const C = {
-  bg:      '#F4F6F9',
-  white:   '#FFFFFF',
-  dark:    '#1E2535',
-  textMd:  '#3A4558',
-  textMt:  '#6B7A90',
-  blue:    '#5C8DC5',
-  blueDk:  '#3E6DA0',
-  blueBg:  '#E8F1FA',
-  border:  '#C5CDD8',
-  muted:   '#909EAE',
-  red:     '#B84040',
-  redBg:   '#FDF2F2',
+  bg:      '#fafafa',
+  white:   '#ffffff',
+  dark:    '#09090b',
+  textMd:  '#3f3f46',
+  textMt:  '#71717a',
+  blue:    '#6366f1',
+  blueDk:  '#4f46e5',
+  blueBg:  '#eef2ff',
+  border:  '#e4e4e7',
+  muted:   '#a1a1aa',
+  red:     '#ef4444',
+  redBg:   '#fef2f2',
+  black:   '#18181b',
 };
 
 export default function Login() {
@@ -51,11 +51,11 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', fontFamily: "system-ui, -apple-system, 'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', fontFamily: "'Pretendard Variable', 'Inter', system-ui, sans-serif" }}>
       {/* Header */}
       <header style={{ padding: '18px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${C.border}`, background: C.white }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 10px rgba(92,141,197,0.30)` }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: C.black, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 8px rgba(0,0,0,0.2)` }}>
             <MessageSquare size={13} color="#fff" fill="white" />
           </div>
           <span style={{ fontSize: 15, fontWeight: 700, color: C.dark }}>TikiDoc</span>
@@ -161,11 +161,11 @@ export default function Login() {
                   borderRadius: 10, border: 'none',
                   background: (isLoggingIn || !email || !password)
                     ? C.muted
-                    : `linear-gradient(135deg, ${C.blueDk}, ${C.blue})`,
+                    : C.black,
                   color: '#fff', fontSize: 14, fontWeight: 600,
                   cursor: (isLoggingIn || !email || !password) ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: (isLoggingIn || !email || !password) ? 'none' : `0 4px 16px rgba(92,141,197,0.35)`,
+                  boxShadow: (isLoggingIn || !email || !password) ? 'none' : `0 4px 16px rgba(0,0,0,0.2)`,
                   transition: 'all 0.15s', fontFamily: 'inherit',
                 }}
               >
