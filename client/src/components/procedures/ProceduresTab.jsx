@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Search, Plus, Pencil, Trash2, X, Check, ChevronDown, ChevronUp,
-  Loader2, Database, Clipboard, AlertCircle, CheckSquare, Square,
+  Loader2, Database, Clipboard, AlertCircle, CheckSquare, Square, Brain,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import KnowledgeSection from '../settings/KnowledgeSection';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 카테고리 라벨 (서버의 CATEGORY_LABELS 미러링)
@@ -199,6 +200,9 @@ function Field({ label, children, className }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ProceduresTab({ darkMode }) {
   const { clinicId } = useAuth();
+
+  // ── Right panel tab ───────────────────────────────────────────────────────
+  const [rightTab, setRightTab] = useState('procedures'); // 'procedures' | 'knowledge'
 
   // ── Master templates (left panel) ─────────────────────────────────────────
   const [templates,         setTemplates]         = useState([]);
@@ -563,37 +567,76 @@ export default function ProceduresTab({ darkMode }) {
       <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
 
         {/* Header */}
-        <div className={`px-6 py-4 border-b flex items-center justify-between shrink-0 ${
+        <div className={`px-6 pt-4 border-b shrink-0 ${
           darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-slate-200'
         }`}>
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center">
-                <Clipboard size={12} className="text-white" />
-              </div>
-              <h2 className={`text-sm font-bold ${panelTitle}`}>우리 병원 시술 목록</h2>
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                darkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-400' : 'bg-slate-100 border-slate-200 text-slate-500'
-              }`}>
-                {clinicProcs.length}개
-              </span>
+          {/* Tab switcher */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setRightTab('procedures')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  rightTab === 'procedures'
+                    ? darkMode
+                      ? 'bg-zinc-800 border-zinc-600 text-zinc-100'
+                      : 'bg-zinc-900 border-zinc-700 text-white'
+                    : darkMode
+                      ? 'border-transparent text-zinc-500 hover:text-zinc-300'
+                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <Clipboard size={12} />
+                시술 목록
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                  rightTab === 'procedures'
+                    ? darkMode ? 'bg-zinc-700 text-zinc-300' : 'bg-zinc-700 text-white'
+                    : darkMode ? 'bg-zinc-700 text-zinc-400' : 'bg-slate-200 text-slate-500'
+                }`}>{clinicProcs.length}</span>
+              </button>
+              <button
+                onClick={() => setRightTab('knowledge')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  rightTab === 'knowledge'
+                    ? 'bg-violet-600 border-violet-500 text-white'
+                    : darkMode
+                      ? 'border-transparent text-zinc-500 hover:text-zinc-300'
+                      : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <Brain size={12} />
+                AI 지식 베이스
+              </button>
             </div>
-            <p className={`text-[11px] ${muted}`}>가격·FAQ·다운타임 등을 자유롭게 수정하세요</p>
+
+            {/* Clinic search — only show when procedures tab active */}
+            {rightTab === 'procedures' && (
+              <div className="relative w-48">
+                <Search size={12} className={`absolute left-3 top-1/2 -translate-y-1/2 ${muted}`} />
+                <input
+                  value={clinicSearch}
+                  onChange={e => setClinicSearch(e.target.value)}
+                  placeholder="시술 검색..."
+                  className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border focus:outline-none focus:ring-2 ${inputCls}`}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Clinic search */}
-          <div className="relative w-52">
-            <Search size={12} className={`absolute left-3 top-1/2 -translate-y-1/2 ${muted}`} />
-            <input
-              value={clinicSearch}
-              onChange={e => setClinicSearch(e.target.value)}
-              placeholder="시술 검색..."
-              className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border focus:outline-none focus:ring-2 ${inputCls}`}
-            />
-          </div>
+          {/* Subtitle — only for procedures tab */}
+          {rightTab === 'procedures' && (
+            <p className={`text-[11px] pb-3 ${muted}`}>가격·FAQ·다운타임 등을 자유롭게 수정하세요</p>
+          )}
         </div>
 
+        {/* AI Knowledge Base Tab */}
+        {rightTab === 'knowledge' && (
+          <div className={`flex-1 overflow-y-auto p-6 ${darkMode ? 'bg-zinc-900' : 'bg-white'}`}>
+            <KnowledgeSection darkMode={darkMode} />
+          </div>
+        )}
+
         {/* Procedures list */}
+        {rightTab === 'procedures' && (
         <div className={`flex-1 overflow-y-auto divide-y ${divider} ${darkMode ? 'bg-zinc-900' : 'bg-white'}`}>
           {clinicLoading ? (
             <div className="flex items-center justify-center py-24 gap-2">
@@ -754,6 +797,8 @@ export default function ProceduresTab({ darkMode }) {
             })
           )}
         </div>
+
+        )}
 
         {/* Footer notice */}
         <div className={`px-6 py-2.5 border-t flex items-center gap-2 shrink-0 ${

@@ -26,6 +26,7 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import mammoth from "mammoth";
+import * as XLSX from "xlsx";
 // pdf-parse v2.x — ESM named export (PDFParse 클래스)
 import { PDFParse } from "pdf-parse";
 
@@ -96,6 +97,18 @@ function getSbAdmin() {
   // 서비스 롤 클라이언트 — RLS bypass, 서버 사이드 CRUD 전용
   return (_supabaseAdmin = createClient(url, svcKey));
 }
+
+// ── supabaseAdmin 프록시 ───────────────────────────────────────────────────────
+// getSbAdmin()의 lazy alias — `supabaseAdmin.from(...)` 패턴을 전역에서 사용 가능
+// Supabase 미설정 시 접근하면 Error를 throw (try/catch 있는 핸들러에서 500으로 처리됨)
+const supabaseAdmin = new Proxy({}, {
+  get(_, prop) {
+    const c = getSbAdmin();
+    if (!c) throw new Error("Supabase not configured (SUPABASE_URL missing)");
+    const v = c[prop];
+    return typeof v === "function" ? v.bind(c) : v;
+  },
+});
 
 // ── 클리닉 정보 캐시 (TTL 5분) ────────────────────────────────────────────────
 const _clinicCache = new Map(); // clinicId → { data, exp }
@@ -198,7 +211,7 @@ ${procText}`;
 
 // 기본값 (clinicId 없을 때 fallback — 하위 호환)
 const CLINIC_SYSTEM_BASE = buildSystemBase(
-  process.env.CLINIC_NAME     || "LIBHIB 클리닉",
+  process.env.CLINIC_NAME     || "TikiDoc 클리닉",
   process.env.CLINIC_LOCATION || "서울 강남구 논현동",
   procedures
 );
@@ -294,16 +307,17 @@ async function ragSearch(query, matchCount = 5, clinicId = null) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // multer: 메모리 스토리지 (디스크 미사용)
+const ALLOWED_EXTS = /\.(pdf|docx|doc|txt|csv|xlsx|xls)$/i;
 const knowledgeUpload = multer({
   storage: multer.memoryStorage(),
   limits:  { fileSize: 20 * 1024 * 1024 }, // 20 MB
   fileFilter: (_req, file, cb) => {
-    const ok = /\.(pdf|docx|txt|csv)$/i.test(file.originalname);
-    cb(ok ? null : new Error("PDF/DOCX/TXT/CSV만 업로드 가능합니다"), ok);
+    const ok = ALLOWED_EXTS.test(file.originalname);
+    cb(ok ? null : new Error("PDF·DOCX·DOC·TXT·CSV·XLSX·XLS만 업로드 가능합니다"), ok);
   },
 });
 
-// 파일 버퍼 → 텍스트 추출
+// 파일 버퍼 → 텍스트 추출 (PDF/DOCX/DOC/XLSX/XLS/TXT/CSV 지원)
 async function extractText(buffer, originalname) {
   const ext = originalname.toLowerCase().split(".").pop();
   try {
@@ -311,9 +325,19 @@ async function extractText(buffer, originalname) {
       const data = await pdfParse(buffer);
       return data.text;
     }
-    if (ext === "docx") {
+    if (ext === "docx" || ext === "doc") {
       const result = await mammoth.extractRawText({ buffer });
       return result.value;
+    }
+    if (ext === "xlsx" || ext === "xls") {
+      const workbook = XLSX.read(buffer, { type: "buffer" });
+      const texts = workbook.SheetNames.map(name => {
+        const ws = workbook.Sheets[name];
+        // header: 1 → 배열 모드로 읽어 CSV 형태 문자열로 변환
+        const rows = XLSX.utils.sheet_to_csv(ws, { blankrows: false });
+        return `[시트: ${name}]\n${rows}`;
+      });
+      return texts.join("\n\n");
     }
     // txt / csv
     return buffer.toString("utf-8");
@@ -321,6 +345,44 @@ async function extractText(buffer, originalname) {
     console.warn("[extractText]", err.message);
     return buffer.toString("utf-8");
   }
+}
+
+// ── 문서 자동 분류 (키워드 기반, 빠름) ────────────────────────────────────────
+// 반환값: 'procedure' | 'pricing' | 'aftercare' | 'general'
+function classifyDocumentContent(text) {
+  const t = text.toLowerCase();
+
+  const procedureScore = (
+    (t.includes("시술") ? 2 : 0) +
+    (t.includes("치료") ? 1 : 0) +
+    (t.includes("효과") ? 1 : 0) +
+    (t.includes("다운타임") ? 2 : 0) +
+    (t.includes("울쎄라") || t.includes("인모드") || t.includes("보톡스") ||
+     t.includes("필러") || t.includes("리프팅") || t.includes("레이저") ? 3 : 0) +
+    (t.includes("procedure") || t.includes("treatment") ? 1 : 0)
+  );
+
+  const pricingScore = (
+    (t.includes("가격") || t.includes("price") ? 2 : 0) +
+    (t.includes("만원") || t.includes("원") ? 1 : 0) +
+    (t.includes("이벤트") ? 1 : 0) +
+    (t.includes("할인") || t.includes("프로모션") ? 2 : 0) +
+    (t.includes("비용") ? 1 : 0)
+  );
+
+  const aftercareScore = (
+    (t.includes("애프터케어") || t.includes("aftercare") ? 3 : 0) +
+    (t.includes("회복") || t.includes("주의사항") ? 2 : 0) +
+    (t.includes("시술 후") || t.includes("수술 후") ? 2 : 0) +
+    (t.includes("금기") || t.includes("부작용") ? 1 : 0)
+  );
+
+  const max = Math.max(procedureScore, pricingScore, aftercareScore);
+  if (max === 0) return "general";
+  if (max === procedureScore && procedureScore >= 3) return "procedure";
+  if (max === aftercareScore && aftercareScore >= 3) return "aftercare";
+  if (max === pricingScore  && pricingScore  >= 2) return "pricing";
+  return "general";
 }
 
 // 텍스트 → 청크 배열 (500자, 50자 오버랩)
@@ -991,22 +1053,25 @@ app.post("/api/knowledge/upload",
     const ext = originalname.toLowerCase().split(".").pop();
 
     try {
-      // 1. 텍스트 추출
+      // 1. 텍스트 추출 (PDF/DOCX/DOC/XLSX/XLS/CSV/TXT 자동 처리)
       const rawText = await extractText(buffer, originalname);
       if (!rawText?.trim()) throw new Error("텍스트를 추출할 수 없습니다");
 
-      // 2. 청킹
+      // 2. 문서 자동 분류 (procedure/pricing/aftercare/general)
+      const docCategory = classifyDocumentContent(rawText);
+
+      // 3. 청킹
       const chunks = chunkText(rawText);
       if (!chunks.length) throw new Error("청킹 결과가 없습니다");
 
-      // 3. 기존 동일 파일 청크 삭제 (재업로드 지원)
+      // 4. 기존 동일 파일 청크 삭제 (재업로드 지원)
       await supabaseAdmin
         .from("procedures_knowledge")
         .delete()
         .eq("clinic_id", clinic_id)
         .eq("file_name",  originalname);
 
-      // 4. 임베딩 생성 + 행 구성
+      // 5. 임베딩 생성 + 행 구성
       const procName = originalname.replace(/\.[^.]+$/, ""); // 확장자 제거
       const rows = [];
       for (let i = 0; i < chunks.length; i++) {
@@ -1016,14 +1081,14 @@ app.post("/api/knowledge/upload",
           file_name:      originalname,
           file_type:      ext,
           file_size:      size,
-          procedure_name: procName,
+          procedure_name: `[${docCategory}] ${procName}`,  // 분류 태그를 procedure_name에 prefix
           chunk_index:    i,
           content:        chunks[i],
           embedding:      embedding ?? undefined,
         });
       }
 
-      // 5. Supabase upsert (배치 100개씩)
+      // 6. Supabase upsert (배치 100개씩)
       const BATCH = 100;
       for (let b = 0; b < rows.length; b += BATCH) {
         const { error } = await supabaseAdmin
@@ -1032,12 +1097,13 @@ app.post("/api/knowledge/upload",
         if (error) throw error;
       }
 
-      console.log(`[Knowledge] 업로드 완료: ${originalname} → ${chunks.length}청크 | clinic=${clinic_id}`);
+      console.log(`[Knowledge] 업로드 완료: ${originalname} → ${chunks.length}청크 | 분류=${docCategory} | clinic=${clinic_id}`);
       res.json({
-        ok:        true,
-        file_name: originalname,
-        chunks:    chunks.length,
-        embedded:  rows.some(r => r.embedding != null),
+        ok:           true,
+        file_name:    originalname,
+        chunks:       chunks.length,
+        embedded:     rows.some(r => r.embedding != null),
+        doc_category: docCategory,   // 클라이언트에 분류 결과 반환
       });
 
     } catch (err) {

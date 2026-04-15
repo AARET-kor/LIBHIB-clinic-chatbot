@@ -7,9 +7,12 @@ import { useAuth } from '../../context/AuthContext';
 
 // ── 파일 유형별 아이콘·색상 ──────────────────────────────────────────────────
 const FILE_CONFIG = {
-  pdf:  { icon: FileText,        color: 'text-red-500',    bg: 'bg-red-50',    label: 'PDF',  darkBg: 'bg-red-900/20',  darkColor: 'text-red-400' },
-  docx: { icon: File,            color: 'text-blue-500',   bg: 'bg-blue-50',   label: 'DOCX', darkBg: 'bg-blue-900/20', darkColor: 'text-blue-400' },
-  txt:  { icon: FileText,        color: 'text-slate-500',  bg: 'bg-slate-50',  label: 'TXT',  darkBg: 'bg-zinc-800',    darkColor: 'text-zinc-400' },
+  pdf:  { icon: FileText,        color: 'text-red-500',    bg: 'bg-red-50',    label: 'PDF',  darkBg: 'bg-red-900/20',     darkColor: 'text-red-400' },
+  docx: { icon: File,            color: 'text-blue-500',   bg: 'bg-blue-50',   label: 'DOCX', darkBg: 'bg-blue-900/20',    darkColor: 'text-blue-400' },
+  doc:  { icon: File,            color: 'text-blue-400',   bg: 'bg-blue-50',   label: 'DOC',  darkBg: 'bg-blue-900/20',    darkColor: 'text-blue-400' },
+  xlsx: { icon: FileSpreadsheet, color: 'text-green-600',  bg: 'bg-green-50',  label: 'XLSX', darkBg: 'bg-green-900/20',   darkColor: 'text-green-400' },
+  xls:  { icon: FileSpreadsheet, color: 'text-green-500',  bg: 'bg-green-50',  label: 'XLS',  darkBg: 'bg-green-900/20',   darkColor: 'text-green-400' },
+  txt:  { icon: FileText,        color: 'text-slate-500',  bg: 'bg-slate-50',  label: 'TXT',  darkBg: 'bg-zinc-800',       darkColor: 'text-zinc-400' },
   csv:  { icon: FileSpreadsheet, color: 'text-emerald-500',bg: 'bg-emerald-50',label: 'CSV',  darkBg: 'bg-emerald-900/20', darkColor: 'text-emerald-400' },
 };
 const defaultFileConfig = FILE_CONFIG.txt;
@@ -272,7 +275,7 @@ export default function KnowledgeSection({ darkMode }) {
     setIsDragging(false);
     const droppedFiles = Array.from(e.dataTransfer.files);
     droppedFiles.forEach(f => {
-      if (/\.(pdf|docx|txt|csv)$/i.test(f.name)) uploadFile(f);
+      if (/\.(pdf|docx|doc|xlsx|xls|txt|csv)$/i.test(f.name)) uploadFile(f);
     });
   }, [uploadFile]);
 
@@ -346,7 +349,7 @@ export default function KnowledgeSection({ darkMode }) {
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,.docx,.txt,.csv"
+          accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.csv"
           onChange={handleFileInput}
           className="hidden"
         />
@@ -362,11 +365,11 @@ export default function KnowledgeSection({ darkMode }) {
         <p className={`text-sm font-semibold ${isDragging ? (darkMode ? 'text-purple-400' : 'text-purple-600') : text}`}>
           {isDragging ? '파일을 여기에 놓으세요' : '파일을 드래그하거나 클릭해서 업로드'}
         </p>
-        <p className={`text-xs mt-1 ${mute}`}>PDF · DOCX · TXT · CSV · 최대 20MB · 여러 파일 동시 업로드 가능</p>
+        <p className={`text-xs mt-1 ${mute}`}>PDF · DOCX · XLSX · CSV · TXT · 최대 20MB · 여러 파일 동시 업로드 가능</p>
 
         {/* File type badges */}
-        <div className="flex justify-center gap-2 mt-3">
-          {['PDF', 'DOCX', 'TXT', 'CSV'].map(t => (
+        <div className="flex justify-center gap-2 mt-3 flex-wrap">
+          {['PDF', 'DOCX', 'DOC', 'XLSX', 'XLS', 'TXT', 'CSV'].map(t => (
             <span key={t} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
               darkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-400' : 'bg-white border-slate-200 text-slate-500'
             }`}>{t}</span>

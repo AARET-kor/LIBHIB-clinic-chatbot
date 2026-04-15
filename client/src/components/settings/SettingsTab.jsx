@@ -11,9 +11,7 @@ import KnowledgeSection from './KnowledgeSection';
 const MENU_ITEMS = [
   { id: 'general',   icon: Building2,   label: '일반' },
   { id: 'ai',        icon: Sparkles,    label: 'AI 튜닝' },
-  { id: 'knowledge', icon: Brain,       label: 'AI 지식 베이스' },
   { id: 'channels',  icon: Link2,       label: '채널 연동' },
-  { id: 'templates', icon: FileText,    label: '템플릿 관리' },
 ];
 
 const DAYS_KO = ['월', '화', '수', '목', '금', '토', '일'];
@@ -540,9 +538,7 @@ export default function SettingsTab({ darkMode }) {
     switch (activeSection) {
       case 'general':   return <GeneralSection   darkMode={darkMode} />;
       case 'ai':        return <AISection         darkMode={darkMode} />;
-      case 'knowledge': return <KnowledgeSection  darkMode={darkMode} />;
       case 'channels':  return <ChannelsSection   darkMode={darkMode} />;
-      case 'templates': return <TemplatesSection  darkMode={darkMode} />;
       default:          return null;
     }
   };
