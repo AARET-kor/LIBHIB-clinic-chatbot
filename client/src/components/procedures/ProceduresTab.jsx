@@ -10,14 +10,20 @@ import KnowledgeSection from '../settings/KnowledgeSection';
 // 카테고리 라벨 (서버의 CATEGORY_LABELS 미러링)
 // ─────────────────────────────────────────────────────────────────────────────
 const CATEGORY_LABELS = {
-  face:      '얼굴 시술',
-  skin:      '피부 레이저',
-  lifting:   '리프팅',
-  body:      '바디 & 지방',
-  hair:      '탈모 & 모발',
-  wellness:  '웰니스 & 비타민',
-  men:       '남성 시술',
-  others:    '기타',
+  stem_cell:    '줄기세포',
+  lifting:      '리프팅/탄력',
+  body:         '바디',
+  pore:         '모공/흉터',
+  face_filler:  '페이스 필러',
+  body_filler:  '바디 필러',
+  thread:       '실리프팅',
+  botox:        '보톡스',
+  skin_booster: '스킨부스터',
+  pigment:      '색소/혈관/홍조',
+  iv:           '수액',
+  diet:         '다이어트',
+  skin_care:    '피부관리',
+  acne:         '여드름',
 };
 
 const CATEGORIES = Object.keys(CATEGORY_LABELS);
