@@ -106,10 +106,10 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
       {/* ── Logo ───────────────────────────────────────────────────────────── */}
       <div style={{
         width: 36, height: 36, borderRadius: 10,
-        background: '#18181b',
+        background: MOCHA,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: 16,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+        boxShadow: `0 4px 12px ${MOCHA}50`,
       }}>
         <MessageSquare size={15} className="text-white" fill="white" />
       </div>
@@ -175,7 +175,7 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
             title="병원 설정"
             onClick={() => onTabChange('settings')}
             style={activeTab === 'settings'
-              ? { background: '#18181b', border: '1px solid #3f3f46', color: '#fff', boxShadow: '0 1px 6px rgba(0,0,0,0.2)' }
+              ? activeStyle(MOCHA)
               : {}
             }
             className={`w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl transition-all duration-150 ${activeTab === 'settings' ? '' : inactCls}`}

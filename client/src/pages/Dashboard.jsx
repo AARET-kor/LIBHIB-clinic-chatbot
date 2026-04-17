@@ -20,7 +20,7 @@ function TopBar({ session, onLogout, darkMode, onToggleDark, onOpenSettings }) {
     <div className={`h-10 border-b flex items-center justify-between px-4 shrink-0 z-10 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}
       style={{ fontFamily: "'Pretendard Variable', 'Inter', system-ui, sans-serif" }}>
       <div className="flex items-center gap-2.5 ml-1">
-        <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: '#18181b', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+        <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: '#A47764', boxShadow: '0 1px 4px rgba(164,119,100,0.4)' }}>
           <MessageSquare size={10} className="text-white" fill="white" />
         </div>
         <span className={`text-xs font-semibold ${darkMode ? 'text-zinc-200' : 'text-zinc-900'}`}>{session.clinic.name}</span>
@@ -88,17 +88,17 @@ function ProfileEditModal({ session, darkMode, onClose }) {
           <div>
             <label className={`block text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${darkMode ? 'text-zinc-400' : 'text-slate-500'}`}>이름</label>
             <input value={name} onChange={e => setName(e.target.value)}
-              className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-400 ${darkMode ? 'bg-zinc-800 border-zinc-600 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
+              className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#A47764] ${darkMode ? 'bg-zinc-800 border-zinc-600 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
           </div>
           <div>
             <label className={`block text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${darkMode ? 'text-zinc-400' : 'text-slate-500'}`}>직책</label>
             <input value={role} onChange={e => setRole(e.target.value)}
-              className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-400 ${darkMode ? 'bg-zinc-800 border-zinc-600 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
+              className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#A47764] ${darkMode ? 'bg-zinc-800 border-zinc-600 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
           </div>
         </div>
         <div className="px-6 pb-5 flex gap-2.5 justify-end">
           <button onClick={onClose} className={`px-4 py-2 rounded-lg text-xs font-medium border transition-colors ${darkMode ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>취소</button>
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-xs font-medium bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white hover:from-purple-500 hover:to-fuchsia-400 transition-all">저장</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-xs font-medium text-white transition-all" style={{ background: '#A47764', boxShadow: '0 2px 10px rgba(164,119,100,0.35)' }}>저장</button>
         </div>
       </div>
     </div>

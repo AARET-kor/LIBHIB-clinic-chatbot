@@ -7,16 +7,16 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 디자인 토큰 — Zinc/Vercel + Watermelon & Tropical accents
+// 디자인 토큰 — Mocha Mousse signature palette
 // ─────────────────────────────────────────────────────────────────────────────
-const CORAL  = '#FC6C85';   // Watermelon Splash — Tiki Paste signature
-const CORAL2 = '#e05572';   // Darker coral
-const CORAL_L= '#ffa5b8';   // Light coral
-const TEAL   = '#069494';   // Tropical Punch — 정보형
-const ORANGE = '#FF8243';   // Tropical Punch — 세일즈형
-const ZINC   = '#09090b';
+const CORAL  = '#A47764';   // Mocha Mousse — 공감형 signature
+const CORAL2 = '#7A5545';   // Darker mocha
+const CORAL_L= '#C4A090';   // Light mocha
+const TEAL   = '#5A8F80';   // Sage — 정보형
+const ORANGE = '#D09262';   // Gold — 세일즈형
+const ZINC   = '#1C0F0A';   // Dark text
 
-// Keep GOLD aliases pointing to coral for backward compat in this file
+// Aliases
 const GOLD   = CORAL;
 const GOLD2  = CORAL2;
 const GOLD_L = CORAL_L;
@@ -126,14 +126,14 @@ const GLOBAL_STYLE = `
   100% { background-position: 0% 50%; }
 }
 @keyframes inputFocusGlow {
-  0%   { box-shadow: 0 0 0 0 rgba(252,108,133,0); }
-  40%  { box-shadow: 0 0 0 4px rgba(252,108,133,0.18), 0 4px 24px rgba(252,108,133,0.10); }
-  100% { box-shadow: 0 0 0 3px rgba(252,108,133,0.12), 0 4px 20px rgba(252,108,133,0.08); }
+  0%   { box-shadow: 0 0 0 0 rgba(164,119,100,0); }
+  40%  { box-shadow: 0 0 0 4px rgba(164,119,100,0.18), 0 4px 24px rgba(164,119,100,0.10); }
+  100% { box-shadow: 0 0 0 3px rgba(164,119,100,0.12), 0 4px 20px rgba(164,119,100,0.08); }
 }
 @keyframes pasteFlash {
-  0%   { box-shadow: 0 0 0 0 rgba(252,108,133,0), 0 4px 20px rgba(0,0,0,0.06); }
-  35%  { box-shadow: 0 0 0 5px rgba(252,108,133,0.22), 0 8px 40px rgba(252,108,133,0.14); }
-  100% { box-shadow: 0 0 0 3px rgba(252,108,133,0.12), 0 4px 20px rgba(252,108,133,0.08); }
+  0%   { box-shadow: 0 0 0 0 rgba(164,119,100,0), 0 4px 20px rgba(0,0,0,0.06); }
+  35%  { box-shadow: 0 0 0 5px rgba(164,119,100,0.22), 0 8px 40px rgba(164,119,100,0.14); }
+  100% { box-shadow: 0 0 0 3px rgba(164,119,100,0.12), 0 4px 20px rgba(164,119,100,0.08); }
 }
 @keyframes shimmerSweep {
   0%   { transform: translateX(-120%); }
@@ -157,11 +157,11 @@ const GLOBAL_STYLE = `
   cursor: default;
 }
 .tiki-lang-chip:hover {
-  background: rgba(252,108,133,0.08) !important;
+  background: rgba(164,119,100,0.08) !important;
   border-color: ${CORAL} !important;
   color: ${CORAL2} !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(252,108,133,0.12);
+  box-shadow: 0 4px 12px rgba(164,119,100,0.12);
 }
 .tiki-copy-btn {
   transition: all 0.15s ease;
@@ -179,11 +179,11 @@ function Toast({ message }) {
     <div
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold pointer-events-none"
       style={{
-        background: '#09090b',
+        background: '#1C0F0A',
         border: `1px solid ${CORAL}55`,
         color: '#fff',
         animation: 'fadeSlideUp 0.2s ease-out',
-        boxShadow: `0 4px 24px rgba(252,108,133,0.20)`,
+        boxShadow: `0 4px 24px rgba(164,119,100,0.25)`,
       }}
     >
       <Check size={14} style={{ color: GOLD }} />

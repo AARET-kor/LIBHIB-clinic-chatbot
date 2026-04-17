@@ -8,10 +8,12 @@ export default function SidePanel() {
   if (!authReady) {
     return (
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        height: '100vh', background: '#fff', color: '#7a9ab5', fontSize: 13,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: '#FAF6F3', gap: 12,
       }}>
-        로딩 중...
+        <div style={{ fontSize: 24, animation: 'spin 1.4s linear infinite', color: '#A47764' }}>✦</div>
+        <p style={{ fontSize: 11, color: '#B09080', letterSpacing: '0.08em', fontFamily: "'Inter', system-ui, sans-serif" }}>TikiDoc 로딩 중...</p>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
