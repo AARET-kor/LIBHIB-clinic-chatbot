@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://app.tikichat.xyz';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://app.tikidoc.xyz';
 
 /**
  * useSalesPitch — Visual Sales Mapping & Smart Quotation

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useSalesPitch } from '../hooks/useSalesPitch';
 
-// ── Design tokens (app.tikichat.xyz 동일)
+// ── Design tokens (app.tikidoc.xyz 동일)
 const T = {
   bg:       '#ffffff',
   bgSub:    '#fafafa',

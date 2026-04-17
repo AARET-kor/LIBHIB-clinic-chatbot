@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://app.tikichat.xyz';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://app.tikidoc.xyz';
 const STORAGE_KEY = 'tikidoc_current_patient';
 
 export function usePatient(clinicId) {

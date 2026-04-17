@@ -2,11 +2,11 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { supabase } from '../lib/supabase';
 import { storageGet, storageSet, storageRemove } from '../lib/storage';
 
-const SESSION_KEY = 'tikichat_ext_session';
+const SESSION_KEY = 'tikidoc_ext_session';
 
 // ── Mock 계정 (Supabase 미설정 시 데모용) ─────────────────────────────────────
 const MOCK_TENANTS = {
-  'admin@tikichat.ai': {
+  'admin@tikidoc.ai': {
     password: 'admin123',
     role: 'owner',
     clinic: { id: 'demo', name: 'TikiChat 데모 클리닉', plan: 'Enterprise' },

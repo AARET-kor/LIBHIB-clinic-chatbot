@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 
-// Production: app.tikichat.xyz / 로컬 개발: .env.local에서 VITE_API_BASE_URL 변경
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://app.tikichat.xyz';
+// Production: app.tikidoc.xyz / 로컬 개발: .env.local에서 VITE_API_BASE_URL 변경
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://app.tikidoc.xyz';
 
 /**
  * useTikiPaste — /api/tiki-paste 호출 훅

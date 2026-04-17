@@ -54,8 +54,8 @@ function makeQueue(name, defaultJobOptions) {
   });
 }
 
-export const messageQueue   = makeQueue("tikichat-messages",  INBOUND_JOB_OPTS);
-export const aftercareQueue = makeQueue("tikichat-aftercare", AFTERCARE_JOB_OPTS);
+export const messageQueue   = makeQueue("tikidoc-messages",  INBOUND_JOB_OPTS);
+export const aftercareQueue = makeQueue("tikidoc-aftercare", AFTERCARE_JOB_OPTS);
 export { redisConnection };
 
 // ── 안전한 enqueue 헬퍼 (Redis 없어도 앱 크래시 금지) ─────────────────────

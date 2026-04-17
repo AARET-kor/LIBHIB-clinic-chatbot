@@ -167,7 +167,7 @@ export function startMessageWorker() {
   }
 
   const worker = new Worker(
-    "tikichat-messages",
+    "tikidoc-messages",
     async (job) => {
       const { payload, clinicId: jobClinicId, receivedAt } = job.data;
       const clinicId = jobClinicId || CLINIC_ID;

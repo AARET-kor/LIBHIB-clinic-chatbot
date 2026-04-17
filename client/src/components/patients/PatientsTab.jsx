@@ -132,7 +132,7 @@ function parseCSV(text) {
     };
   });
 }
-function exportToCSV(patients, filename = 'tikichat_patients.csv') {
+function exportToCSV(patients, filename = 'tikidoc_patients.csv') {
   const headers = ['이름','영문명','국가','언어','성별','나이','연락처','이메일','채널','시술','상태','누적결제','최근방문','다음예약','메모'];
   const rows = patients.map(p => [
     p.name, p.nameEn, p.country, p.lang, p.gender, p.age,
@@ -198,17 +198,17 @@ function useUrlFilters() {
 // Saved filter presets (localStorage)
 function useSavedFilters() {
   const [presets, setPresets] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tikichat_filter_presets') || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem('tikidoc_filter_presets') || '[]'); } catch { return []; }
   });
   const save = (name, config) => {
     const next = [...presets.filter(p => p.name !== name), { name, config, savedAt: new Date().toISOString() }];
     setPresets(next);
-    try { localStorage.setItem('tikichat_filter_presets', JSON.stringify(next)); } catch {}
+    try { localStorage.setItem('tikidoc_filter_presets', JSON.stringify(next)); } catch {}
   };
   const remove = (name) => {
     const next = presets.filter(p => p.name !== name);
     setPresets(next);
-    try { localStorage.setItem('tikichat_filter_presets', JSON.stringify(next)); } catch {}
+    try { localStorage.setItem('tikidoc_filter_presets', JSON.stringify(next)); } catch {}
   };
   return { presets, save, remove };
 }
@@ -257,7 +257,7 @@ function CSVUploadModal({ onClose, onImport }) {
             <div className="flex-1"><p className="text-xs font-semibold text-blue-700">CSV 템플릿 형식</p><p className="text-[10px] text-blue-500 mt-0.5">name, country, phone, procedure, channel, status, total_spent, email, note</p></div>
             <button onClick={() => {
               const csv = 'name,name_en,country,lang,gender,age,phone,email,channel,procedure,status,total_spent,note\n田中ゆき,Yuki Tanaka,일본,JA,F,28,+81-90-0000-0000,sample@email.com,instagram,보톡스,consulting,0,메모';
-              const blob = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='tikichat_template.csv'; a.click();
+              const blob = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='tikidoc_template.csv'; a.click();
             }} className="px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-blue-600 text-white hover:bg-blue-700">템플릿 다운</button>
           </div>
           <div onClick={()=>fileRef.current?.click()} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) handleFile(f);}}
@@ -766,7 +766,7 @@ function BulkActionsBar({ selectedIds, patients, onClear, onExport }) {
       </button>
       <button onClick={()=>{
         const selected = patients.filter(p=>selectedIds.has(p.id));
-        exportToCSV(selected, `tikichat_selected_${Date.now()}.csv`);
+        exportToCSV(selected, `tikidoc_selected_${Date.now()}.csv`);
       }} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold transition-colors">
         <Download size={11}/> CSV 내보내기
       </button>

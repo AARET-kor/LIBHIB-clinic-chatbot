@@ -24,7 +24,7 @@ WHERE email = 'demo@apricot.com';
 UPDATE auth.users
 SET raw_app_meta_data = raw_app_meta_data ||
   jsonb_build_object('clinic_id', 'demo', 'role', 'owner')
-WHERE email = 'admin@tikichat.ai';
+WHERE email = 'admin@tikidoc.ai';
 
 -- 데모 clinic 레코드 보장 (없으면 생성)
 INSERT INTO clinics (clinic_id, clinic_name, location, plan)
@@ -105,4 +105,4 @@ SELECT
   raw_app_meta_data ->> 'clinic_id' AS clinic_id,
   raw_app_meta_data ->> 'role'      AS role
 FROM auth.users
-WHERE email IN ('demo@libhib.com', 'demo@apricot.com', 'admin@tikichat.ai');
+WHERE email IN ('demo@libhib.com', 'demo@apricot.com', 'admin@tikidoc.ai');

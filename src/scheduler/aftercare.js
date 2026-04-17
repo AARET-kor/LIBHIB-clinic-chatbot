@@ -63,7 +63,7 @@ function startAftercareWorker() {
   if (!redisConnection) return;
 
   const worker = new Worker(
-    "tikichat-aftercare",
+    "tikidoc-aftercare",
     async (job) => {
       const clinicId = job.data.clinicId || CLINIC_ID;
       const now      = new Date();

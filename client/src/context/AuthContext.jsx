@@ -64,7 +64,7 @@ const MOCK_TENANTS = {
     },
     staff: { name: '이수진', role: 'staff', initials: '이', avatarColor: 'from-rose-400 to-pink-600' },
   },
-  'admin@tikichat.ai': {
+  'admin@tikidoc.ai': {
     password: 'admin123',
     role: 'owner',
     clinic: {
@@ -226,7 +226,7 @@ export function AuthProvider({ children }) {
 
   function restoreMockSession() {
     try {
-      const saved = sessionStorage.getItem('tikichat_session');
+      const saved = sessionStorage.getItem('tikidoc_session');
       if (!saved) return;
       const parsed = JSON.parse(saved);
       setSession(parsed);
@@ -291,7 +291,7 @@ export function AuthProvider({ children }) {
     // ▶ 테스트용 콘솔 로그
     console.log(`[Auth] Current Role: ${mockRole}, Clinic ID: ${tenant.clinic.id}`);
 
-    sessionStorage.setItem('tikichat_session', JSON.stringify(newSession));
+    sessionStorage.setItem('tikidoc_session', JSON.stringify(newSession));
     setSession(newSession);
     setRole(mockRole);
     setClinicId(tenant.clinic.id);
@@ -301,7 +301,7 @@ export function AuthProvider({ children }) {
 
   // ── 로그아웃 ───────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
-    sessionStorage.removeItem('tikichat_session');
+    sessionStorage.removeItem('tikidoc_session');
     if (session?._source === 'supabase') {
       try { await supabase.auth.signOut(); } catch { /* ignore */ }
     }

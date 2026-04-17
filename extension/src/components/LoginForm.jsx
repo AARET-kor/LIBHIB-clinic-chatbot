@@ -159,7 +159,7 @@ export default function LoginForm() {
         {/* Demo account */}
         <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${T.border}` }}>
           <p style={{ fontSize: 10, color: T.textMt, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>데모 계정</p>
-          <p style={{ fontSize: 11, color: T.textSub, fontFamily: 'monospace' }}>admin@tikichat.ai / admin123</p>
+          <p style={{ fontSize: 11, color: T.textSub, fontFamily: 'monospace' }}>admin@tikidoc.ai / admin123</p>
         </div>
       </div>
 
