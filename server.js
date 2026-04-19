@@ -27,12 +27,9 @@ import cors from "cors";
 import multer from "multer";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
-// pdf-parse v2.x — default import으로 안전하게 가져옴
-// Node.js 22에서 CJS named export ({ PDFParse }) 방식이 깨지는 문제 방어
-import pdfParseModule from "pdf-parse";
-const PDFParse = pdfParseModule?.PDFParse          // v2.x CJS object export
-  ?? pdfParseModule?.default?.PDFParse             // ESM re-export path
-  ?? pdfParseModule;                               // fallback: module is the class
+// pdf-parse v2.x — named ESM export (Node 20 LTS에서 정상 동작)
+// Node 22에서는 nixpacks.toml로 Node 20 고정하여 호환성 보장
+import { PDFParse } from "pdf-parse";
 
 // v2.x wrapper: pdfParse(buffer) → { text }
 async function pdfParse(buffer) {
