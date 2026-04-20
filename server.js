@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import dotenv from "dotenv";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -47,6 +47,14 @@ import metaWebhookRouter            from "./src/api/webhook/meta.js";
 import { startMessageWorker }       from "./src/workers/messageWorker.js";
 import { startAftercareScheduler }  from "./src/scheduler/aftercare.js";
 
+// ── Phase 4: My Tiki 인증 미들웨어 ────────────────────────────────────────────
+import {
+  requireStaffAuth,
+  requirePatientToken,
+  requireRole,
+  generatePatientToken,
+} from "./src/middleware/auth.js";
+
 // ── 모델 상수 (env로 override 가능) ───────────────────────────────────────────
 const MODEL_HAIKU  = process.env.MODEL_HAIKU  || "claude-haiku-4-5-20251001";
 const MODEL_SONNET = process.env.MODEL_SONNET || "claude-sonnet-4-6-20260217";
@@ -54,13 +62,26 @@ const MODEL_SONNET = process.env.MODEL_SONNET || "claude-sonnet-4-6-20260217";
 const app = express();
 
 // ── CORS 설정 ─────────────────────────────────────────────────────────────────
-// 개발 중: origin: true (요청 origin 그대로 반영), credentials: true로 최대 개방
-// 프로덕션 전환 시: origin 화이트리스트로 교체 필요
+// ALLOWED_ORIGINS 미설정 → 모든 origin 허용 (개발/데모)
+// ALLOWED_ORIGINS 설정  → 화이트리스트 (프로덕션)
+//   예: ALLOWED_ORIGINS=https://app.tikidoc.xyz,https://tikidoc.xyz
+// chrome-extension://* 는 항상 허용 (브라우저 확장 호환)
+const _allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+  : null;
+
 const corsOptions = {
-  origin: true,          // 모든 origin 허용 — chrome-extension://* 포함
+  origin: _allowedOrigins
+    ? (origin, cb) => {
+        // No origin (server-to-server, curl) or chrome-extension always pass
+        if (!origin || origin.startsWith("chrome-extension://")) return cb(null, true);
+        if (_allowedOrigins.includes(origin)) return cb(null, true);
+        cb(new Error(`CORS: ${origin} is not allowed`));
+      }
+    : true,               // 미설정 시 전체 허용 (개발/데모)
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true,     // 쿠키/인증 헤더 허용
+  credentials: true,
 };
 
 app.use(cors(corsOptions));
@@ -867,6 +888,8 @@ ${ragContext ? `━━━ 참고 지식 베이스 ━━━\n${ragContext}\n` : 
 {
   "detected_language": "<언어명 in Korean — 예: 중국어, 일본어, 영어>",
   "intent": "<환자 의도 in Korean — 예: 보톡스 가격 문의>",
+  "ko_summary": "<환자 메시지 한국어 요약 1~2문장 — 직원 참고용. 진단·처방 표현 금지>",
+  "risk_level": "<none | low | medium | high — 의료 위험도: high=부작용·알레르기 우려, medium=민감 질문, low=일반 문의>",
   "options": {
     "kind":    { "reply": "<환자 언어로 — 공감·상세·CTA 포함>", "ko_translation": "<자연스러운 한국어 번역>" },
     "firm":    { "reply": "<환자 언어로 — 규정 기반·단호하지만 친절>", "ko_translation": "<자연스러운 한국어 번역>" },
@@ -904,7 +927,10 @@ ${ragContext ? `━━━ 참고 지식 베이스 ━━━\n${ragContext}\n` : 
     }
 
     // 필수 필드 보정 — 구버전 string 응답도 호환
-    parsed.options = parsed.options ?? {};
+    parsed.options   = parsed.options   ?? {};
+    parsed.ko_summary  = parsed.ko_summary  || "";
+    parsed.risk_level  = ["none","low","medium","high"].includes(parsed.risk_level)
+      ? parsed.risk_level : "low";
     const normalize = (opt, fallback = "") => {
       if (!opt) return { reply: fallback, ko_translation: "" };
       if (typeof opt === "string") return { reply: opt, ko_translation: "" };
@@ -2025,6 +2051,420 @@ app.get("/api/quotes/:id", async (req, res) => {
     console.error("[Quotes/Get]", err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// MY TIKI — 스태프용 관리 API  (requireStaffAuth 필수)
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── POST /api/my-tiki/links
+// 새 My Tiki 매직 링크 발급 (예약 확정 후 스태프가 호출)
+// body: { visitId, patientLang?, sentVia?, customMessage? }
+app.post("/api/my-tiki/links", requireStaffAuth, async (req, res) => {
+  const { visitId, patientLang = "ko", sentVia, customMessage } = req.body;
+  const clinic_id = req.clinic_id;
+
+  if (!visitId) return res.status(400).json({ error: "visitId required" });
+
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    // visit 존재 + clinic 소속 확인
+    const { data: visit, error: vErr } = await sb
+      .from("visits")
+      .select("id, patient_id, stage")
+      .eq("id", visitId)
+      .eq("clinic_id", clinic_id)
+      .maybeSingle();
+
+    if (vErr) throw vErr;
+    if (!visit) return res.status(404).json({ error: "Visit not found" });
+
+    // 기존 active 링크 폐기 (방문당 링크 1개 유지)
+    await sb.from("patient_links")
+      .update({ status: "revoked", revoked_by: req.staff_user_id, revoked_at: new Date().toISOString() })
+      .eq("visit_id", visitId)
+      .eq("status", "active");
+
+    // 새 토큰 생성
+    const { token, tokenHash } = generatePatientToken();
+    const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: link, error: lErr } = await sb
+      .from("patient_links")
+      .insert({
+        clinic_id,
+        patient_id:    visit.patient_id,
+        visit_id:      visitId,
+        token_hash:    tokenHash,
+        status:        "active",
+        expires_at:    expiresAt,
+        patient_lang:  patientLang,
+        sent_via:      sentVia || null,
+        custom_message: customMessage || null,
+        created_by:    req.staff_user_id,
+      })
+      .select("id, expires_at, status")
+      .single();
+
+    if (lErr) throw lErr;
+
+    const baseUrl = process.env.APP_BASE_URL || "https://app.tikidoc.xyz";
+    console.log(`[MyTiki] 링크 발급: visit=${visitId} clinic=${clinic_id}`);
+
+    res.json({
+      ok:         true,
+      link_id:    link.id,
+      url:        `${baseUrl}/t/${token}`,   // raw token은 여기서만 반환 (DB에 미저장)
+      expires_at: link.expires_at,
+      token,                                  // 프론트에서 링크 복사/발송용
+    });
+
+  } catch (err) {
+    console.error("[MyTiki/links]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/my-tiki/links?visitId=X  또는  ?clinicId=X (목록)
+app.get("/api/my-tiki/links", requireStaffAuth, async (req, res) => {
+  const { visitId, limit = 50 } = req.query;
+  const clinic_id = req.clinic_id;
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    let q = sb
+      .from("patient_links")
+      .select(`
+        id, visit_id, patient_id, status, expires_at,
+        first_opened_at, last_accessed_at, access_count,
+        patient_lang, sent_via, created_at, created_by
+      `)
+      .eq("clinic_id", clinic_id)
+      .order("created_at", { ascending: false })
+      .limit(Number(limit));
+
+    if (visitId) q = q.eq("visit_id", visitId);
+
+    const { data, error } = await q;
+    if (error) throw error;
+    res.json({ links: data || [] });
+  } catch (err) {
+    console.error("[MyTiki/links/GET]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/my-tiki/links/:id/revoke
+app.post("/api/my-tiki/links/:id/revoke", requireStaffAuth, async (req, res) => {
+  const { id } = req.params;
+  const clinic_id = req.clinic_id;
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    const { error } = await sb
+      .from("patient_links")
+      .update({
+        status:     "revoked",
+        revoked_by: req.staff_user_id,
+        revoked_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("clinic_id", clinic_id);   // clinic 소속 확인
+
+    if (error) throw error;
+    console.log(`[MyTiki] 링크 폐기: id=${id} clinic=${clinic_id}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[MyTiki/revoke]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/my-tiki/visits  — clinic 방문 목록
+app.get("/api/my-tiki/visits", requireStaffAuth, async (req, res) => {
+  const { stage, limit = 50 } = req.query;
+  const clinic_id = req.clinic_id;
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    let q = sb
+      .from("visits")
+      .select(`
+        id, patient_id, procedure_name, stage,
+        booking_date, treatment_date,
+        intake_submitted_at, consent_submitted_at,
+        channel, staff_note, created_at, updated_at
+      `)
+      .eq("clinic_id", clinic_id)
+      .order("updated_at", { ascending: false })
+      .limit(Number(limit));
+
+    if (stage) q = q.eq("stage", stage);
+
+    const { data, error } = await q;
+    if (error) throw error;
+    res.json({ visits: data || [] });
+  } catch (err) {
+    console.error("[MyTiki/visits]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/my-tiki/visits  — 방문 생성
+app.post("/api/my-tiki/visits", requireStaffAuth, async (req, res) => {
+  const {
+    patientId, procedureName, procedureId,
+    bookingDate, treatmentDate, channel, staffNote,
+  } = req.body;
+  const clinic_id = req.clinic_id;
+  if (!procedureName) return res.status(400).json({ error: "procedureName required" });
+
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    const { data, error } = await sb
+      .from("visits")
+      .insert({
+        clinic_id,
+        patient_id:     patientId || null,
+        procedure_id:   procedureId || null,
+        procedure_name: procedureName,
+        booking_date:   bookingDate || null,
+        treatment_date: treatmentDate || null,
+        channel:        channel || null,
+        staff_note:     staffNote || null,
+        stage:          "booked",
+        created_by:     req.staff_user_id,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error("[MyTiki/visits/POST]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── PATCH /api/my-tiki/visits/:id/stage
+app.patch("/api/my-tiki/visits/:id/stage", requireStaffAuth, async (req, res) => {
+  const { id } = req.params;
+  const { stage } = req.body;
+  const valid = ["booked","pre_visit","treatment","post_care","followup","closed"];
+  if (!valid.includes(stage)) return res.status(400).json({ error: "Invalid stage" });
+
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    const { data, error } = await sb
+      .from("visits")
+      .update({ stage })
+      .eq("id", id)
+      .eq("clinic_id", req.clinic_id)
+      .select("id, stage")
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error("[MyTiki/visits/stage]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/memory  — Tiki Paste 상호작용 → patient_interactions 저장
+// body: { clinicId, patientId?, visitId?, source, detectedLanguage, intent,
+//          koSummary, riskLevel, procedureInterests[], riskFlags[], rawMessageHash }
+app.post("/api/memory", async (req, res) => {
+  const {
+    clinicId, patientId, visitId, source = "tiki_paste",
+    detectedLanguage, intent, koSummary, riskLevel,
+    procedureInterests = [], riskFlags = [], rawMessageHash,
+  } = req.body;
+
+  const clinic_id = clinicId || process.env.CLINIC_ID;
+  if (!clinic_id) return res.status(400).json({ error: "clinicId required" });
+
+  const sb = getSbAdmin();
+  if (!sb) {
+    // Supabase 미설정 시 graceful skip (기존 mock 흐름 보호)
+    return res.json({ ok: true, skipped: true, reason: "db_unavailable" });
+  }
+
+  try {
+    const { data, error } = await sb
+      .from("patient_interactions")
+      .insert({
+        clinic_id,
+        patient_id:           patientId || null,
+        visit_id:             visitId || null,
+        source,
+        detected_language:    detectedLanguage || null,
+        intent:               intent || null,
+        ko_summary:           koSummary || null,
+        risk_level:           ["none","low","medium","high"].includes(riskLevel) ? riskLevel : null,
+        procedure_interests:  procedureInterests,
+        risk_flags:           riskFlags,
+        raw_message_hash:     rawMessageHash || null,
+      })
+      .select("id")
+      .single();
+
+    if (error) throw error;
+    res.json({ ok: true, id: data.id });
+  } catch (err) {
+    console.error("[Memory/POST]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// MY TIKI — 환자용 API  (requirePatientToken 필수)
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── GET /api/patient/me  — 토큰으로 환자+방문 컨텍스트 조회
+// My Tiki 앱이 처음 로드할 때 호출
+app.get("/api/patient/me", requirePatientToken, async (req, res) => {
+  const { clinic_id, patient_id, visit_id } = req;
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    const [patientRes, visitRes, clinicRes] = await Promise.all([
+      patient_id
+        ? sb.from("patients").select("id,name,name_en,flag,lang,country").eq("id", patient_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      visit_id
+        ? sb.from("visits").select("id,procedure_name,stage,booking_date,treatment_date,intake_submitted_at,consent_submitted_at").eq("id", visit_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      sb.from("clinics").select("clinic_id,clinic_name,clinic_short_name,location").eq("clinic_id", clinic_id).maybeSingle(),
+    ]);
+
+    res.json({
+      patient:     patientRes.data,
+      visit:       visitRes.data,
+      clinic:      clinicRes.data,
+      patient_lang: req.patient_lang,
+    });
+  } catch (err) {
+    console.error("[Patient/me]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/patient/forms  — 해당 방문의 폼 템플릿 목록
+app.get("/api/patient/forms", requirePatientToken, async (req, res) => {
+  const { clinic_id, visit_id } = req;
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    // 1. 이미 제출된 폼 확인
+    const { data: subs } = await sb
+      .from("form_submissions")
+      .select("form_type, submitted_at")
+      .eq("clinic_id", clinic_id)
+      .eq("visit_id", visit_id);
+
+    const submitted = new Set((subs || []).map(s => s.form_type));
+
+    // 2. 클리닉 활성 폼 템플릿 조회
+    const { data: templates } = await sb
+      .from("form_templates")
+      .select("id, type, title_ko, title_en, title_ja, title_zh, description_ko, fields, version")
+      .eq("clinic_id", clinic_id)
+      .eq("is_active", true)
+      .in("type", ["intake", "consent"]);
+
+    const forms = (templates || []).map(t => ({
+      ...t,
+      submitted:    submitted.has(t.type),
+      submitted_at: subs?.find(s => s.form_type === t.type)?.submitted_at || null,
+    }));
+
+    res.json({ forms });
+  } catch (err) {
+    console.error("[Patient/forms]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/patient/form-submit  — 폼 제출
+// body: { templateId, formType, data: { field_id: answer, ... } }
+app.post("/api/patient/form-submit", requirePatientToken, async (req, res) => {
+  const { templateId, formType, data: formData } = req.body;
+  const { clinic_id, patient_id, visit_id, patient_lang } = req;
+
+  if (!formType || !formData) return res.status(400).json({ error: "formType and data required" });
+
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    // 중복 제출 방지
+    const { data: existing } = await sb
+      .from("form_submissions")
+      .select("id")
+      .eq("clinic_id", clinic_id)
+      .eq("visit_id", visit_id)
+      .eq("form_type", formType)
+      .maybeSingle();
+
+    if (existing) {
+      return res.status(409).json({ error: "Form already submitted" });
+    }
+
+    // 제출 기록
+    const { data: sub, error: sErr } = await sb
+      .from("form_submissions")
+      .insert({
+        clinic_id,
+        patient_id:   patient_id || null,
+        visit_id:     visit_id || null,
+        link_id:      req.patient_link.id,
+        template_id:  templateId || null,
+        form_type:    formType,
+        data:         formData,
+        patient_lang,
+      })
+      .select("id, submitted_at")
+      .single();
+
+    if (sErr) throw sErr;
+
+    // visit의 intake/consent 타임스탬프 갱신
+    const tsField = formType === "intake" ? "intake_submitted_at"
+      : formType === "consent" ? "consent_submitted_at" : null;
+
+    if (tsField && visit_id) {
+      await sb.from("visits")
+        .update({ [tsField]: sub.submitted_at })
+        .eq("id", visit_id);
+    }
+
+    console.log(`[Patient/form-submit] type=${formType} visit=${visit_id} clinic=${clinic_id}`);
+    res.json({ ok: true, id: sub.id, submitted_at: sub.submitted_at });
+  } catch (err) {
+    console.error("[Patient/form-submit]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Health check (Railway / uptime monitors) ──────────────────────────────────
+app.get("/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    ts:     new Date().toISOString(),
+    model:  { haiku: MODEL_HAIKU.split("-").slice(-1)[0], sonnet: MODEL_SONNET.split("-").slice(-1)[0] },
+    supabase: !!getSbClient(),
+  });
 });
 
 // ── SPA fallback

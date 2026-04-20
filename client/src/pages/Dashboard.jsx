@@ -5,7 +5,10 @@ import StatsTab from '../components/stats/StatsTab';
 import SettingsTab from '../components/settings/SettingsTab';
 import ProceduresTab from '../components/procedures/ProceduresTab';
 import TikiPasteTab from '../components/magic/TikiPasteTab';
+import TikiTalkTab from '../components/talk/TikiTalkTab';
 import InsightsTab from '../components/insights/InsightsTab';
+import ProtocolTab from '../components/protocol/ProtocolTab';
+import MyTikiTab from '../components/mytiki/MyTikiTab';
 import { useAuth } from '../context/AuthContext';
 import {
   MessageSquare, LogOut, ChevronDown, User, Sun, Moon, Settings
@@ -111,7 +114,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const activeTab = searchParams.get('tab') || 'tiki_paste';
+  // Normalize legacy tab IDs → current IDs (backward compat for bookmarked URLs)
+  const rawTab   = searchParams.get('tab') || 'tiki_paste';
+  const activeTab = rawTab === 'stats' ? 'analytics' : rawTab === 'insights' ? 'tiki_memory' : rawTab;
   const setActiveTab = useCallback((tab) => {
     setSearchParams(prev => {
       const p = new URLSearchParams(prev);
@@ -147,9 +152,12 @@ export default function Dashboard() {
           {/* ── 티키 Paste ── */}
           {activeTab === 'tiki_paste' && <TikiPasteTab darkMode={darkMode} />}
 
-          {/* ── 통계 ── */}
-          {activeTab === 'stats' && (
-            canAccess('stats')
+          {/* ── 티키 Talk ── */}
+          {activeTab === 'tiki_talk' && <TikiTalkTab />}
+
+          {/* ── 통계 (analytics) ── */}
+          {activeTab === 'analytics' && (
+            canAccess('analytics')
               ? <StatsTab darkMode={darkMode} />
               : <AccessDenied feature="통계 대시보드" darkMode={darkMode} />
           )}
@@ -161,11 +169,25 @@ export default function Dashboard() {
               : <AccessDenied feature="시술 관리" darkMode={darkMode} />
           )}
 
-          {/* ── VIP 인사이트 ── */}
-          {activeTab === 'insights' && (
-            canAccess('insights')
+          {/* ── Tiki Memory (구 insights) ── */}
+          {activeTab === 'tiki_memory' && (
+            canAccess('tiki_memory')
               ? <InsightsTab darkMode={darkMode} />
-              : <AccessDenied feature="VIP 환자 인사이트" darkMode={darkMode} />
+              : <AccessDenied feature="Tiki Memory" darkMode={darkMode} />
+          )}
+
+          {/* ── 프로토콜 라이브러리 ── */}
+          {activeTab === 'protocol' && (
+            canAccess('protocol')
+              ? <ProtocolTab darkMode={darkMode} />
+              : <AccessDenied feature="프로토콜 라이브러리" darkMode={darkMode} />
+          )}
+
+          {/* ── My Tiki (환자 매직링크 관리) ── */}
+          {activeTab === 'my_tiki' && (
+            canAccess('my_tiki')
+              ? <MyTikiTab darkMode={darkMode} />
+              : <AccessDenied feature="My Tiki" darkMode={darkMode} />
           )}
 
           {/* ── 설정 ── */}

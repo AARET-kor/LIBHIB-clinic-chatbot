@@ -1,294 +1,1128 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, User, X, ChevronRight, Loader2, Tag, Clock, Phone, Globe, MessageSquare } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useState, useMemo } from 'react';
+import {
+  Search, X, Brain, Globe, Stethoscope, AlertTriangle,
+  Clock, Calendar, ChevronDown, ChevronRight, Sparkles,
+  MessageCircle, Activity, User, MapPin, Shield
+} from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+// ── CSS injection ─────────────────────────────────────────────────────────────
+const KEYFRAMES = `
+  @keyframes tmFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes tmFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+`;
 
-const LANG_FLAG = { ja:'🇯🇵', zh:'🇨🇳', en:'🇺🇸', ko:'🇰🇷', vi:'🇻🇳', th:'🇹🇭', ar:'🇸🇦', ru:'🇷🇺' };
-const LANG_NAME = { ja:'일본어', zh:'중국어', en:'영어', ko:'한국어', vi:'베트남어', th:'태국어', ar:'아랍어', ru:'러시아어' };
-
-const STATUS_STYLES = {
-  consulting: 'bg-blue-50 text-blue-600 border-blue-200',
-  booked:     'bg-emerald-50 text-emerald-600 border-emerald-200',
-  done:       'bg-zinc-50 text-zinc-500 border-zinc-200',
-  care:       'bg-purple-50 text-purple-600 border-purple-200',
-  dormant:    'bg-amber-50 text-amber-600 border-amber-200',
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const C = {
+  bg:        '#FAF7F4',
+  surface:   '#FFFFFF',
+  mocha:     '#A47864',
+  mochaDark: '#8B6352',
+  mochaLight:'#E8D8CF',
+  mochaPale: '#F5EDE8',
+  sage:      '#5A8F80',
+  sagePale:  '#ECF4F2',
+  risk:      '#C04A3F',
+  riskPale:  '#FEF3F2',
+  riskBorder:'rgba(192,74,63,0.18)',
+  warn:      '#B5701A',
+  warnPale:  '#FEF8EC',
+  amberBorder:'rgba(181,112,26,0.18)',
+  text:      '#2C2420',
+  textMid:   '#7A6858',
+  textLight: '#B5A498',
+  border:    'rgba(164,120,100,0.10)',
+  borderMid: 'rgba(164,120,100,0.18)',
+  F:         "'Pretendard Variable', 'Inter', system-ui, sans-serif",
 };
-const STATUS_LABEL = { consulting:'상담중', booked:'예약완료', done:'방문완료', care:'사후케어', dormant:'휴면' };
 
-// ── 환자 상세 모달 ─────────────────────────────────────────────────────────────
-function PatientDetailModal({ patient, darkMode, onClose }) {
-  const bg   = darkMode ? 'bg-zinc-900' : 'bg-white';
-  const text = darkMode ? 'text-zinc-100' : 'text-zinc-900';
-  const sub  = darkMode ? 'text-zinc-400' : 'text-zinc-500';
-  const bdr  = darkMode ? 'border-zinc-700' : 'border-zinc-200';
+// ── Mock data ─────────────────────────────────────────────────────────────────
+const MEMORY_RECORDS = [
+  {
+    id: 'pat-001',
+    name: '다나카 유미',
+    nameOrig: '田中由美',
+    lang: 'ja', langLabel: '일본어', flag: '🇯🇵',
+    country: '일본', city: '도쿄',
+    age: 34, sessionCount: 3, lastSessionAt: '2026-04-18',
+    riskCount: 1,
+    context: {
+      procedureInterests: {
+        values: ['히알루론산 필러', '눈 밑 교정', '광대 볼륨'],
+        sessionRef: '2026-04-18 진료실 B',
+      },
+      painSensitivity: {
+        level: 'high',
+        note: '주사에 대한 불안 반복 표현. 마취 크림 강하게 선호. 처치 중 호흡 빠름.',
+        sessionRef: '2026-04-18',
+      },
+      downtimeConcern: {
+        level: 'medium',
+        note: '3일 이내 일상 복귀 요구. 관광 일정 포함. 붓기에 민감.',
+        sessionRef: '2026-04-16',
+      },
+      scheduleDuration: {
+        stay: '5박 6일',
+        departure: '2026-04-23',
+        constraint: '항공편 고정 — 연장 불가',
+        sessionRef: '2026-04-16',
+      },
+      complaintRisk: {
+        level: 'low',
+        note: '과거 불만 이력 없음. 상담 태도 협조적. 의료진 설명에 즉각 동의.',
+        sessionRef: '2026-04-18',
+      },
+    },
+    sessions: [
+      {
+        id: 's-001', date: '2026-04-18', surface: 'room', room: '진료실 B',
+        duration: '22분', turns: 12,
+        summary: [
+          { cat: 'concern', text: '눈 밑 꺼짐 및 광대 볼륨 부족 주 관심사' },
+          { cat: 'history', text: '6개월 전 타 클리닉 필러 경험' },
+          { cat: 'symptom', text: '상담 중 경미한 어지러움 호소 — 긴장성 추정' },
+          { cat: 'consent', text: '시술 설명 청취 완료, 당일 동의' },
+        ],
+        riskFlags: [
+          { level: 'HIGH', cat: 'distress', phrase: '頭がふわふわ · 어지러운 느낌', dismissed: true, dismissedBy: '간호사' },
+        ],
+      },
+      {
+        id: 's-002', date: '2026-04-16', surface: 'talk',
+        duration: '8분', turns: 6,
+        summary: [
+          { cat: 'request', text: '자연스러운 볼륨 결과 선호 명확히 표현' },
+          { cat: 'concern', text: '과도한 볼륨 추가 원하지 않음' },
+        ],
+        riskFlags: [],
+      },
+      {
+        id: 's-003', date: '2026-03-28', surface: 'talk',
+        duration: '5분', turns: 4,
+        summary: [
+          { cat: 'concern', text: '초진 문의 — 눈 밑 꺼짐 개선 가능 여부 확인' },
+        ],
+        riskFlags: [],
+      },
+    ],
+    followUps: [
+      { type: 'check', priority: 'high', text: 'D+3 붓기·어지러움 경과 확인 필요 — 진료실 내 distress 이력', dueDate: '2026-04-21' },
+      { type: 'rebook', priority: 'medium', text: '잔여 광대 볼륨 보완 상담 가능 — 재방문 의사 표현 있음', dueDate: '2026-05-05' },
+      { type: 'lang', priority: 'low', text: '동의서 일본어 번역본 준비 권고 (재방문 시 적용)' },
+    ],
+  },
+  {
+    id: 'pat-002',
+    name: '왕리', nameOrig: '王莉',
+    lang: 'zh', langLabel: '중국어', flag: '🇨🇳',
+    country: '중국', city: '상하이',
+    age: 29, sessionCount: 2, lastSessionAt: '2026-04-15',
+    riskCount: 0,
+    context: {
+      procedureInterests: {
+        values: ['보톡스 (이마·미간)', '쌍꺼풀 상담', '피부 레이저'],
+        sessionRef: '2026-04-15 진료실 A',
+      },
+      painSensitivity: {
+        level: 'low',
+        note: '통증 관련 언급 없음. 이전 보톡스 경험 있음 — 내성 높은 것으로 추정.',
+        sessionRef: '2026-04-15',
+      },
+      downtimeConcern: {
+        level: 'low',
+        note: '다운타임 무관. 회사 원격근무 중이라 일정 유연.',
+        sessionRef: '2026-04-10',
+      },
+      scheduleDuration: {
+        stay: '7박 8일',
+        departure: '2026-04-20',
+        constraint: '없음 — 유연한 일정',
+        sessionRef: '2026-04-10',
+      },
+      complaintRisk: {
+        level: 'medium',
+        note: '결과에 대한 기대치 높음. 시술 전·후 사진 비교 요청. 비현실적 기대 가능성.',
+        sessionRef: '2026-04-15',
+      },
+    },
+    sessions: [
+      {
+        id: 's-004', date: '2026-04-15', surface: 'room', room: '진료실 A',
+        duration: '18분', turns: 10,
+        summary: [
+          { cat: 'concern', text: '이마 주름 + 미간 보톡스 우선 논의' },
+          { cat: 'request', text: '시술 전후 사진 비교 요청 — 차이 시각화 원함' },
+          { cat: 'consent', text: '시술 동의 완료. 쌍꺼풀 재방문 상담 예정.' },
+        ],
+        riskFlags: [],
+      },
+      {
+        id: 's-005', date: '2026-04-10', surface: 'talk',
+        duration: '11분', turns: 8,
+        summary: [
+          { cat: 'concern', text: '초진 — 전체 안면 리뉴얼에 관심' },
+          { cat: 'history', text: '상하이 클리닉 보톡스 1회 경험 (1년 전)' },
+        ],
+        riskFlags: [],
+      },
+    ],
+    followUps: [
+      { type: 'rebook', priority: 'high', text: '쌍꺼풀 상담 예약 — 이전 세션에서 재방문 의사 확인', dueDate: '2026-04-25' },
+      { type: 'check', priority: 'medium', text: '보톡스 D+7 효과 확인 연락 권고', dueDate: '2026-04-22' },
+    ],
+  },
+  {
+    id: 'pat-003',
+    name: 'Sarah Chen', nameOrig: '',
+    lang: 'en', langLabel: '영어', flag: '🇺🇸',
+    country: '미국', city: '뉴욕',
+    age: 41, sessionCount: 1, lastSessionAt: '2026-04-12',
+    riskCount: 1,
+    context: {
+      procedureInterests: {
+        values: ['레이저 토닝', '피부 리쥬비네이션', '리프팅'],
+        sessionRef: '2026-04-12 진료실 C',
+      },
+      painSensitivity: {
+        level: 'medium',
+        note: '레이저 열감 불편 표현. 쿨링 요청. 통증보다 열 민감도 높음.',
+        sessionRef: '2026-04-12',
+      },
+      downtimeConcern: {
+        level: 'high',
+        note: '업무 복귀 D+1 필수. 빨간 기 노출 불가 (발표 일정). 즉시 복귀 시술만 가능.',
+        sessionRef: '2026-04-12',
+      },
+      scheduleDuration: {
+        stay: '3박 4일',
+        departure: '2026-04-15',
+        constraint: 'D+1 회의 일정 — 붓기·홍조 불가',
+        sessionRef: '2026-04-12',
+      },
+      complaintRisk: {
+        level: 'high',
+        note: '기대치와 실제 결과 간 차이에 민감. 시술 효과 즉시 확인 요구. SNS 노출 가능성.',
+        sessionRef: '2026-04-12',
+      },
+    },
+    sessions: [
+      {
+        id: 's-006', date: '2026-04-12', surface: 'room', room: '진료실 C',
+        duration: '28분', turns: 14,
+        summary: [
+          { cat: 'concern', text: '색소침착·잔주름 레이저 개선 원함' },
+          { cat: 'symptom', text: '시술 중 열감 과민 반응 — 쿨링 2회 추가 요청' },
+          { cat: 'request', text: '시술 직후 효과 확인 요청 (거울 요청)' },
+          { cat: 'consent', text: '동의서 영문본 요구 → 제공 완료' },
+        ],
+        riskFlags: [
+          { level: 'HIGH', cat: 'distress', phrase: 'It feels like it\'s burning · 화끈거린다고 표현', dismissed: true, dismissedBy: '의사' },
+        ],
+      },
+    ],
+    followUps: [
+      { type: 'check', priority: 'high', text: 'D+2 피부 상태 사진 확인 요청 — 열 과민 이력', dueDate: '2026-04-14' },
+      { type: 'rebook', priority: 'medium', text: '2차 레이저 토닝 예약 — 다음 방한 시 연속 시술 권고', dueDate: '2026-06-01' },
+      { type: 'lang', priority: 'low', text: '영문 시술 후 관리 안내문 이메일 발송 권고' },
+    ],
+  },
+  {
+    id: 'pat-004',
+    name: '응우옌 티 란', nameOrig: 'Nguyễn Thị Lan',
+    lang: 'vi', langLabel: '베트남어', flag: '🇻🇳',
+    country: '베트남', city: '호치민',
+    age: 26, sessionCount: 2, lastSessionAt: '2026-04-08',
+    riskCount: 0,
+    context: {
+      procedureInterests: {
+        values: ['입술 필러', '눈 밑 애교살', '윤곽 주사'],
+        sessionRef: '2026-04-08 진료실 B',
+      },
+      painSensitivity: {
+        level: 'medium',
+        note: '입술 시술 통증 우려 표현. 마취 크림 충분한 시간 요청. 시술 중 통증 없었음.',
+        sessionRef: '2026-04-08',
+      },
+      downtimeConcern: {
+        level: 'medium',
+        note: '3~5일 붓기 수용 가능. 인플루언서 활동 — 1주일 후 촬영 일정 있음.',
+        sessionRef: '2026-04-08',
+      },
+      scheduleDuration: {
+        stay: '4박 5일',
+        departure: '2026-04-12',
+        constraint: '촬영 일정 고려 — D+7 이후 공개 예정',
+        sessionRef: '2026-04-05',
+      },
+      complaintRisk: {
+        level: 'low',
+        note: '결과에 매우 만족 표현. SNS 후기 게시 희망 — 긍정적 바이럴 기대.',
+        sessionRef: '2026-04-08',
+      },
+    },
+    sessions: [
+      {
+        id: 's-007', date: '2026-04-08', surface: 'room', room: '진료실 B',
+        duration: '16분', turns: 9,
+        summary: [
+          { cat: 'concern', text: '입술 볼륨 · 애교살 동시 시술 상담' },
+          { cat: 'request', text: 'SNS 포스팅용 자연스러운 결과 요청' },
+          { cat: 'consent', text: '동의 완료. 당일 시술.' },
+        ],
+        riskFlags: [],
+      },
+      {
+        id: 's-008', date: '2026-04-05', surface: 'talk',
+        duration: '7분', turns: 5,
+        summary: [
+          { cat: 'concern', text: '초진 문의 — 입술 필러 상담 요청' },
+          { cat: 'history', text: '베트남 현지 시술 경험 없음 — 초시술' },
+        ],
+        riskFlags: [],
+      },
+    ],
+    followUps: [
+      { type: 'rebook', priority: 'medium', text: '윤곽 주사 재방문 상담 — 관심 표현했으나 당일 미결정', dueDate: '2026-06-15' },
+      { type: 'check', priority: 'low', text: 'SNS 후기 게시 시 모니터링 — 긍정 바이럴 기대 환자', dueDate: '2026-04-20' },
+    ],
+  },
+];
 
-  const flag = patient.flag || LANG_FLAG[patient.lang] || '🌍';
-  const timeline = Array.isArray(patient.timeline) ? patient.timeline : [];
-  const tags     = Array.isArray(patient.tags)     ? patient.tags     : [];
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const LANG_COLOR = { ja: C.mocha, zh: '#D07030', en: '#5A8F80', vi: '#7058A8', th: '#C07040', ko: '#4A7EB5' };
 
+const CAT_CONFIG = {
+  concern: { label: '불만',      color: C.mocha,   bg: C.mochaPale  },
+  history: { label: '병력',      color: '#7058A8', bg: '#F4F0FB'    },
+  allergy: { label: '알레르기',  color: C.risk,    bg: C.riskPale   },
+  symptom: { label: '증상',      color: C.warn,    bg: C.warnPale   },
+  consent: { label: '동의',      color: C.sage,    bg: C.sagePale   },
+  request: { label: '요청',      color: '#7058A8', bg: '#F4F0FB'    },
+};
+
+const FOLLOW_UP_CONFIG = {
+  check:  { icon: Activity,    color: C.risk,   label: '경과 확인' },
+  rebook: { icon: Calendar,    color: C.mocha,  label: '재방문 유도' },
+  lang:   { icon: Globe,       color: '#7058A8',label: '언어 지원' },
+};
+
+const PRIORITY_CONFIG = {
+  high:   { label: '우선',   color: C.risk,   bg: C.riskPale  },
+  medium: { label: '권고',   color: C.warn,   bg: C.warnPale  },
+  low:    { label: '참고',   color: C.textMid,bg: C.bg        },
+};
+
+const LEVEL_CONFIG = {
+  low:    { label: '낮음', color: C.sage,   bg: C.sagePale  },
+  medium: { label: '주의', color: C.warn,   bg: C.warnPale  },
+  high:   { label: '높음', color: C.risk,   bg: C.riskPale  },
+};
+
+// reversed for complaint risk (high = dangerous)
+const RISK_LEVEL_CONFIG = {
+  low:    { label: '낮음', color: C.sage,   bg: C.sagePale  },
+  medium: { label: '주의', color: C.warn,   bg: C.warnPale  },
+  high:   { label: '높음', color: C.risk,   bg: C.riskPale  },
+};
+
+function sHead(label) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
-      <div className={`w-full max-w-lg rounded-2xl shadow-2xl border ${bg} ${bdr} flex flex-col`} style={{ maxHeight: '85vh' }}>
-        {/* 헤더 */}
-        <div className={`flex items-center justify-between px-5 py-4 border-b ${bdr} shrink-0`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-xl">
-              {flag}
-            </div>
-            <div>
-              <p className={`text-sm font-bold ${text}`}>{patient.name}</p>
-              <p className={`text-xs ${sub}`}>{LANG_NAME[patient.lang] || patient.lang} {patient.phone && `· ${patient.phone}`}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className={`p-1.5 rounded-lg ${darkMode ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
-            <X size={14} className={sub} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          {/* 태그 */}
-          {tags.length > 0 && (
-            <div>
-              <p className={`text-xs font-semibold mb-2 ${sub} uppercase tracking-wider`}>컨텍스트 태그</p>
-              <div className="flex flex-wrap gap-1.5">
-                {tags.map((tag, i) => (
-                  <span key={i} className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-pink-50 text-pink-600 border border-pink-100">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 메모 */}
-          {patient.note && (
-            <div>
-              <p className={`text-xs font-semibold mb-2 ${sub} uppercase tracking-wider`}>메모</p>
-              <p className={`text-xs leading-relaxed ${text} p-3 rounded-xl ${darkMode ? 'bg-zinc-800' : 'bg-zinc-50'}`}>
-                {patient.note}
-              </p>
-            </div>
-          )}
-
-          {/* 타임라인 */}
-          {timeline.length > 0 && (
-            <div>
-              <p className={`text-xs font-semibold mb-3 ${sub} uppercase tracking-wider`}>상담 타임라인</p>
-              <div className="space-y-2">
-                {[...timeline].reverse().map((item, i) => (
-                  <div key={i} className={`flex gap-3 p-3 rounded-xl border ${darkMode ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-100'}`}>
-                    <div className="w-1.5 h-1.5 rounded-full bg-pink-400 mt-1.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[10px] font-semibold ${text}`}>{item.type || 'context'}</p>
-                      {item.data?.tags && item.data.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {item.data.tags.map((t, j) => (
-                            <span key={j} className={`text-[9px] px-1.5 py-0.5 rounded ${darkMode ? 'bg-zinc-700 text-zinc-400' : 'bg-white text-zinc-500 border border-zinc-200'}`}>{t}</span>
-                          ))}
-                        </div>
-                      )}
-                      <p className={`text-[9px] mt-1 ${sub}`}>{item.ts ? new Date(item.ts).toLocaleString('ko-KR') : ''}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {timeline.length === 0 && tags.length === 0 && !patient.note && (
-            <div className="text-center py-8">
-              <Clock size={24} className={`mx-auto mb-2 ${sub}`} />
-              <p className={`text-xs ${sub}`}>아직 기록된 상담 내역이 없습니다</p>
-            </div>
-          )}
-        </div>
-      </div>
+    <div style={{
+      fontSize: 9, fontWeight: 800, letterSpacing: '0.10em',
+      textTransform: 'uppercase', color: C.textLight,
+      marginBottom: 14,
+    }}>
+      {label}
     </div>
   );
 }
 
-// ── 환자 카드 ─────────────────────────────────────────────────────────────────
-function PatientCard({ patient, darkMode, onClick }) {
-  const bg   = darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200';
-  const text = darkMode ? 'text-zinc-100' : 'text-zinc-900';
-  const sub  = darkMode ? 'text-zinc-400' : 'text-zinc-500';
+function LevelPill({ level }) {
+  const c = LEVEL_CONFIG[level] || LEVEL_CONFIG.low;
+  return (
+    <span style={{
+      fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
+      color: c.color, background: c.bg,
+      padding: '2px 7px', borderRadius: 5,
+    }}>
+      {c.label}
+    </span>
+  );
+}
 
-  const flag   = patient.flag || LANG_FLAG[patient.lang] || '🌍';
-  const tags   = Array.isArray(patient.tags) ? patient.tags.slice(0, 5) : [];
-  const status = patient.status || 'consulting';
+// ── ContextCard ───────────────────────────────────────────────────────────────
+function ContextCard({ icon: Icon, label, children, sessionRef, accent = C.mocha }) {
+  return (
+    <div style={{
+      background: C.surface,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      padding: '14px 16px',
+      display: 'flex', flexDirection: 'column', gap: 8,
+      boxShadow: '0 1px 6px rgba(164,120,100,0.05)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <div style={{
+          width: 24, height: 24, borderRadius: 7,
+          background: `${accent}15`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <Icon size={11} color={accent} strokeWidth={2} />
+        </div>
+        <span style={{ fontSize: 10, fontWeight: 700, color: C.textMid, letterSpacing: '0.03em' }}>
+          {label}
+        </span>
+      </div>
+      <div style={{ flex: 1 }}>
+        {children}
+      </div>
+      {sessionRef && (
+        <div style={{ fontSize: 9, color: C.textLight }}>
+          출처: {sessionRef}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── SessionCard ───────────────────────────────────────────────────────────────
+function SessionCard({ session, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  const surfaceLabel = session.surface === 'room' ? `🏥 ${session.room}` : '💬 Tiki Talk';
+  const hasRisk = session.riskFlags?.length > 0;
 
   return (
-    <div
-      onClick={onClick}
-      className={`border rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${bg}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-xl shrink-0">
-            {flag}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className={`text-sm font-bold ${text}`}>{patient.name}</p>
-              {patient.name_en && <p className={`text-xs ${sub}`}>{patient.name_en}</p>}
-            </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <Globe size={10} className={sub} />
-              <span className={`text-[10px] ${sub}`}>{LANG_NAME[patient.lang] || patient.lang || '-'}</span>
-              {patient.phone && (
-                <>
-                  <Phone size={10} className={sub} />
-                  <span className={`text-[10px] ${sub}`}>{patient.phone}</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[status] || STATUS_STYLES.consulting}`}>
-            {STATUS_LABEL[status] || status}
-          </span>
-          <ChevronRight size={14} className={sub} />
-        </div>
-      </div>
+    <div style={{
+      background: C.surface,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      overflow: 'hidden',
+      boxShadow: '0 1px 6px rgba(164,120,100,0.04)',
+    }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', textAlign: 'left',
+          padding: '12px 16px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: 'none', border: 'none',
+          cursor: 'pointer', fontFamily: C.F,
+        }}
+      >
+        {/* Date dot */}
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: hasRisk ? C.risk : C.mocha,
+          flexShrink: 0,
+        }} />
 
-      {/* 태그 */}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-3">
-          {tags.map((tag, i) => (
-            <span key={i} className={`text-[9px] font-medium px-2 py-0.5 rounded-full ${darkMode ? 'bg-zinc-800 text-zinc-400' : 'bg-zinc-100 text-zinc-500'}`}>
-              {tag}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+              {session.date}
             </span>
+            <span style={{
+              fontSize: 9, color: C.textMid,
+              background: C.bg, padding: '1px 7px', borderRadius: 5,
+            }}>
+              {surfaceLabel}
+            </span>
+            {hasRisk && (
+              <span style={{
+                fontSize: 9, fontWeight: 700, color: C.risk,
+                background: C.riskPale, padding: '1px 6px', borderRadius: 5,
+              }}>
+                ⚠ 위험 감지
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize: 11, color: C.textLight }}>
+            {session.duration} · {session.turns}회 발화
+          </span>
+        </div>
+
+        {open
+          ? <ChevronDown size={13} color={C.textLight} />
+          : <ChevronRight size={13} color={C.textLight} />
+        }
+      </button>
+
+      {open && (
+        <div style={{
+          animation: 'tmFadeIn 0.18s ease both',
+          borderTop: `1px solid ${C.border}`,
+          padding: '12px 16px',
+          display: 'flex', flexDirection: 'column', gap: 6,
+        }}>
+          {session.summary.map((item, i) => {
+            const c = CAT_CONFIG[item.cat] || { label: item.cat, color: C.textMid, bg: C.bg };
+            return (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <span style={{
+                  fontSize: 9, fontWeight: 700,
+                  color: c.color, background: c.bg,
+                  padding: '2px 6px', borderRadius: 5,
+                  flexShrink: 0, marginTop: 1,
+                }}>
+                  {c.label}
+                </span>
+                <span style={{ fontSize: 12, color: C.text, lineHeight: 1.55 }}>
+                  {item.text}
+                </span>
+              </div>
+            );
+          })}
+
+          {session.riskFlags?.map((r, i) => (
+            <div key={i} style={{
+              marginTop: 4,
+              background: C.riskPale,
+              border: `1px solid ${C.riskBorder}`,
+              borderRadius: 8,
+              padding: '8px 10px',
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.risk, flexShrink: 0 }}>
+                ⚠ {r.level}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: C.text, marginBottom: 2 }}>{r.phrase}</div>
+                {r.dismissed && (
+                  <div style={{ fontSize: 10, color: C.textMid }}>
+                    확인: {r.dismissedBy} · {r.cat}
+                  </div>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* 채널 + 마지막 방문 */}
-      <div className="flex items-center justify-between mt-2.5">
-        {patient.channel ? (
-          <div className="flex items-center gap-1.5">
-            <MessageSquare size={9} className={sub} />
-            <span className={`text-[9px] ${sub}`}>{patient.channel}</span>
-          </div>
-        ) : <div />}
-        {patient.last_visit && (
-          <span className={`text-[9px] ${sub}`}>최근 방문: {patient.last_visit}</span>
-        )}
+// ── FollowUpCard ──────────────────────────────────────────────────────────────
+function FollowUpCard({ item }) {
+  const fc  = FOLLOW_UP_CONFIG[item.type] || FOLLOW_UP_CONFIG.check;
+  const pc  = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG.low;
+  const Icon = fc.icon;
+
+  return (
+    <div style={{
+      background: C.surface,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      padding: '12px 16px',
+      display: 'flex', gap: 12, alignItems: 'flex-start',
+      boxShadow: '0 1px 6px rgba(164,120,100,0.04)',
+    }}>
+      <div style={{
+        width: 28, height: 28, borderRadius: 8,
+        background: `${fc.color}12`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, marginTop: 1,
+      }}>
+        <Icon size={12} color={fc.color} strokeWidth={2} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700,
+            color: fc.color, background: `${fc.color}12`,
+            padding: '2px 7px', borderRadius: 5,
+          }}>
+            {fc.label}
+          </span>
+          <span style={{
+            fontSize: 9, fontWeight: 700,
+            color: pc.color, background: pc.bg,
+            padding: '2px 6px', borderRadius: 5,
+          }}>
+            {pc.label}
+          </span>
+          {item.dueDate && (
+            <span style={{ fontSize: 9, color: C.textLight, marginLeft: 'auto' }}>
+              {item.dueDate}
+            </span>
+          )}
+        </div>
+        <p style={{ fontSize: 12, color: C.text, lineHeight: 1.55, margin: 0 }}>
+          {item.text}
+        </p>
       </div>
     </div>
   );
 }
 
-// ── InsightsTab ───────────────────────────────────────────────────────────────
-export default function InsightsTab({ darkMode }) {
-  const { session } = useAuth();
-  const clinicId = session?.clinic?.id;
-
-  const [query,      setQuery]      = useState('');
-  const [patients,   setPatients]   = useState([]);
-  const [loading,    setLoading]    = useState(false);
-  const [selected,   setSelected]   = useState(null);
-  const debounceRef = useRef(null);
-
-  const bg   = darkMode ? 'bg-zinc-950' : 'bg-slate-50';
-  const panel= darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200';
-  const text = darkMode ? 'text-zinc-100' : 'text-zinc-900';
-  const sub  = darkMode ? 'text-zinc-400' : 'text-zinc-500';
-  const inputCls = darkMode
-    ? 'bg-zinc-800 border-zinc-700 text-zinc-100 placeholder-zinc-500 focus:ring-pink-500/30'
-    : 'bg-white border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:ring-pink-500/20';
-
-  const search = useCallback(async (q) => {
-    if (!clinicId) return;
-    setLoading(true);
-    try {
-      const url = q?.trim()
-        ? `${API_BASE}/api/patients/search?clinicId=${encodeURIComponent(clinicId)}&q=${encodeURIComponent(q)}`
-        : `${API_BASE}/api/patients?clinicId=${encodeURIComponent(clinicId)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      setPatients(Array.isArray(data) ? data : (data.patients || []));
-    } catch { setPatients([]); }
-    finally { setLoading(false); }
-  }, [clinicId]);
-
-  useEffect(() => { search(''); }, [search]);
-
-  const handleQuery = (v) => {
-    setQuery(v);
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(v), 350);
-  };
+// ── MemoryListItem ────────────────────────────────────────────────────────────
+function MemoryListItem({ record, isSelected, onClick }) {
+  const langColor  = LANG_COLOR[record.lang] || C.textMid;
+  const hasRisk    = record.riskCount > 0;
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${bg}`}
-      style={{ fontFamily: "'Pretendard Variable', 'Inter', system-ui, sans-serif" }}>
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%', textAlign: 'left',
+        background: isSelected ? C.mochaPale : 'transparent',
+        border: 'none',
+        borderLeft: isSelected ? `3px solid ${C.mocha}` : '3px solid transparent',
+        padding: '14px 16px 14px 13px',
+        cursor: 'pointer', fontFamily: C.F,
+        transition: 'background 0.15s',
+        display: 'flex', gap: 12, alignItems: 'flex-start',
+      }}
+      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = C.bg; }}
+      onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+    >
+      {/* Flag avatar */}
+      <div style={{
+        width: 36, height: 36, borderRadius: 10,
+        background: `${langColor}12`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 18, flexShrink: 0,
+      }}>
+        {record.flag}
+      </div>
 
-      {/* 상단 헤더 */}
-      <div className={`border-b px-6 py-4 shrink-0 ${panel}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className={`text-base font-bold ${text}`}>VIP 환자 인사이트</h2>
-            <p className={`text-xs mt-0.5 ${sub}`}>환자 정보, 상담 태그, 타임라인을 한눈에</p>
-          </div>
-          <span className={`text-xs font-semibold px-3 py-1 rounded-full ${darkMode ? 'bg-zinc-800 text-zinc-400' : 'bg-zinc-100 text-zinc-500'}`}>
-            {patients.length}명
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Name row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+            {record.name}
           </span>
+          {record.nameOrig && (
+            <span style={{ fontSize: 10, color: C.textLight }}>{record.nameOrig}</span>
+          )}
+          {hasRisk && (
+            <span style={{
+              marginLeft: 'auto',
+              fontSize: 9, fontWeight: 700, color: C.risk,
+              background: C.riskPale, padding: '1px 6px', borderRadius: 5,
+            }}>
+              ⚠
+            </span>
+          )}
         </div>
 
-        {/* 검색 */}
-        <div className="relative mt-3">
-          <Search size={13} className={`absolute left-3 top-1/2 -translate-y-1/2 ${sub}`} />
-          <input
-            value={query}
-            onChange={e => handleQuery(e.target.value)}
-            placeholder="이름, 전화번호, 채널 ID로 검색..."
-            className={`w-full pl-8 pr-8 py-2 text-xs rounded-xl border focus:outline-none focus:ring-2 ${inputCls}`}
-          />
-          {query && (
-            <button onClick={() => handleQuery('')} className={`absolute right-3 top-1/2 -translate-y-1/2 ${sub}`}>
-              <X size={12} />
-            </button>
+        {/* Language + country */}
+        <div style={{ fontSize: 11, color: C.textMid, marginBottom: 5 }}>
+          {record.langLabel} · {record.country}
+        </div>
+
+        {/* Signals */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {record.context.procedureInterests.values.slice(0, 2).map((v, i) => (
+            <span key={i} style={{
+              fontSize: 9, color: C.mochaDark,
+              background: C.mochaPale,
+              padding: '2px 7px', borderRadius: 5, fontWeight: 500,
+            }}>
+              {v}
+            </span>
+          ))}
+        </div>
+
+        {/* Session meta */}
+        <div style={{ fontSize: 10, color: C.textLight, marginTop: 5 }}>
+          {record.sessionCount}회 세션 · 최근 {record.lastSessionAt}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ── MemoryDetail ──────────────────────────────────────────────────────────────
+function MemoryDetail({ record }) {
+  const allRisks = record.sessions.flatMap(s =>
+    (s.riskFlags || []).map(r => ({ ...r, sessionDate: s.date, sessionSurface: s.surface }))
+  );
+
+  return (
+    <div
+      style={{
+        animation: 'tmFadeIn 0.25s ease both',
+        flex: 1, overflowY: 'auto',
+        padding: '24px 28px',
+        display: 'flex', flexDirection: 'column', gap: 32,
+      }}
+    >
+      {/* ── Identity header ── */}
+      <div style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 16,
+        padding: '22px 24px',
+        boxShadow: '0 2px 12px rgba(164,120,100,0.06)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 16 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 14,
+            background: `${LANG_COLOR[record.lang] || C.mocha}15`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 26, flexShrink: 0,
+          }}>
+            {record.flag}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0 }}>
+                {record.name}
+              </h2>
+              {record.nameOrig && (
+                <span style={{ fontSize: 13, color: C.textMid }}>{record.nameOrig}</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <span style={{
+                fontSize: 11, fontWeight: 600, color: LANG_COLOR[record.lang] || C.mocha,
+                background: `${LANG_COLOR[record.lang] || C.mocha}12`,
+                padding: '2px 9px', borderRadius: 6,
+              }}>
+                {record.langLabel}
+              </span>
+              <span style={{ fontSize: 11, color: C.textMid }}>
+                {record.country} · {record.city}
+              </span>
+              {record.age && (
+                <span style={{ fontSize: 11, color: C.textLight }}>{record.age}세</span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 16 }}>
+            {[
+              { label: '세션', value: record.sessionCount },
+              { label: '위험 감지', value: record.riskCount, color: record.riskCount > 0 ? C.risk : C.sage },
+            ].map((stat, i) => (
+              <div key={i} style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontSize: 20, fontWeight: 800,
+                  color: stat.color || C.mocha,
+                }}>
+                  {stat.value}
+                </div>
+                <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stay info strip */}
+        <div style={{
+          background: C.bg, borderRadius: 10,
+          padding: '10px 14px',
+          display: 'flex', gap: 20, alignItems: 'center',
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Calendar size={11} color={C.textLight} />
+            <span style={{ fontSize: 11, color: C.textMid }}>
+              {record.context.scheduleDuration.stay}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Clock size={11} color={C.textLight} />
+            <span style={{ fontSize: 11, color: C.textMid }}>
+              출국: {record.context.scheduleDuration.departure}
+            </span>
+          </div>
+          {record.context.scheduleDuration.constraint && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <AlertTriangle size={11} color={C.warn} />
+              <span style={{ fontSize: 11, color: C.warn, fontWeight: 600 }}>
+                {record.context.scheduleDuration.constraint}
+              </span>
+            </div>
           )}
         </div>
       </div>
 
-      {/* 환자 목록 */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {loading ? (
-          <div className="flex items-center justify-center py-20 gap-2">
-            <Loader2 size={16} className="animate-spin text-pink-400" />
-            <span className={`text-xs ${sub}`}>불러오는 중...</span>
-          </div>
-        ) : patients.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <User size={32} className={sub} />
-            <p className={`text-sm font-semibold ${text}`}>환자 없음</p>
-            <p className={`text-xs ${sub}`}>{query ? '검색 결과가 없습니다' : '등록된 환자가 없습니다'}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-            {patients.map(p => (
-              <PatientCard
-                key={p.id}
-                patient={p}
-                darkMode={darkMode}
-                onClick={() => setSelected(p)}
-              />
-            ))}
-          </div>
-        )}
+      {/* ── Context cards grid ── */}
+      <div>
+        {sHead('추출 컨텍스트')}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: 12,
+        }}>
+          {/* 1 — Language */}
+          <ContextCard
+            icon={Globe} label="언어"
+            sessionRef={null}
+            accent={LANG_COLOR[record.lang] || C.mocha}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>{record.flag}</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                  {record.langLabel}
+                </div>
+                <div style={{ fontSize: 11, color: C.textMid }}>{record.country}</div>
+              </div>
+            </div>
+          </ContextCard>
+
+          {/* 2 — Procedure interests */}
+          <ContextCard
+            icon={Stethoscope} label="시술 관심사"
+            sessionRef={record.context.procedureInterests.sessionRef}
+          >
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {record.context.procedureInterests.values.map((v, i) => (
+                <span key={i} style={{
+                  fontSize: 11, color: C.mochaDark,
+                  background: C.mochaPale,
+                  padding: '3px 9px', borderRadius: 7, fontWeight: 500,
+                }}>
+                  {v}
+                </span>
+              ))}
+            </div>
+          </ContextCard>
+
+          {/* 3 — Pain sensitivity */}
+          <ContextCard
+            icon={Activity} label="통증 민감도"
+            sessionRef={record.context.painSensitivity.sessionRef}
+            accent={LEVEL_CONFIG[record.context.painSensitivity.level]?.color || C.mocha}
+          >
+            <div style={{ marginBottom: 6 }}>
+              <LevelPill level={record.context.painSensitivity.level} />
+            </div>
+            <p style={{ fontSize: 12, color: C.textMid, lineHeight: 1.55, margin: 0 }}>
+              {record.context.painSensitivity.note}
+            </p>
+          </ContextCard>
+
+          {/* 4 — Downtime concern */}
+          <ContextCard
+            icon={Clock} label="다운타임 우려"
+            sessionRef={record.context.downtimeConcern.sessionRef}
+            accent={LEVEL_CONFIG[record.context.downtimeConcern.level]?.color || C.mocha}
+          >
+            <div style={{ marginBottom: 6 }}>
+              <LevelPill level={record.context.downtimeConcern.level} />
+            </div>
+            <p style={{ fontSize: 12, color: C.textMid, lineHeight: 1.55, margin: 0 }}>
+              {record.context.downtimeConcern.note}
+            </p>
+          </ContextCard>
+
+          {/* 5 — Schedule / stay */}
+          <ContextCard
+            icon={Calendar} label="체류 일정"
+            sessionRef={record.context.scheduleDuration.sessionRef}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                {record.context.scheduleDuration.stay}
+              </div>
+              <div style={{ fontSize: 11, color: C.textMid }}>
+                출국: {record.context.scheduleDuration.departure}
+              </div>
+              {record.context.scheduleDuration.constraint && (
+                <div style={{
+                  fontSize: 11, fontWeight: 600, color: C.warn,
+                  background: C.warnPale, padding: '3px 8px', borderRadius: 6, marginTop: 2,
+                }}>
+                  {record.context.scheduleDuration.constraint}
+                </div>
+              )}
+            </div>
+          </ContextCard>
+
+          {/* 6 — Complaint risk */}
+          <ContextCard
+            icon={Shield} label="컴플레인 위험도"
+            sessionRef={record.context.complaintRisk.sessionRef}
+            accent={RISK_LEVEL_CONFIG[record.context.complaintRisk.level]?.color || C.sage}
+          >
+            <div style={{ marginBottom: 6 }}>
+              <LevelPill level={record.context.complaintRisk.level} />
+            </div>
+            <p style={{ fontSize: 12, color: C.textMid, lineHeight: 1.55, margin: 0 }}>
+              {record.context.complaintRisk.note}
+            </p>
+          </ContextCard>
+        </div>
       </div>
 
-      {/* 상세 모달 */}
-      {selected && (
-        <PatientDetailModal
-          patient={selected}
-          darkMode={darkMode}
-          onClose={() => setSelected(null)}
-        />
+      {/* ── Conversation timeline ── */}
+      <div>
+        {sHead('대화 타임라인')}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {record.sessions.map((s, i) => (
+            <SessionCard key={s.id} session={s} defaultOpen={i === 0} />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Risk history ── */}
+      {allRisks.length > 0 && (
+        <div>
+          {sHead('위험 이력')}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {allRisks.map((r, i) => (
+              <div key={i} style={{
+                animation: `tmFadeUp ${0.1 + i * 0.06}s ease both`,
+                background: C.riskPale,
+                border: `1px solid ${C.riskBorder}`,
+                borderRadius: 12,
+                padding: '12px 16px',
+                display: 'flex', gap: 12, alignItems: 'flex-start',
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: `${C.risk}15`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <AlertTriangle size={12} color={C.risk} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.risk }}>
+                      {r.level}
+                    </span>
+                    <span style={{
+                      fontSize: 9, color: C.textMid,
+                      background: 'rgba(0,0,0,0.05)',
+                      padding: '1px 6px', borderRadius: 4,
+                    }}>
+                      {r.cat}
+                    </span>
+                    <span style={{ fontSize: 10, color: C.textLight, marginLeft: 'auto' }}>
+                      {r.sessionDate}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 12, color: C.text, margin: '0 0 4px' }}>
+                    {r.phrase}
+                  </p>
+                  {r.dismissed && (
+                    <span style={{ fontSize: 10, color: C.sage }}>
+                      ✓ 확인됨 — {r.dismissedBy}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
+
+      {/* ── Follow-up suggestions ── */}
+      {record.followUps?.length > 0 && (
+        <div>
+          {sHead('팔로업 제안')}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {record.followUps.map((item, i) => (
+              <FollowUpCard key={i} item={item} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+function EmptyDetail() {
+  return (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: 14, opacity: 0.5,
+    }}>
+      <Brain size={36} color={C.textLight} strokeWidth={1.4} />
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: C.textMid, margin: '0 0 5px' }}>
+          환자를 선택하세요
+        </p>
+        <p style={{ fontSize: 12, color: C.textLight, margin: 0 }}>
+          대화에서 추출된 컨텍스트가 표시됩니다
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── InsightsTab (TikiMemory) ──────────────────────────────────────────────────
+export default function InsightsTab({ darkMode }) {
+  // Inject CSS
+  const [cssInjected] = useState(() => {
+    if (typeof document !== 'undefined') {
+      const el = document.createElement('style');
+      el.textContent = KEYFRAMES;
+      document.head.appendChild(el);
+    }
+    return true;
+  });
+
+  const [query,    setQuery]    = useState('');
+  const [selected, setSelected] = useState(null);
+  const [langFilter, setLangFilter] = useState('all');
+
+  const langs = useMemo(() => {
+    const seen = new Set();
+    MEMORY_RECORDS.forEach(r => seen.add(r.lang));
+    return Array.from(seen);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return MEMORY_RECORDS.filter(r => {
+      if (langFilter !== 'all' && r.lang !== langFilter) return false;
+      if (!q) return true;
+      return (
+        r.name.toLowerCase().includes(q) ||
+        (r.nameOrig || '').toLowerCase().includes(q) ||
+        r.country.toLowerCase().includes(q) ||
+        r.context.procedureInterests.values.some(v => v.includes(q))
+      );
+    });
+  }, [query, langFilter]);
+
+  return (
+    <div style={{
+      flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden',
+      fontFamily: C.F, background: C.bg,
+    }}>
+
+      {/* ── Left panel: Memory list ── */}
+      <div style={{
+        width: 340, flexShrink: 0,
+        background: C.surface,
+        borderRight: `1px solid ${C.border}`,
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+
+        {/* Header */}
+        <div style={{
+          padding: '20px 16px 16px',
+          borderBottom: `1px solid ${C.border}`,
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 8,
+              background: C.mochaPale,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Brain size={13} color={C.mocha} strokeWidth={2} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: 14, fontWeight: 800, color: C.text, margin: 0 }}>
+                Tiki Memory
+              </h2>
+              <p style={{ fontSize: 10, color: C.textLight, margin: 0 }}>
+                {filtered.length}개 기억
+              </p>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div style={{
+            position: 'relative', marginBottom: 10,
+          }}>
+            <Search size={12} color={C.textLight} style={{
+              position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+            }} />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="이름, 국가, 시술..."
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '8px 32px 8px 30px',
+                background: C.bg,
+                border: `1px solid ${C.border}`,
+                borderRadius: 9, outline: 'none',
+                fontSize: 12, color: C.text,
+                fontFamily: C.F,
+              }}
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+                }}
+              >
+                <X size={11} color={C.textLight} />
+              </button>
+            )}
+          </div>
+
+          {/* Language filter */}
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            {['all', ...langs].map(l => (
+              <button
+                key={l}
+                onClick={() => setLangFilter(l)}
+                style={{
+                  padding: '3px 10px', borderRadius: 6,
+                  fontSize: 10, fontWeight: 600,
+                  background: langFilter === l ? C.mocha : C.bg,
+                  color: langFilter === l ? '#fff' : C.textMid,
+                  border: `1px solid ${langFilter === l ? C.mocha : C.border}`,
+                  cursor: 'pointer', fontFamily: C.F,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {l === 'all' ? '전체' : { ja: '🇯🇵 일본어', zh: '🇨🇳 중국어', en: '🇺🇸 영어', vi: '🇻🇳 베트남어' }[l] || l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* List */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {filtered.length === 0 ? (
+            <div style={{
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              gap: 8, padding: '40px 20px', opacity: 0.5,
+            }}>
+              <User size={24} color={C.textLight} strokeWidth={1.4} />
+              <p style={{ fontSize: 12, color: C.textMid, margin: 0 }}>
+                {query ? '검색 결과 없음' : '기록 없음'}
+              </p>
+            </div>
+          ) : (
+            filtered.map(r => (
+              <MemoryListItem
+                key={r.id}
+                record={r}
+                isSelected={selected?.id === r.id}
+                onClick={() => setSelected(r)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* ── Right panel: Memory detail ── */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        minWidth: 0, overflow: 'hidden',
+        background: C.bg,
+      }}>
+        {selected
+          ? <MemoryDetail key={selected.id} record={selected} />
+          : <EmptyDetail />
+        }
+      </div>
     </div>
   );
 }

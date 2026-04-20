@@ -1,35 +1,68 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Languages, Sparkles, MessageSquare,
-  BarChart3, ArrowRight, Check, Globe, Database,
-  Shield, TrendingUp, FileText, Stethoscope
+  MessageSquare, ArrowRight, Check,
+  Sparkles, MessageCircle, Brain, BookOpen,
+  ChevronRight, LayoutGrid,
 } from 'lucide-react';
 
-const F = { sans: "'Pretendard Variable', 'Inter', system-ui, -apple-system, sans-serif" };
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const SANS = "'Pretendard Variable', 'Inter', system-ui, -apple-system, sans-serif";
 
-const M = {
-  mocha:     '#A47764',
-  mochaDk:   '#7A5545',
-  mochaLt:   '#C4A090',
-  mochaPale: '#F5EDE8',
-  bg:        '#FAF6F3',
-  bgSub:     '#EFE5DE',
-  bgDark:    '#0E0704',
-  text:      '#1C0F0A',
-  textSub:   '#6B4A3A',
-  textMt:    '#B09080',
-  sage:      '#5A8F80',
-  sageLt:    '#9FC5BD',
-  sagePale:  '#E4F2EF',
-  gold:      '#D09262',
-  border:    '#E5CFC5',
-  borderMd:  '#CCADA0',
-  white:     '#FFFFFF',
+const C = {
+  mocha:      '#A47864',   // Signature — used sparingly and precisely
+  mochaDk:    '#7A5545',   // Hover state, strong text accent
+  mochaLight: '#C4A090',   // Dividers, subtle accents
+  mochaPale:  '#F5EDE8',   // Input backgrounds, secondary surfaces
+  bg:         '#FAF6F3',   // Page background
+  bgSub:      '#F0E8E3',   // Secondary surface
+  surface:    '#FFFFFF',   // Cards
+  text:       '#1C0F0A',   // Primary text — near-black warm
+  textSub:    '#6B4A3A',   // Body text
+  textMt:     '#A89080',   // Labels, captions
+  border:     '#E5CFC5',   // Subtle borders (inputs only)
+  white:      '#FFFFFF',
 };
 
-// ── Scroll Reveal Hook ────────────────────────────────────────────────────────
-function useReveal(threshold = 0.12) {
+// ── Keyframes & global CSS ────────────────────────────────────────────────────
+const GLOBAL_CSS = `
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: ${SANS}; background: ${C.bg}; color: ${C.text}; -webkit-font-smoothing: antialiased; }
+  a { text-decoration: none; color: inherit; }
+  ::selection { background: ${C.mocha}28; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes floatSlow {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-6px); }
+  }
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.9); }
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 860px) {
+    .hero-grid    { grid-template-columns: 1fr !important; }
+    .modules-grid { grid-template-columns: 1fr !important; }
+    .pricing-grid { grid-template-columns: 1fr !important; }
+    .session-grid { grid-template-columns: 1fr !important; }
+    .footer-row   { flex-direction: column !important; align-items: flex-start !important; gap: 28px !important; }
+    .hide-mobile  { display: none !important; }
+    .hero-card    { max-width: 420px !important; margin: 0 auto !important; }
+  }
+`;
+
+// ── Scroll reveal ─────────────────────────────────────────────────────────────
+function useReveal(threshold = 0.10) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -43,82 +76,14 @@ function useReveal(threshold = 0.12) {
   return [ref, visible];
 }
 
-const GLOBAL_CSS = `
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(36px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes floatY {
-    0%, 100% { transform: translateY(0); }
-    50%       { transform: translateY(-14px); }
-  }
-  @keyframes rotateCylinder {
-    from { transform: rotateY(0deg); }
-    to   { transform: rotateY(-360deg); }
-  }
-  @keyframes pulseGlow {
-    0%, 100% { opacity: 0.35; transform: scale(1); }
-    50%       { opacity: 0.9; transform: scale(1.14); }
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body { font-family: ${F.sans}; background: ${M.bg}; color: ${M.text}; }
-  a { text-decoration: none; color: inherit; }
-  ::selection { background: ${M.mocha}30; }
-`;
-
-// ── Cylinder cards ────────────────────────────────────────────────────────────
-const CYLINDER_CARDS = [
-  { lang: 'KO', flag: '🇰🇷', text: '리프팅 시술 후\n부작용은 없나요?',    reply: '24시간 이내 자연스럽게 가라앉습니다.' },
-  { lang: 'CN', flag: '🇨🇳', text: '这个手术\n恢复期多久？',               reply: '术后约3-5天即可恢复正常活动。' },
-  { lang: 'EN', flag: '🇺🇸', text: 'Is the filler\nprocedure painful?', reply: 'Topical anesthesia is applied for comfort.' },
-  { lang: 'JP', flag: '🇯🇵', text: 'ボトックスの\n効果はいつから？',        reply: '施術後3〜7日で効果が現れます。' },
-  { lang: 'TH', flag: '🇹🇭', text: 'ราคาครีมกันแดด\nเท่าไหร่คะ?',        reply: 'ราคาเริ่มต้น 45,000 วอน ค่ะ' },
-  { lang: 'VN', flag: '🇻🇳', text: 'Giá tiêm filler\nbao nhiêu?',        reply: 'Giá từ 200.000 won tùy vùng tiêm.' },
-  { lang: 'RU', flag: '🇷🇺', text: 'Как долго держится\nэффект ботокса?', reply: 'Эффект сохраняется 4–6 месяцев.' },
-  { lang: 'AR', flag: '🇸🇦', text: 'هل عملية\nالليزر مؤلمة؟',             reply: 'نستخدم تخديراً موضعياً لراحتك.' },
-];
-
-function Cylinder3D() {
-  const total = CYLINDER_CARDS.length;
-  const radius = 230;
-  const angleStep = 360 / total;
+// ── Divider ───────────────────────────────────────────────────────────────────
+function Divider({ style }) {
   return (
-    <div style={{ perspective: '1100px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <div style={{
-        position: 'absolute', width: 340, height: 340, borderRadius: '50%',
-        background: `radial-gradient(circle, ${M.mocha}45 0%, ${M.mocha}15 50%, transparent 70%)`,
-        animation: 'pulseGlow 3.5s ease-in-out infinite',
-        pointerEvents: 'none', zIndex: 0,
-      }} />
-      <div style={{
-        position: 'relative', width: 600, height: 440,
-        transformStyle: 'preserve-3d',
-        animation: 'rotateCylinder 28s linear infinite',
-      }}>
-        {CYLINDER_CARDS.map((card, i) => (
-          <div key={i} style={{
-            position: 'absolute', top: '50%', left: '50%',
-            width: 200, marginLeft: -100, marginTop: -80,
-            transform: `rotateY(${angleStep * i}deg) translateZ(${radius}px)`,
-            background: 'rgba(255,255,255,0.06)',
-            backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 16, padding: '16px 18px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-              <span style={{ fontSize: 16 }}>{card.flag}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em' }}>{card.lang}</span>
-            </div>
-            <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.85)', lineHeight: 1.55, whiteSpace: 'pre-line', marginBottom: 10 }}>{card.text}</p>
-            <div style={{ padding: '8px 10px', background: `${M.mocha}28`, borderRadius: 8, borderLeft: `2px solid ${M.mocha}80` }}>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{card.reply}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <div style={{
+      width: '100%', height: 1,
+      background: `rgba(164,120,100,0.10)`,
+      ...style,
+    }} />
   );
 }
 
@@ -126,8 +91,8 @@ function Cylinder3D() {
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', h);
+    const h = () => setScrolled(window.scrollY > 32);
+    window.addEventListener('scroll', h, { passive: true });
     return () => window.removeEventListener('scroll', h);
   }, []);
 
@@ -136,47 +101,64 @@ function Nav() {
       <style>{GLOBAL_CSS}</style>
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: scrolled ? `${M.bg}ee` : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? `1px solid ${M.border}` : '1px solid transparent',
-        transition: 'all 0.25s ease',
+        background: scrolled ? `rgba(250,246,243,0.92)` : 'transparent',
+        backdropFilter: scrolled ? 'blur(24px) saturate(160%)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(24px) saturate(160%)' : 'none',
+        borderBottom: scrolled ? `1px solid rgba(164,120,100,0.12)` : '1px solid transparent',
+        transition: 'background 0.35s, border-color 0.35s',
       }}>
-        <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 32px', height: 66, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{
+          maxWidth: 1120, margin: '0 auto', padding: '0 40px',
+          height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 11,
-              background: M.mocha,
+              width: 32, height: 32, borderRadius: 9,
+              background: C.mocha,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: `0 4px 14px ${M.mocha}55`,
             }}>
-              <MessageSquare size={16} color="#fff" fill="#fff" />
+              <MessageSquare size={14} color="#fff" fill="#fff" strokeWidth={0} />
             </div>
-            <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: '-0.04em', color: M.text }}>TikiDoc</span>
+            <span style={{
+              fontSize: 16, fontWeight: 800,
+              letterSpacing: '-0.04em', color: C.text,
+            }}>TikiDoc</span>
           </div>
 
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
-            {['기능', '사용 방법', '요금제'].map(item => (
-              <a key={item} href={`#${item}`}
-                style={{ fontSize: 15, fontWeight: 500, color: M.textSub, transition: 'color 0.15s', letterSpacing: '-0.01em' }}
-                onMouseEnter={e => e.target.style.color = M.mocha}
-                onMouseLeave={e => e.target.style.color = M.textSub}
-              >{item}</a>
+          {/* Nav links */}
+          <nav className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
+            {[['제품', '#modules'], ['워크플로우', '#session'], ['요금제', '#pricing']].map(([label, href]) => (
+              <a key={label} href={href} style={{
+                fontSize: 14, fontWeight: 500,
+                color: C.textSub, letterSpacing: '-0.01em',
+                transition: 'color 0.15s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.color = C.mocha}
+                onMouseLeave={e => e.currentTarget.style.color = C.textSub}
+              >{label}</a>
             ))}
           </nav>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link to="/login" style={{ fontSize: 14, fontWeight: 500, color: M.textSub, padding: '9px 18px', letterSpacing: '-0.01em' }}>로그인</Link>
-            <Link to="/signup" style={{
-              fontSize: 14, fontWeight: 700, color: M.white,
-              background: M.mocha, padding: '10px 22px', borderRadius: 10,
-              letterSpacing: '-0.01em',
-              boxShadow: `0 4px 16px ${M.mocha}45`,
-              transition: 'transform 0.15s, box-shadow 0.15s',
+          {/* Auth */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Link to="/login" style={{
+              fontSize: 13, fontWeight: 600, color: C.textSub,
+              padding: '8px 14px', letterSpacing: '-0.01em',
+              transition: 'color 0.15s',
             }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 8px 28px ${M.mocha}55`; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 4px 16px ${M.mocha}45`; }}
-            >무료로 시작하기 →</Link>
+              onMouseEnter={e => e.currentTarget.style.color = C.text}
+              onMouseLeave={e => e.currentTarget.style.color = C.textSub}
+            >로그인</Link>
+            <Link to="/signup" style={{
+              fontSize: 13, fontWeight: 700, color: C.white,
+              background: C.mocha, padding: '9px 20px', borderRadius: 9,
+              letterSpacing: '-0.01em',
+              transition: 'opacity 0.15s, transform 0.15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '0.86'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >데모 신청</Link>
           </div>
         </div>
       </header>
@@ -184,184 +166,184 @@ function Nav() {
   );
 }
 
-// ── Hero ──────────────────────────────────────────────────────────────────────
-function Hero() {
+// ── Hero product card (no chrome) ─────────────────────────────────────────────
+function HeroCard() {
+  const [activeReply, setActiveReply] = useState(0);
+
+  const replies = [
+    {
+      label: '정중한 답장',
+      color: C.mocha,
+      text: '소중한 문의 감사드립니다. 히알루론산 시술은 시술 직후부터 볼륨감을 느끼실 수 있으며, 완전한 효과는 2~3일 후에 안정됩니다.',
+    },
+    {
+      label: '빠른 답장',
+      color: '#5A8F80',
+      text: '효과 발현: 직후~3일. 지속: 6~12개월. 붓기는 3~5일 내 소실. 자세한 상담은 방문 예약 부탁드립니다.',
+    },
+    {
+      label: '상담 유도',
+      color: '#B5701A',
+      text: '정확한 답변을 드리려면 직접 상담이 필요합니다. 온라인 예약을 통해 전문의와 1:1 상담을 받아보세요.',
+    },
+  ];
+
   return (
-    <section style={{ paddingTop: 168, paddingBottom: 128, background: M.bg, position: 'relative', overflow: 'hidden' }}>
-      {/* Warm gradient blobs */}
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 0,
-        backgroundImage: `radial-gradient(ellipse 65% 55% at 70% 20%, ${M.mochaPale} 0%, transparent 65%),
-          radial-gradient(ellipse 45% 50% at 15% 80%, ${M.sagePale} 0%, transparent 55%)`,
-      }} />
-      {/* Dot grid */}
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 0,
-        backgroundImage: `radial-gradient(circle, ${M.border} 1.5px, transparent 1.5px)`,
-        backgroundSize: '34px 34px',
-        maskImage: 'radial-gradient(ellipse 70% 60% at 50% 40%, black 35%, transparent 100%)',
-        WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 40%, black 35%, transparent 100%)',
-        opacity: 0.5,
-      }} />
-
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 32px', position: 'relative', zIndex: 1 }}>
-        {/* Badge */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36, animation: 'fadeUp 0.5s ease both' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '7px 20px', background: M.white,
-            border: `1px solid ${M.border}`, borderRadius: 999,
-            fontSize: 13, fontWeight: 600, color: M.textSub,
-            boxShadow: `0 2px 16px ${M.mocha}18`,
-            letterSpacing: '-0.01em',
-          }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: M.mocha, display: 'inline-block', boxShadow: `0 0 10px ${M.mocha}` }} />
-            AI 다국어 상담 솔루션 — 8개 언어 지원
-          </div>
-        </div>
-
-        {/* Headline */}
-        <h1 style={{
-          textAlign: 'center',
-          fontSize: 'clamp(54px, 8.5vw, 104px)',
-          fontWeight: 900,
-          letterSpacing: '-0.055em',
-          lineHeight: 1.0,
-          color: M.text,
-          marginBottom: 30,
-          animation: 'fadeUp 0.6s 0.1s ease both',
-          fontFamily: F.sans,
-          wordBreak: 'keep-all',
+    <div
+      className="hero-card"
+      style={{
+        background: C.surface,
+        borderRadius: 22,
+        padding: '26px 26px 22px',
+        boxShadow: '0 32px 80px rgba(164,120,100,0.13), 0 4px 16px rgba(164,120,100,0.07)',
+        animation: 'floatSlow 7s ease-in-out infinite',
+        maxWidth: 460,
+      }}
+    >
+      {/* Product header — no browser chrome */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+        <div style={{
+          width: 22, height: 22, borderRadius: 6,
+          background: C.mocha,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          외국인 환자 상담,<br />
-          <span style={{
-            background: `linear-gradient(135deg, ${M.mocha} 0%, ${M.gold} 55%, ${M.mochaLt} 100%)`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}>AI가 즉시 답변합니다</span>
-        </h1>
-
-        {/* Subheadline */}
-        <p style={{
-          textAlign: 'center',
-          fontSize: 'clamp(17px, 2.2vw, 22px)',
-          color: M.textSub,
-          lineHeight: 1.7,
-          maxWidth: 620,
-          margin: '0 auto 52px',
-          animation: 'fadeUp 0.6s 0.2s ease both',
-          letterSpacing: '-0.015em',
-          wordBreak: 'keep-all',
-        }}>
-          환자 메시지를 붙여넣으면 한·중·영·일 완벽한 상담 답변 3종을 자동 생성합니다.
-          병원 시술 DB를 학습한 AI가 정확한 정보만 제공합니다.
-        </p>
-
-        {/* CTAs */}
-        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', animation: 'fadeUp 0.6s 0.3s ease both', marginBottom: 80 }}>
-          <Link to="/signup" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            background: M.mocha, color: M.white,
-            padding: '17px 34px', borderRadius: 13,
-            fontSize: 17, fontWeight: 700, letterSpacing: '-0.025em',
-            boxShadow: `0 6px 28px ${M.mocha}50`,
-            transition: 'transform 0.15s, box-shadow 0.15s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 14px 40px ${M.mocha}55`; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 6px 28px ${M.mocha}50`; }}
-          >
-            무료로 시작하기 <ArrowRight size={19} />
-          </Link>
-          <a href="#기능" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            background: M.white, color: M.text,
-            padding: '17px 34px', borderRadius: 13,
-            fontSize: 17, fontWeight: 600, letterSpacing: '-0.025em',
-            border: `1.5px solid ${M.borderMd}`,
-            transition: 'background 0.15s, border-color 0.15s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = M.mochaPale; e.currentTarget.style.borderColor = M.mochaLt; }}
-            onMouseLeave={e => { e.currentTarget.style.background = M.white; e.currentTarget.style.borderColor = M.borderMd; }}
-          >
-            기능 살펴보기
-          </a>
+          <Sparkles size={10} color="#fff" strokeWidth={2.5} />
         </div>
-
-        {/* Mockup */}
-        <div style={{ position: 'relative', maxWidth: 820, margin: '0 auto', animation: 'fadeUp 0.7s 0.4s ease both' }}>
+        <span style={{ fontSize: 11, fontWeight: 800, color: C.text, letterSpacing: '0.02em' }}>
+          Tiki Paste
+        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
           <div style={{
-            background: M.white, border: `1.5px solid ${M.border}`, borderRadius: 22,
-            boxShadow: `0 40px 100px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.04)`,
-            overflow: 'hidden',
-          }}>
-            <div style={{ padding: '14px 24px', borderBottom: `1px solid ${M.border}`, display: 'flex', alignItems: 'center', gap: 8, background: M.bgSub }}>
-              <div style={{ display: 'flex', gap: 5 }}>
-                {['#ff5f57','#febc2e','#28c840'].map(c => (
-                  <div key={c} style={{ width: 11, height: 11, borderRadius: '50%', background: c }} />
-                ))}
-              </div>
-              <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                <div style={{ height: 7, width: 170, borderRadius: 4, background: M.border }} />
-              </div>
-            </div>
-            <div style={{ padding: '30px 36px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div style={{ gridColumn: '1/-1', background: M.mochaPale, border: `1px solid ${M.border}`, borderRadius: 13, padding: '18px 22px' }}>
-                <p style={{ fontSize: 11, fontWeight: 800, color: M.mocha, marginBottom: 8, letterSpacing: '0.09em', textTransform: 'uppercase' }}>환자 메시지</p>
-                <p style={{ fontSize: 15, color: M.text, lineHeight: 1.65, letterSpacing: '-0.01em' }}>这个手术恢复期多久？有没有副作用？价格大概是多少？</p>
-              </div>
-              {[
-                { label: '공감형', color: M.mocha,  text: '소중한 문의 감사드립니다. 해당 시술은 일반적으로 3~5일 내 회복되며 부작용은 경미합니다...' },
-                { label: '정보형', color: M.sage,   text: '시술 회복기간: 3~5일. 주요 부작용: 붓기, 멍 (7일 내 소실). 비용: 상담 후 개인별 맞춤 안내...' },
-              ].map(r => (
-                <div key={r.label} style={{ background: M.white, border: `1.5px solid ${M.border}`, borderRadius: 13, padding: '18px 22px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: r.color }} />
-                    <span style={{ fontSize: 12, fontWeight: 800, color: r.color, letterSpacing: '0.04em' }}>{r.label}</span>
-                  </div>
-                  <p style={{ fontSize: 13, color: M.textSub, lineHeight: 1.7, letterSpacing: '-0.01em' }}>{r.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Floating badges */}
-          <div style={{
-            position: 'absolute', top: -22, right: -30,
-            background: M.white, border: `1.5px solid ${M.border}`,
-            borderRadius: 16, padding: '14px 22px',
-            boxShadow: '0 16px 40px rgba(0,0,0,0.09)',
-            animation: 'floatY 4s ease-in-out infinite',
-          }}>
-            <p style={{ fontSize: 11, color: M.textMt, marginBottom: 4, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>평균 응답 시간</p>
-            <p style={{ fontSize: 30, fontWeight: 900, color: M.text, letterSpacing: '-0.06em', lineHeight: 1 }}>1.8<span style={{ fontSize: 15, fontWeight: 500, color: M.textSub }}> 초</span></p>
-          </div>
-          <div style={{
-            position: 'absolute', bottom: -22, left: -30,
-            background: M.bgDark, border: '1px solid #2A1A12',
-            borderRadius: 16, padding: '14px 22px',
-            boxShadow: '0 16px 40px rgba(0,0,0,0.30)',
-            animation: 'floatY 5s 1.5s ease-in-out infinite',
-          }}>
-            <p style={{ fontSize: 11, color: '#6A4A3A', marginBottom: 4, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>지원 언어</p>
-            <p style={{ fontSize: 30, fontWeight: 900, color: M.white, letterSpacing: '-0.06em', lineHeight: 1 }}>8<span style={{ fontSize: 15, fontWeight: 500, color: '#6A4A3A' }}> 개국</span></p>
-          </div>
+            width: 6, height: 6, borderRadius: '50%',
+            background: '#4CAF50',
+            animation: 'pulseDot 2.5s ease-in-out infinite',
+          }} />
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#4CAF50', letterSpacing: '0.06em' }}>
+            분석 완료
+          </span>
         </div>
       </div>
-    </section>
-  );
-}
 
-// ── Social Proof ──────────────────────────────────────────────────────────────
-function SocialProof() {
-  const logos = ['강남 오라클피부과', 'VIP클리닉', '청담이노의원', '루시아의원', '도시미의원', '압구정 리봄피부과'];
-  return (
-    <div style={{ borderTop: `1px solid ${M.border}`, borderBottom: `1px solid ${M.border}`, padding: '22px 0', background: M.bgSub }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 40, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: M.mocha, whiteSpace: 'nowrap', flexShrink: 0, letterSpacing: '0.1em', textTransform: 'uppercase' }}>신뢰하는 클리닉</span>
-          {logos.map(name => (
-            <span key={name} style={{ fontSize: 14, fontWeight: 600, color: M.textSub, whiteSpace: 'nowrap', opacity: 0.6, letterSpacing: '-0.01em' }}>{name}</span>
+      {/* Patient message */}
+      <div style={{
+        background: C.mochaPale,
+        borderRadius: 14,
+        padding: '16px 18px',
+        marginBottom: 14,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+          <span style={{ fontSize: 15 }}>🇯🇵</span>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.textMt, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            환자 메시지
+          </span>
+          <span style={{
+            marginLeft: 'auto',
+            fontSize: 9, fontWeight: 700, color: C.mocha,
+            background: `${C.mocha}14`, padding: '2px 7px', borderRadius: 5,
+          }}>
+            일본어
+          </span>
+        </div>
+        <p style={{ fontSize: 13, color: C.text, lineHeight: 1.7, fontWeight: 500, marginBottom: 10 }}>
+          ヒアルロン酸の施術後、どのくらいで効果が出ますか？
+        </p>
+        <div style={{
+          paddingTop: 10,
+          borderTop: `1px solid rgba(164,120,100,0.12)`,
+        }}>
+          <p style={{ fontSize: 11, color: C.textSub, lineHeight: 1.6 }}>
+            히알루론산 시술 후 효과가 얼마나 걸리나요? 부작용은 있나요? 가격도 알려주세요.
+          </p>
+        </div>
+      </div>
+
+      {/* Intent tags */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+        {['시술 효과 문의', '부작용 우려', '가격 문의'].map((tag, i) => (
+          <span key={i} style={{
+            fontSize: 9, fontWeight: 700, color: C.textSub,
+            background: C.bgSub,
+            padding: '3px 9px', borderRadius: 999,
+            letterSpacing: '-0.01em',
+          }}>{tag}</span>
+        ))}
+      </div>
+
+      {/* Reply cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 14 }}>
+        {replies.map((r, i) => (
+          <div
+            key={i}
+            onClick={() => setActiveReply(i)}
+            style={{
+              background: activeReply === i ? C.surface : `${C.bgSub}70`,
+              border: `1.5px solid ${activeReply === i ? `${r.color}40` : 'transparent'}`,
+              borderRadius: 11, padding: '11px 14px',
+              cursor: 'pointer',
+              boxShadow: activeReply === i ? `0 2px 12px ${r.color}12` : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: r.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 9, fontWeight: 800, color: r.color, letterSpacing: '0.04em' }}>
+                {r.label}
+              </span>
+              {activeReply === i && (
+                <span style={{
+                  marginLeft: 'auto', fontSize: 8, fontWeight: 700,
+                  color: r.color, background: `${r.color}12`,
+                  padding: '1px 6px', borderRadius: 3,
+                }}>선택됨</span>
+              )}
+            </div>
+            <p style={{
+              fontSize: 10.5, color: C.textSub,
+              lineHeight: 1.65, letterSpacing: '-0.01em',
+              display: activeReply === i ? 'block' : '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: activeReply === i ? 'visible' : 'hidden',
+            }}>
+              {r.text}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Send bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '10px 14px',
+        background: C.mochaPale, borderRadius: 10,
+      }}>
+        <span style={{ fontSize: 10.5, color: C.textMt, flex: 1, letterSpacing: '-0.01em' }}>
+          일본어로 번역하여 전송 준비 완료
+        </span>
+        <div style={{
+          background: C.mocha, color: C.white,
+          fontSize: 10.5, fontWeight: 700,
+          padding: '6px 14px', borderRadius: 7,
+          letterSpacing: '-0.01em', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 5,
+        }}>
+          전송 <ArrowRight size={11} />
+        </div>
+      </div>
+
+      {/* Safety footer — inline, not floating badge */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        marginTop: 14, paddingTop: 14,
+        borderTop: `1px solid rgba(164,120,100,0.09)`,
+      }}>
+        <Check size={10} color='#5A8F80' strokeWidth={2.5} />
+        <span style={{ fontSize: 9, color: C.textMt, letterSpacing: '0.02em' }}>
+          의료 안전 필터 적용 · 금지 표현 자동 차단
+        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 3 }}>
+          {['🇯🇵', '🇨🇳', '🇺🇸', '🇹🇭', '🇻🇳'].map(f => (
+            <span key={f} style={{ fontSize: 11 }}>{f}</span>
           ))}
         </div>
       </div>
@@ -369,127 +351,118 @@ function SocialProof() {
   );
 }
 
-// ── Features ──────────────────────────────────────────────────────────────────
-const FEATURES = [
-  { icon: Languages,   badge: 'Core',       badgeColor: M.text,    label: '8개국어 즉시 번역',       desc: '한·중·일·영·태·베·러·아랍어 실시간 번역 및 문화권별 톤 자동 최적화.' },
-  { icon: Sparkles,    badge: 'AI',         badgeColor: M.mocha,   label: 'AI 답변 3종 자동 생성',   desc: '공감형·정보형·세일즈형 답변을 동시에 생성. 상황에 맞게 즉시 선택 가능.' },
-  { icon: Database,    badge: 'RAG',        badgeColor: M.sage,    label: '병원 시술 DB 학습',        desc: 'Retrieval-Augmented Generation으로 병원 고유 시술 정보 기반 정확한 답변.' },
-  { icon: Stethoscope, badge: 'Core',       badgeColor: M.text,    label: '시술별 FAQ 자동 학습',     desc: '시술 정보·가격·다운타임·부작용을 벡터DB에 저장해 실시간 참조.' },
-  { icon: Globe,       badge: 'Pro',        badgeColor: M.gold,    label: '크롬 익스텐션 원클릭',     desc: 'SNS·카카오·위챗·라인 메신저 위에서 바로 동작. 앱 전환 없이 즉시 사용.' },
-  { icon: BarChart3,   badge: 'Pro',        badgeColor: M.gold,    label: '상담 통계 대시보드',       desc: '언어별 유입 현황, 시술 관심도, 전환율 분석을 한눈에 파악.' },
-  { icon: Shield,      badge: 'Enterprise', badgeColor: '#8B7BAF', label: '의료 데이터 보안',          desc: 'HIPAA 준수 암호화 저장, 직원 역할별 접근 제어, 감사 로그 자동 기록.' },
-  { icon: TrendingUp,  badge: 'Enterprise', badgeColor: '#8B7BAF', label: '다원화 병원 관리',          desc: '여러 지점을 하나의 플랫폼에서 관리. 지점별 시술 DB·직원 설정 독립 운영.' },
-];
-
-function FeatureCard({ f, delay }) {
-  const [ref, visible] = useReveal(0.1);
+// ── Hero ──────────────────────────────────────────────────────────────────────
+function Hero() {
   return (
-    <div ref={ref} style={{
-      background: M.white, border: `1.5px solid ${M.border}`, borderRadius: 20,
-      padding: '30px 28px',
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(44px)',
-      transition: `opacity 0.75s ${delay}s cubic-bezier(0.22,1,0.36,1), transform 0.75s ${delay}s cubic-bezier(0.22,1,0.36,1), border-color 0.2s, box-shadow 0.2s`,
-      cursor: 'default',
-    }}
-      onMouseEnter={e => {
-        e.currentTarget.style.borderColor = `${M.mocha}55`;
-        e.currentTarget.style.boxShadow = `0 16px 48px ${M.mocha}18`;
-        e.currentTarget.style.transform = 'translateY(-4px)';
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = M.border;
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.transform = 'translateY(0)';
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: M.mochaPale, border: `1px solid ${M.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <f.icon size={22} color={M.mocha} strokeWidth={1.7} />
-        </div>
-        <span style={{
-          fontSize: 10, fontWeight: 800, color: f.badgeColor,
-          background: f.badgeColor + '18', border: `1px solid ${f.badgeColor}25`,
-          padding: '4px 10px', borderRadius: 999, letterSpacing: '0.07em',
-        }}>
-          {f.badge}
-        </span>
-      </div>
-      <p style={{ fontSize: 17, fontWeight: 800, color: M.text, marginBottom: 10, lineHeight: 1.25, letterSpacing: '-0.03em' }}>{f.label}</p>
-      <p style={{ fontSize: 14, color: M.textSub, lineHeight: 1.75, letterSpacing: '-0.01em' }}>{f.desc}</p>
-    </div>
-  );
-}
+    <section style={{
+      paddingTop: 140, paddingBottom: 120,
+      background: C.bg,
+      position: 'relative',
+    }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 40px' }}>
+        <div
+          className="hero-grid"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}
+        >
+          {/* Copy */}
+          <div>
+            <div style={{ marginBottom: 30, animation: 'fadeUp 0.5s 0.05s ease both' }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '5px 14px',
+                background: C.mochaPale,
+                borderRadius: 999,
+                fontSize: 10, fontWeight: 800, color: C.mocha,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+              }}>
+                <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.mocha }} />
+                외국인 환자 응대의 새로운 기준
+              </span>
+            </div>
 
-function Features() {
-  const [headerRef, headerVisible] = useReveal(0.2);
-  return (
-    <section id="기능" style={{ padding: '130px 0', background: M.bg }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 32px' }}>
-        <div ref={headerRef} style={{
-          textAlign: 'center', marginBottom: 80,
-          opacity: headerVisible ? 1 : 0,
-          transform: headerVisible ? 'translateY(0)' : 'translateY(36px)',
-          transition: 'opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1)',
-        }}>
-          <p style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.14em', color: M.mocha, textTransform: 'uppercase', marginBottom: 18 }}>FEATURES</p>
-          <h2 style={{ fontSize: 'clamp(38px, 5.5vw, 66px)', fontWeight: 900, letterSpacing: '-0.05em', color: M.text, lineHeight: 1.05, wordBreak: 'keep-all' }}>
-            병원 상담의 모든 것을<br />하나의 AI로
-          </h2>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
-          {FEATURES.map((f, i) => <FeatureCard key={i} f={f} delay={i * 0.07} />)}
-        </div>
-      </div>
-    </section>
-  );
-}
+            <h1 style={{
+              fontSize: 'clamp(48px, 6.5vw, 84px)',
+              fontWeight: 800,
+              letterSpacing: '-0.055em',
+              lineHeight: 1.0,
+              color: C.text,
+              marginBottom: 28,
+              animation: 'fadeUp 0.55s 0.12s ease both',
+              wordBreak: 'keep-all',
+            }}>
+              말이 통해야<br />
+              치료가<br />
+              시작됩니다.
+            </h1>
 
-// ── Rotor Section ─────────────────────────────────────────────────────────────
-function RotorSection() {
-  const [leftRef, leftVisible] = useReveal(0.15);
-  return (
-    <section style={{ background: M.bgDark, padding: '130px 0', overflow: 'hidden', position: 'relative' }}>
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 0,
-        backgroundImage: `radial-gradient(ellipse 60% 70% at 80% 50%, ${M.mocha}18 0%, transparent 60%),
-          radial-gradient(ellipse 40% 50% at 5% 30%, ${M.sage}12 0%, transparent 50%)`,
-      }} />
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 0,
-        backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)`,
-        backgroundSize: '38px 38px',
-      }} />
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 32px', position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 90, alignItems: 'center' }}>
-          <div ref={leftRef} style={{
-            opacity: leftVisible ? 1 : 0,
-            transform: leftVisible ? 'translateX(0)' : 'translateX(-40px)',
-            transition: 'opacity 0.8s cubic-bezier(0.22,1,0.36,1), transform 0.8s cubic-bezier(0.22,1,0.36,1)',
-          }}>
-            <p style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.14em', color: M.mocha, textTransform: 'uppercase', marginBottom: 22 }}>MULTILINGUAL AI</p>
-            <h2 style={{ fontSize: 'clamp(34px, 4.5vw, 58px)', fontWeight: 900, letterSpacing: '-0.05em', color: M.white, lineHeight: 1.05, marginBottom: 28, wordBreak: 'keep-all' }}>
-              8개 언어,<br />하나의 AI<br />상담 실장
-            </h2>
-            <p style={{ fontSize: 16, color: '#8A7068', lineHeight: 1.8, marginBottom: 52, letterSpacing: '-0.01em' }}>
-              중국어 환자, 영어 환자, 일본어 환자 — 누가 와도 막히지 않습니다.
-              TikiDoc AI가 문화권에 맞는 어조와 표현으로 즉시 답변합니다.
+            <p style={{
+              fontSize: 'clamp(16px, 1.8vw, 18px)',
+              color: C.textSub,
+              lineHeight: 1.85,
+              marginBottom: 44,
+              animation: 'fadeUp 0.55s 0.20s ease both',
+              letterSpacing: '-0.01em',
+              wordBreak: 'keep-all',
+              maxWidth: 440,
+              fontWeight: 400,
+            }}>
+              상담 채팅부터 진료실 통역, 회복 케어까지 —<br />
+              환자의 언어를, 끊기지 않게.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+            <div style={{
+              display: 'flex', gap: 10, flexWrap: 'wrap',
+              animation: 'fadeUp 0.55s 0.28s ease both',
+              marginBottom: 52,
+            }}>
+              <Link to="/signup" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                background: C.mocha, color: C.white,
+                padding: '14px 28px', borderRadius: 11,
+                fontSize: 14, fontWeight: 700, letterSpacing: '-0.02em',
+                transition: 'opacity 0.15s, transform 0.15s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '0.86'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                데모 신청하기 <ArrowRight size={15} />
+              </Link>
+              <a href="#modules" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                background: 'transparent', color: C.textSub,
+                padding: '14px 22px', borderRadius: 11,
+                fontSize: 14, fontWeight: 600, letterSpacing: '-0.02em',
+                border: `1.5px solid ${C.border}`,
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.mochaLight; e.currentTarget.style.color = C.text; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSub; }}
+              >
+                제품 살펴보기
+              </a>
+            </div>
+
+            {/* Trust signals — minimal, typographic */}
+            <div style={{
+              display: 'flex', gap: 28, flexWrap: 'wrap',
+              animation: 'fadeUp 0.55s 0.36s ease both',
+            }}>
               {[
-                { num: '94%',  label: '고객 만족도' },
-                { num: '1.8초', label: '평균 답변 생성 시간' },
-                { num: '8개',  label: '지원 언어' },
-              ].map(s => (
-                <div key={s.label} style={{ display: 'flex', alignItems: 'baseline', gap: 16 }}>
-                  <span style={{ fontSize: 48, fontWeight: 900, color: M.white, letterSpacing: '-0.06em', lineHeight: 1 }}>{s.num}</span>
-                  <span style={{ fontSize: 15, color: '#665050', letterSpacing: '-0.01em' }}>{s.label}</span>
+                ['8개 언어', '실시간 지원'],
+                ['의료 안전', '필터 탑재'],
+                ['진료 기억', '자동 누적'],
+              ].map(([strong, sub], i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{strong}</span>
+                  <span style={{ fontSize: 12, color: C.textMt }}>{sub}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ position: 'relative', height: 460, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Cylinder3D />
+
+          {/* Product card */}
+          <div style={{ display: 'flex', justifyContent: 'center', animation: 'fadeUp 0.6s 0.18s ease both' }}>
+            <HeroCard />
           </div>
         </div>
       </div>
@@ -497,53 +470,444 @@ function RotorSection() {
   );
 }
 
-// ── How It Works ──────────────────────────────────────────────────────────────
-function StepCard({ step, delay }) {
-  const [ref, visible] = useReveal(0.1);
+// ── Signal bar ────────────────────────────────────────────────────────────────
+function SignalBar() {
+  const [ref, visible] = useReveal();
+  const signals = [
+    { n: '3초', desc: '내 AI 답변 3종 생성' },
+    { n: '실시간', desc: '진료실 양방향 통역' },
+    { n: '자동', desc: '환자 컨텍스트 누적' },
+  ];
   return (
     <div ref={ref} style={{
+      background: C.mochaPale,
       opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(44px)',
-      transition: `opacity 0.75s ${delay}s cubic-bezier(0.22,1,0.36,1), transform 0.75s ${delay}s cubic-bezier(0.22,1,0.36,1)`,
-      position: 'relative',
+      transform: visible ? 'none' : 'translateY(12px)',
+      transition: 'opacity 0.6s ease, transform 0.6s ease',
     }}>
-      <div style={{ background: M.white, border: `1.5px solid ${M.border}`, borderRadius: 22, padding: '34px 30px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 26 }}>
-          <span style={{ fontSize: 13, fontWeight: 900, color: M.mocha, letterSpacing: '0.04em', fontFamily: F.sans }}>{step.num}</span>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: M.mocha, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 6px 20px ${M.mocha}50` }}>
-            <step.icon size={20} color="#fff" strokeWidth={2} />
+      <div style={{
+        maxWidth: 1120, margin: '0 auto', padding: '0 40px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 0,
+      }}>
+        {signals.map((s, i) => (
+          <div key={i} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 10, padding: '20px 24px',
+            borderRight: i < 2 ? `1px solid rgba(164,120,100,0.15)` : 'none',
+          }}>
+            <span style={{ fontSize: 18, fontWeight: 800, color: C.mocha, letterSpacing: '-0.04em' }}>{s.n}</span>
+            <span style={{ fontSize: 13, color: C.textSub, fontWeight: 400 }}>{s.desc}</span>
           </div>
-        </div>
-        <p style={{ fontSize: 20, fontWeight: 800, color: M.text, marginBottom: 14, letterSpacing: '-0.035em', lineHeight: 1.2 }}>{step.label}</p>
-        <p style={{ fontSize: 15, color: M.textSub, lineHeight: 1.75, letterSpacing: '-0.01em' }}>{step.desc}</p>
+        ))}
       </div>
     </div>
   );
 }
 
-function HowItWorks() {
-  const [headerRef, headerVisible] = useReveal(0.2);
-  const steps = [
-    { num: '01', icon: FileText,      label: '메시지 붙여넣기', desc: '환자가 보낸 외국어 메시지를 TikiDoc에 붙여넣습니다. SNS, 카카오, 위챗 어디서든 OK.' },
-    { num: '02', icon: Sparkles,      label: 'AI가 즉시 분석',  desc: '병원 시술 DB + RAG 지식으로 정확한 맥락을 파악해 최적 답변 3종을 1.8초 만에 생성합니다.' },
-    { num: '03', icon: MessageSquare, label: '원하는 답변 전송', desc: '공감형·정보형·세일즈형 중 상황에 맞는 답변을 클릭 한 번으로 환자에게 전송합니다.' },
-  ];
-  return (
-    <section id="사용 방법" style={{ padding: '130px 0', background: M.bgSub }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 32px' }}>
-        <div ref={headerRef} style={{
-          textAlign: 'center', marginBottom: 80,
-          opacity: headerVisible ? 1 : 0,
-          transform: headerVisible ? 'translateY(0)' : 'translateY(36px)',
-          transition: 'opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1)',
+// ── Modules ───────────────────────────────────────────────────────────────────
+const MODULE_DATA = [
+  {
+    id: 'paste',
+    icon: Sparkles,
+    name: 'Tiki Paste',
+    tag: '채팅 상담',
+    headline: '붙여넣으면 답변 3종이 준비됩니다.',
+    desc: '외국어 메시지를 붙여넣으면 AI가 언어를 감지하고, 정중형 · 빠른형 · 상담 유도형 3가지 한국어 답변을 즉시 생성합니다. 선택한 답변은 원어로 번역하여 그대로 전송합니다.',
+    accent: C.mocha,
+    mini: (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{
+          background: `${C.mocha}10`, borderRadius: 8, padding: '10px 12px',
+          fontSize: 11, color: C.textSub, lineHeight: 1.5,
         }}>
-          <p style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.14em', color: M.mocha, textTransform: 'uppercase', marginBottom: 18 }}>HOW IT WORKS</p>
-          <h2 style={{ fontSize: 'clamp(38px, 5.5vw, 66px)', fontWeight: 900, letterSpacing: '-0.05em', color: M.text, lineHeight: 1.05, wordBreak: 'keep-all' }}>
-            3단계로 끝나는<br />AI 상담
+          🇯🇵 ヒアルロン酸の施術後、どのくらいで効果が出ますか？
+        </div>
+        {['정중한 답장', '빠른 답장', '상담 유도'].map((t, i) => (
+          <div key={i} style={{
+            background: i === 0 ? C.surface : C.bgSub,
+            border: `1px solid ${i === 0 ? `${C.mocha}30` : 'transparent'}`,
+            borderRadius: 7, padding: '7px 10px',
+            fontSize: 10, color: i === 0 ? C.mocha : C.textMt, fontWeight: i === 0 ? 700 : 400,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: i === 0 ? C.mocha : C.border }} />
+            {t}
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    id: 'talk',
+    icon: MessageCircle,
+    name: 'Tiki Talk',
+    tag: '진료실 통역',
+    headline: '의사와 환자가 각자의 언어로 대화합니다.',
+    desc: '진료실 내 실시간 음성 인식과 양방향 번역. 의사는 한국어로, 환자는 모국어로 말합니다. AI는 대화를 실시간으로 해석하고 의심 표현에는 즉각 의료진에게 알립니다.',
+    accent: '#5A8F80',
+    mini: (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <div style={{
+          background: `${C.mocha}10`, borderRadius: 8, padding: '10px 12px',
+          fontSize: 10, color: C.textSub, alignSelf: 'flex-start', maxWidth: '80%',
+        }}>
+          🇯🇵 施術後、少し頭がふわふわします…
+          <div style={{ fontSize: 9, color: C.textMt, marginTop: 4 }}>→ 시술 후 약간 어지럽습니다</div>
+        </div>
+        <div style={{
+          background: `rgba(196,69,58,0.08)`,
+          border: `1px solid rgba(196,69,58,0.20)`,
+          borderRadius: 7, padding: '7px 10px',
+          fontSize: 9, color: '#C04A3F', fontWeight: 700,
+        }}>⚠ 위험 감지 — 의료진 확인 권고</div>
+        <div style={{
+          background: `rgba(90,143,128,0.08)`, borderRadius: 8, padding: '10px 12px',
+          fontSize: 10, color: C.textSub, alignSelf: 'flex-end', maxWidth: '80%',
+        }}>
+          걱정하지 마세요. 천천히 호흡해 보세요.
+          <div style={{ fontSize: 9, color: '#5A8F80', marginTop: 4 }}>→ 心配しないでください。ゆっくり呼吸してください。</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'room',
+    icon: LayoutGrid,
+    name: 'Tiki Room',
+    tag: '태블릿 진료실',
+    headline: '진료실 태블릿이 통역 도우미가 됩니다.',
+    desc: '진료실과 회복실에 설치하는 태블릿 어시스턴트. 세션이 시작되면 환자의 발화를 인식하고 의사 발화는 즉시 환자 언어로 화면에 표시합니다. 위험 표현 감지 시 의료진에게 즉각 알림.',
+    accent: C.mocha,
+    mini: (
+      <div style={{
+        background: C.bgSub, borderRadius: 10, padding: '12px',
+        display: 'flex', flexDirection: 'column', gap: 7,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4CAF50' }} />
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#4CAF50' }}>진료실 B · LIVE</span>
+          <span style={{ fontSize: 9, color: C.textMt, marginLeft: 'auto' }}>00:14:32</span>
+        </div>
+        <div style={{
+          background: `${C.mocha}10`, borderRadius: 8, padding: '9px 11px',
+          fontSize: 10, color: C.textSub,
+        }}>
+          🇯🇵 目の下が気になって…
+          <div style={{ fontSize: 9, color: C.textMt, marginTop: 3 }}>눈 밑이 신경 쓰여서요…</div>
+        </div>
+        <div style={{
+          background: `rgba(90,143,128,0.08)`, borderRadius: 8, padding: '9px 11px',
+          fontSize: 10, color: C.textSub, textAlign: 'right',
+        }}>
+          히알루론산 필러로 교정 가능합니다.
+          <div style={{ fontSize: 9, color: '#5A8F80', marginTop: 3 }}>ヒアルロン酸フィラーで整えられます。</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'memory',
+    icon: Brain,
+    name: 'Tiki Memory',
+    tag: '환자 기억 엔진',
+    headline: '대화에서 환자를 기억합니다.',
+    desc: '모든 세션이 끝나면 AI가 통증 민감도, 다운타임 우려, 체류 일정, 컴플레인 위험도 등 7가지 컨텍스트를 자동 추출합니다. 다음 방문 때도 이미 이 환자를 알고 있습니다.',
+    accent: '#7058A8',
+    mini: (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {[
+          { label: '시술 관심사', val: '히알루론산 · 눈 밑 교정', color: C.mocha },
+          { label: '통증 민감도', val: '높음 — 마취 크림 선호', color: '#C04A3F' },
+          { label: '체류 일정', val: '5박 6일 · 4/23 출국', color: '#B5701A' },
+          { label: '컴플레인 위험', val: '낮음 — 협조적', color: '#5A8F80' },
+        ].map((item, i) => (
+          <div key={i} style={{
+            display: 'flex', gap: 8, alignItems: 'flex-start',
+            background: C.bgSub, borderRadius: 7, padding: '7px 9px',
+          }}>
+            <span style={{
+              fontSize: 8, fontWeight: 800, color: item.color,
+              background: `${item.color}12`,
+              padding: '2px 5px', borderRadius: 4, flexShrink: 0,
+            }}>{item.label}</span>
+            <span style={{ fontSize: 9.5, color: C.textSub }}>{item.val}</span>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+];
+
+function ModuleCard({ mod, delay }) {
+  const [ref, visible] = useReveal();
+  const Icon = mod.icon;
+
+  return (
+    <div ref={ref} style={{
+      background: C.surface,
+      borderRadius: 20,
+      padding: '32px 32px 28px',
+      boxShadow: '0 2px 8px rgba(164,120,100,0.06)',
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'none' : 'translateY(20px)',
+      transition: `opacity 0.55s ${delay}ms ease, transform 0.55s ${delay}ms ease`,
+      borderTop: `3px solid ${mod.accent}`,
+      display: 'flex', flexDirection: 'column', gap: 0,
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: `${mod.accent}12`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon size={14} color={mod.accent} strokeWidth={2} />
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 800, color: C.text, letterSpacing: '-0.02em' }}>
+              {mod.name}
+            </span>
+          </div>
+          <span style={{
+            fontSize: 9, fontWeight: 800, color: mod.accent,
+            background: `${mod.accent}12`,
+            padding: '2px 8px', borderRadius: 4,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>
+            {mod.tag}
+          </span>
+        </div>
+      </div>
+
+      {/* Mini visual */}
+      <div style={{
+        background: C.bg, borderRadius: 12, padding: '14px',
+        marginBottom: 20, minHeight: 130,
+      }}>
+        {mod.mini}
+      </div>
+
+      {/* Copy */}
+      <h3 style={{
+        fontSize: 16, fontWeight: 700, color: C.text,
+        letterSpacing: '-0.025em', lineHeight: 1.45,
+        marginBottom: 10, wordBreak: 'keep-all',
+      }}>
+        {mod.headline}
+      </h3>
+      <p style={{
+        fontSize: 13, color: C.textSub, lineHeight: 1.8,
+        letterSpacing: '-0.01em', wordBreak: 'keep-all',
+        fontWeight: 400,
+      }}>
+        {mod.desc}
+      </p>
+    </div>
+  );
+}
+
+function Modules() {
+  const [ref, visible] = useReveal();
+  return (
+    <section id="modules" style={{ padding: '120px 0', background: C.bg }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 40px' }}>
+        <div ref={ref} style={{
+          marginBottom: 64,
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'none' : 'translateY(16px)',
+          transition: 'opacity 0.5s ease, transform 0.5s ease',
+        }}>
+          <p style={{
+            fontSize: 10, fontWeight: 800, color: C.mocha,
+            letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 14,
+          }}>
+            제품 구성
+          </p>
+          <h2 style={{
+            fontSize: 'clamp(30px, 4vw, 44px)',
+            fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.2,
+            color: C.text, maxWidth: 500, wordBreak: 'keep-all',
+          }}>
+            상담부터 회복까지,<br />
+            끊김 없는 언어 흐름.
           </h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28 }}>
-          {steps.map((step, i) => <StepCard key={i} step={step} delay={i * 0.15} />)}
+        <div
+          className="modules-grid"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}
+        >
+          {MODULE_DATA.map((mod, i) => (
+            <ModuleCard key={mod.id} mod={mod} delay={i * 80} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Session flow ──────────────────────────────────────────────────────────────
+const SESSION_STEPS = [
+  {
+    n: '01', title: '환자 도착 — 언어 자동 감지',
+    desc: '채팅 문의 또는 진료실 입장과 동시에 환자 언어를 자동 감지합니다. 일본어, 중국어, 영어, 태국어, 베트남어 등 8개 언어 지원.',
+    detail: '언어 선택 없이 시작',
+  },
+  {
+    n: '02', title: '상담 — 실시간 번역',
+    desc: 'Tiki Paste 또는 Tiki Talk를 통해 의료진과 환자 간 언어 장벽을 제거합니다. 의사는 한국어로, 환자는 모국어로.',
+    detail: '지연 없는 양방향 번역',
+  },
+  {
+    n: '03', title: '진료실 — 태블릿 통역',
+    desc: 'Tiki Room 태블릿이 진료실 내 통역을 지원합니다. 위험 표현 감지 시 의료진에게 즉각 알림.',
+    detail: '음성 → 텍스트 → 번역',
+  },
+  {
+    n: '04', title: '세션 종료 — 자동 기억',
+    desc: '세션이 저장되면 AI가 7가지 환자 컨텍스트를 자동 추출해 Tiki Memory에 누적합니다. 다음 방문을 위한 준비.',
+    detail: '영구 안전 보관',
+  },
+];
+
+function SessionFlow() {
+  const [ref, visible] = useReveal();
+  return (
+    <section id="session" style={{ padding: '120px 0', background: C.bgSub }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 40px' }}>
+        <div ref={ref} style={{
+          marginBottom: 64,
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'none' : 'translateY(16px)',
+          transition: 'opacity 0.5s ease, transform 0.5s ease',
+        }}>
+          <p style={{
+            fontSize: 10, fontWeight: 800, color: C.mocha,
+            letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 14,
+          }}>
+            진료 흐름
+          </p>
+          <h2 style={{
+            fontSize: 'clamp(30px, 4vw, 44px)',
+            fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.2,
+            color: C.text, maxWidth: 420, wordBreak: 'keep-all',
+          }}>
+            한 명의 환자,<br />
+            네 번의 언어 접점.
+          </h2>
+        </div>
+
+        <div className="session-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+          {SESSION_STEPS.map((step, i) => {
+            const [stepRef, stepVisible] = useReveal();
+            return (
+              <div key={i} ref={stepRef} style={{
+                background: C.surface,
+                borderRadius: i === 0 ? '16px 4px 4px 4px' : i === 1 ? '4px 16px 4px 4px' : i === 2 ? '4px 4px 4px 16px' : '4px 4px 16px 4px',
+                padding: '32px 36px',
+                opacity: stepVisible ? 1 : 0,
+                transform: stepVisible ? 'none' : 'translateY(16px)',
+                transition: `opacity 0.5s ${i * 90}ms ease, transform 0.5s ${i * 90}ms ease`,
+                position: 'relative',
+              }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 800, color: C.mocha,
+                  letterSpacing: '0.08em', marginBottom: 16,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    background: C.mochaPale,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, fontWeight: 800, color: C.mocha,
+                  }}>
+                    {step.n}
+                  </div>
+                  <span style={{ color: C.textMt, fontWeight: 600, letterSpacing: '0.05em' }}>
+                    {step.detail}
+                  </span>
+                </div>
+                <h3 style={{
+                  fontSize: 17, fontWeight: 700, color: C.text,
+                  letterSpacing: '-0.03em', marginBottom: 12,
+                  lineHeight: 1.4, wordBreak: 'keep-all',
+                }}>
+                  {step.title}
+                </h3>
+                <p style={{
+                  fontSize: 13, color: C.textSub, lineHeight: 1.8,
+                  letterSpacing: '-0.01em', wordBreak: 'keep-all',
+                  fontWeight: 400,
+                }}>
+                  {step.desc}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Trust ─────────────────────────────────────────────────────────────────────
+function Trust() {
+  const [ref, visible] = useReveal();
+  const items = [
+    { icon: '🔒', title: '개인정보 안전 보관', desc: '원문 텍스트는 72시간 후 자동 삭제. 요약본과 컨텍스트만 영구 보관.' },
+    { icon: '⚖️', title: '의료 안전 필터', desc: '진단, 예후, 약물 정보 등 AI가 절대 말해서는 안 되는 표현을 전부 차단.' },
+    { icon: '📋', title: '의료법 준수 설계', desc: '한국 개인정보보호법(PIPA) 기준으로 데이터 보관 및 파기 정책 설계.' },
+  ];
+
+  return (
+    <section style={{ padding: '100px 0', background: C.bg }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 40px' }}>
+        <div ref={ref} style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'none' : 'translateY(16px)',
+          transition: 'opacity 0.5s ease, transform 0.5s ease',
+        }}>
+          <p style={{
+            fontSize: 10, fontWeight: 800, color: C.mocha,
+            letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 14,
+          }}>
+            신뢰와 안전
+          </p>
+          <h2 style={{
+            fontSize: 'clamp(28px, 3.5vw, 40px)',
+            fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.25,
+            color: C.text, marginBottom: 52, maxWidth: 380, wordBreak: 'keep-all',
+          }}>
+            AI가 말할 수 없는 것을<br />
+            명확히 정의합니다.
+          </h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}
+            className="modules-grid">
+            {items.map((item, i) => (
+              <div key={i} style={{
+                padding: '28px 28px',
+                background: C.surface,
+                borderRadius: 16,
+                boxShadow: '0 2px 8px rgba(164,120,100,0.05)',
+              }}>
+                <div style={{ fontSize: 28, marginBottom: 16 }}>{item.icon}</div>
+                <h3 style={{
+                  fontSize: 15, fontWeight: 700, color: C.text,
+                  letterSpacing: '-0.025em', marginBottom: 10, lineHeight: 1.4,
+                }}>
+                  {item.title}
+                </h3>
+                <p style={{
+                  fontSize: 13, color: C.textSub, lineHeight: 1.75,
+                  letterSpacing: '-0.01em', fontWeight: 400, wordBreak: 'keep-all',
+                }}>
+                  {item.desc}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -553,141 +917,155 @@ function HowItWorks() {
 // ── Pricing ───────────────────────────────────────────────────────────────────
 const PLANS = [
   {
-    tier: 'Starter', tagline: '외국인 상담을 처음 시작하는 클리닉',
-    price: '790,000', highlight: false, cta: '1개월 무료로 시작', accentColor: M.text,
-    groups: [
-      { label: 'AI 상담', items: ['월 300회 AI 답변 생성', '3개국어 지원 (한·중·영)', '크롬 익스텐션 포함', '답변 3종 자동 생성 (공감·정보·세일즈)'] },
-      { label: '병원 설정', items: ['시술 정보 20개 등록', '직원 계정 3명', '기본 월간 리포트'] },
-      { label: '지원', items: ['이메일 지원 (72시간 내)', '온보딩 가이드 제공'] },
-    ],
+    name: '스타터',
+    sub: '단일 진료과 클리닉',
+    price: '₩89,000',
+    period: '/월',
+    features: ['Tiki Paste 무제한', '3개 언어 지원', '기본 Tiki Memory', '이메일 지원'],
+    cta: '무료 체험 시작',
+    ctaHref: '/signup',
+    highlight: false,
   },
   {
-    tier: 'Pro', tagline: '외국인 환자 비중이 높은 성장 클리닉',
-    price: '1,290,000', highlight: true, badge: '가장 인기', cta: '1개월 무료로 시작', accentColor: M.mocha,
-    groups: [
-      { label: 'AI 상담', items: ['무제한 AI 답변 생성', '8개국어 완전 지원 (한·중·일·영·태·베·러·아랍)', '크롬 익스텐션 포함', '답변 3종 + 문화권별 톤 최적화', 'RAG 지식베이스 — 병원 맞춤 학습', 'Visual Sales Mapping (시술 추천·견적)'] },
-      { label: '병원 설정', items: ['시술 정보 무제한 등록', '시술별 FAQ·부작용·가격 AI 자동 학습', '직원 계정 10명', '역할별 접근 제어 (원장·관리자·직원)'] },
-      { label: '분석 & 인사이트', items: ['실시간 통계 대시보드', '언어별 유입·전환율 분석', '시술 관심도 트렌드 리포트'] },
-      { label: '지원', items: ['카카오톡 전담 지원 (24시간 내)', '맞춤 온보딩 세션 1회'] },
-    ],
+    name: '클리닉',
+    sub: '다진료과 / 중형 클리닉',
+    price: '₩249,000',
+    period: '/월',
+    features: ['Tiki Talk + Tiki Room', '8개 언어 전체 지원', 'Tiki Memory 전체 기능', '프로토콜 라이브러리', '전담 온보딩'],
+    cta: '데모 신청하기',
+    ctaHref: '/signup',
+    highlight: true,
   },
   {
-    tier: 'Clinic+', tagline: '다지점·체인 클리닉을 위한 엔터프라이즈',
-    price: '1,990,000', highlight: false, cta: '1개월 무료로 시작', accentColor: '#8B7BAF',
-    groups: [
-      { label: 'Pro 전체 포함', items: ['Pro 플랜 모든 기능 포함', '지점 수 무제한 통합 관리', '지점별 독립 시술 DB·직원 설정'] },
-      { label: '전용 AI', items: ['클리닉 전용 AI 파인튜닝', '병원 브랜드 보이스 학습', '경쟁사 비교 차단 로직 탑재'] },
-      { label: '연동 & 보안', items: ['REST API 제공 (CRM·EMR 연동)', 'HIPAA 준수 암호화 저장', '감사 로그 자동 기록', '전용 서버 격리 옵션'] },
-      { label: '지원', items: ['전담 CSM (Customer Success Manager)', '맞춤 온보딩 4회 + 직원 교육', '99.9% SLA 보장', '분기별 성과 리뷰 세션'] },
-    ],
+    name: '엔터프라이즈',
+    sub: '대형 병원 / 그룹사',
+    price: '문의',
+    period: '',
+    features: ['전 기능 무제한', '전용 서버 구축 옵션', 'EMR 연동 지원', '맞춤 SLA 계약', '전담 CS 매니저'],
+    cta: '도입 상담',
+    ctaHref: '/signup',
+    highlight: false,
   },
 ];
 
-function PlanCard({ plan }) {
-  const dark = plan.highlight;
-  const bg       = dark ? M.bgDark    : M.white;
-  const textMain = dark ? M.white     : M.text;
-  const textSub2 = dark ? '#8A7068'   : M.textSub;
-  const textItem = dark ? '#C4A090'   : M.textSub;
-  const divClr   = dark ? 'rgba(255,255,255,0.07)' : M.border;
-  return (
-    <div style={{
-      background: bg, border: `1.5px solid ${dark ? '#2A1A12' : M.border}`,
-      borderRadius: 22, padding: '36px 30px', position: 'relative',
-      boxShadow: dark ? `0 32px 80px rgba(0,0,0,0.35), 0 0 0 1px ${M.mocha}30` : '0 2px 16px rgba(0,0,0,0.04)',
-      display: 'flex', flexDirection: 'column',
-    }}>
-      {plan.badge && (
-        <div style={{
-          position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
-          background: M.mocha, color: M.white,
-          fontSize: 11, fontWeight: 800, padding: '5px 18px', borderRadius: 999,
-          whiteSpace: 'nowrap', letterSpacing: '0.06em',
-          boxShadow: `0 4px 16px ${M.mocha}55`,
-        }}>
-          {plan.badge}
-        </div>
-      )}
-      <div style={{ height: 3, borderRadius: 2, background: plan.accentColor, marginBottom: 28, width: 44 }} />
-      <p style={{ fontSize: 11, fontWeight: 800, color: plan.accentColor, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>{plan.tier}</p>
-      <p style={{ fontSize: 14, color: textSub2, lineHeight: 1.55, marginBottom: 24, letterSpacing: '-0.01em' }}>{plan.tagline}</p>
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-          <span style={{ fontSize: 14, color: textSub2, marginRight: 2 }}>₩</span>
-          <span style={{ fontSize: 42, fontWeight: 900, letterSpacing: '-0.05em', color: textMain, lineHeight: 1 }}>{plan.price}</span>
-          <span style={{ fontSize: 14, color: textSub2 }}>/월</span>
-        </div>
-        <p style={{ fontSize: 12, color: plan.accentColor, fontWeight: 700, marginTop: 8, letterSpacing: '-0.01em' }}>✦ 첫 1개월 무료 체험</p>
-      </div>
-      <Link to="/signup" style={{
-        display: 'block', textAlign: 'center',
-        padding: '14px 0', borderRadius: 12, marginBottom: 30, marginTop: 10,
-        fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em',
-        background: dark ? M.mocha : M.text,
-        color: M.white,
-        boxShadow: dark ? `0 6px 20px ${M.mocha}45` : '0 4px 16px rgba(0,0,0,0.18)',
-        transition: 'opacity 0.15s, transform 0.1s',
-      }}
-        onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-        onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
-      >
-        {plan.cta}
-      </Link>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 22, flex: 1 }}>
-        {plan.groups.map((group, gi) => (
-          <div key={gi}>
-            {gi > 0 && <div style={{ height: 1, background: divClr, marginBottom: 18 }} />}
-            <p style={{ fontSize: 10, fontWeight: 800, color: plan.accentColor, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>{group.label}</p>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
-              {group.items.map((item, ii) => (
-                <li key={ii} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, color: textItem, lineHeight: 1.55, letterSpacing: '-0.01em' }}>
-                  <Check size={14} color={plan.accentColor} strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 2 }} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function Pricing() {
-  const [headerRef, headerVisible] = useReveal(0.15);
+  const [ref, visible] = useReveal();
   return (
-    <section id="요금제" style={{ padding: '130px 0', background: M.bgSub }}>
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '0 32px' }}>
-        <div ref={headerRef} style={{
-          textAlign: 'center', marginBottom: 22,
-          opacity: headerVisible ? 1 : 0,
-          transform: headerVisible ? 'translateY(0)' : 'translateY(36px)',
-          transition: 'opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1)',
+    <section id="pricing" style={{ padding: '120px 0', background: C.bgSub }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 40px' }}>
+        <div ref={ref} style={{
+          marginBottom: 60,
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'none' : 'translateY(16px)',
+          transition: 'opacity 0.5s ease, transform 0.5s ease',
         }}>
-          <p style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.14em', color: M.mocha, textTransform: 'uppercase', marginBottom: 18 }}>PRICING</p>
-          <h2 style={{ fontSize: 'clamp(38px, 5.5vw, 66px)', fontWeight: 900, letterSpacing: '-0.05em', color: M.text, lineHeight: 1.05, marginBottom: 18, wordBreak: 'keep-all' }}>
-            명확한 요금,<br />숨겨진 비용 없음
+          <p style={{
+            fontSize: 10, fontWeight: 800, color: C.mocha,
+            letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 14,
+          }}>
+            요금제
+          </p>
+          <h2 style={{
+            fontSize: 'clamp(28px, 3.5vw, 40px)',
+            fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.25,
+            color: C.text, maxWidth: 360, wordBreak: 'keep-all',
+          }}>
+            병원 규모에 맞게,<br />
+            처음부터 유연하게.
           </h2>
-          <p style={{ fontSize: 17, color: M.textSub, maxWidth: 500, margin: '0 auto 28px', lineHeight: 1.7, letterSpacing: '-0.01em' }}>
-            모든 플랜은 <strong style={{ color: M.text }}>첫 1개월 무료</strong>로 시작합니다. 신용카드 불필요.
-          </p>
         </div>
 
-        <div style={{ maxWidth: 580, margin: '0 auto 60px', background: M.sagePale, border: `1px solid ${M.sageLt}`, borderRadius: 14, padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 34, height: 34, borderRadius: '50%', background: M.sage + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Check size={16} color={M.sage} strokeWidth={2.5} />
-          </div>
-          <p style={{ fontSize: 14, color: M.mochaDk, lineHeight: 1.6, letterSpacing: '-0.01em' }}>
-            <strong>카드 없이, 약정 없이</strong> — 1개월 동안 해당 플랜의 모든 기능을 완전히 무료로 사용할 수 있습니다. 만족하지 않으면 언제든 해지하세요.
-          </p>
-        </div>
+        <div
+          className="pricing-grid"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, alignItems: 'start' }}
+        >
+          {PLANS.map((plan, i) => {
+            const [cardRef, cardVisible] = useReveal();
+            return (
+              <div key={i} ref={cardRef} style={{
+                background: plan.highlight ? C.mocha : C.surface,
+                borderRadius: 18,
+                padding: '32px 30px',
+                boxShadow: plan.highlight
+                  ? `0 16px 48px ${C.mocha}35, 0 4px 16px ${C.mocha}20`
+                  : '0 2px 8px rgba(164,120,100,0.06)',
+                opacity: cardVisible ? 1 : 0,
+                transform: cardVisible ? (plan.highlight ? 'scale(1.03)' : 'none') : 'translateY(20px)',
+                transition: `opacity 0.5s ${i * 80}ms ease, transform 0.5s ${i * 80}ms ease`,
+              }}>
+                <div style={{ marginBottom: 24 }}>
+                  <p style={{
+                    fontSize: 11, fontWeight: 700,
+                    color: plan.highlight ? 'rgba(255,255,255,0.6)' : C.textMt,
+                    letterSpacing: '0.04em', marginBottom: 4,
+                  }}>
+                    {plan.sub}
+                  </p>
+                  <h3 style={{
+                    fontSize: 20, fontWeight: 800, letterSpacing: '-0.04em',
+                    color: plan.highlight ? C.white : C.text,
+                    marginBottom: 2,
+                  }}>
+                    {plan.name}
+                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 16 }}>
+                    <span style={{
+                      fontSize: plan.price === '문의' ? 24 : 30,
+                      fontWeight: 800, letterSpacing: '-0.04em',
+                      color: plan.highlight ? C.white : C.text,
+                    }}>
+                      {plan.price}
+                    </span>
+                    <span style={{
+                      fontSize: 13,
+                      color: plan.highlight ? 'rgba(255,255,255,0.55)' : C.textMt,
+                    }}>
+                      {plan.period}
+                    </span>
+                  </div>
+                </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, alignItems: 'start' }}>
-          {PLANS.map(plan => <PlanCard key={plan.tier} plan={plan} />)}
+                <div style={{
+                  height: 1,
+                  background: plan.highlight ? 'rgba(255,255,255,0.15)' : `rgba(164,120,100,0.10)`,
+                  marginBottom: 24,
+                }} />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+                  {plan.features.map((f, j) => (
+                    <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                      <Check
+                        size={13}
+                        color={plan.highlight ? 'rgba(255,255,255,0.7)' : C.mocha}
+                        strokeWidth={2.5}
+                      />
+                      <span style={{
+                        fontSize: 13, fontWeight: 400,
+                        color: plan.highlight ? 'rgba(255,255,255,0.85)' : C.textSub,
+                        letterSpacing: '-0.01em',
+                      }}>{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Link to={plan.ctaHref} style={{
+                  display: 'block', textAlign: 'center',
+                  padding: '12px',
+                  background: plan.highlight ? C.white : C.mochaPale,
+                  color: plan.highlight ? C.mocha : C.text,
+                  borderRadius: 10,
+                  fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em',
+                  transition: 'opacity 0.15s',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            );
+          })}
         </div>
-        <p style={{ textAlign: 'center', fontSize: 13, color: M.textMt, marginTop: 40, letterSpacing: '-0.01em' }}>
-          부가세(VAT) 별도 · 연간 결제 시 2개월 추가 무료 · 플랜 업그레이드 언제든 가능
-        </p>
       </div>
     </section>
   );
@@ -695,41 +1073,64 @@ function Pricing() {
 
 // ── CTA Banner ────────────────────────────────────────────────────────────────
 function CTABanner() {
-  const [ref, visible] = useReveal(0.2);
+  const [ref, visible] = useReveal();
   return (
-    <section style={{ padding: '90px 32px', background: M.bg, borderTop: `1px solid ${M.border}` }}>
-      <div ref={ref} style={{
-        maxWidth: 720, margin: '0 auto', textAlign: 'center',
-        background: M.bgDark, borderRadius: 28,
-        padding: '72px 48px',
-        boxShadow: '0 32px 96px rgba(0,0,0,0.22)',
-        position: 'relative', overflow: 'hidden',
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(40px)',
-        transition: 'opacity 0.8s cubic-bezier(0.22,1,0.36,1), transform 0.8s cubic-bezier(0.22,1,0.36,1)',
-      }}>
-        <div style={{ position: 'absolute', top: '-40%', left: '50%', transform: 'translateX(-50%)', width: 480, height: 360, borderRadius: '50%', background: `radial-gradient(circle, ${M.mocha}28 0%, transparent 65%)`, pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-30%', right: '-10%', width: 320, height: 280, borderRadius: '50%', background: `radial-gradient(circle, ${M.sage}18 0%, transparent 65%)`, pointerEvents: 'none' }} />
-        <h2 style={{ fontSize: 'clamp(28px, 4.5vw, 48px)', fontWeight: 900, letterSpacing: '-0.05em', color: M.white, marginBottom: 16, position: 'relative', lineHeight: 1.1, wordBreak: 'keep-all' }}>
-          외국인 상담,<br />더 이상 두렵지 않게
-        </h2>
-        <p style={{ fontSize: 17, color: '#7A6060', lineHeight: 1.7, marginBottom: 40, position: 'relative', letterSpacing: '-0.01em' }}>
-          지금 바로 무료로 시작하세요. 신용카드 없이 5분 만에 셋업 완료.
-        </p>
-        <Link to="/signup" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 10,
-          background: M.mocha, color: M.white,
-          padding: '17px 36px', borderRadius: 13,
-          fontSize: 17, fontWeight: 800, letterSpacing: '-0.025em',
-          boxShadow: `0 6px 28px ${M.mocha}60`,
-          position: 'relative',
-          transition: 'transform 0.15s, box-shadow 0.15s',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 14px 44px ${M.mocha}65`; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 6px 28px ${M.mocha}60`; }}
-        >
-          무료로 시작하기 <ArrowRight size={19} />
-        </Link>
+    <section style={{ padding: '120px 0', background: C.bg }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 40px' }}>
+        <div ref={ref} style={{
+          background: C.mocha,
+          borderRadius: 24,
+          padding: '72px 80px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 40, flexWrap: 'wrap',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'none' : 'translateY(20px)',
+          transition: 'opacity 0.6s ease, transform 0.6s ease',
+        }}>
+          <div style={{ maxWidth: 500 }}>
+            <p style={{
+              fontSize: 10, fontWeight: 800,
+              color: 'rgba(255,255,255,0.55)',
+              letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 16,
+            }}>
+              지금 시작하기
+            </p>
+            <h2 style={{
+              fontSize: 'clamp(28px, 3.5vw, 42px)',
+              fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.2,
+              color: C.white, wordBreak: 'keep-all',
+            }}>
+              언어 때문에 놓친 환자는<br />
+              없어야 합니다.
+            </h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 220 }}>
+            <Link to="/signup" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              background: C.white, color: C.mocha,
+              padding: '14px 28px', borderRadius: 11,
+              fontSize: 14, fontWeight: 700, letterSpacing: '-0.02em',
+              transition: 'opacity 0.15s',
+              textAlign: 'center',
+            }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              데모 신청하기 <ArrowRight size={15} />
+            </Link>
+            <Link to="/login" style={{
+              display: 'block', textAlign: 'center',
+              fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)',
+              letterSpacing: '-0.01em',
+              transition: 'color 0.15s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.95)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.65)'}
+            >
+              이미 계정이 있으신가요? 로그인 →
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -738,42 +1139,84 @@ function CTABanner() {
 // ── Footer ────────────────────────────────────────────────────────────────────
 function Footer() {
   return (
-    <footer style={{ borderTop: `1px solid ${M.border}`, padding: '44px 32px', background: M.bg }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: M.mocha, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <MessageSquare size={13} color="#fff" fill="#fff" />
+    <footer style={{
+      background: C.text, // Near-black warm — grounding
+      padding: '64px 40px 48px',
+    }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        {/* Top: logo + tagline */}
+        <div style={{ marginBottom: 48, paddingBottom: 40, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 8,
+              background: C.mocha,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <MessageSquare size={12} color="#fff" fill="#fff" strokeWidth={0} />
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-0.04em', color: C.white }}>
+              TikiDoc
+            </span>
           </div>
-          <span style={{ fontSize: 15, fontWeight: 900, color: M.text, letterSpacing: '-0.04em' }}>TikiDoc</span>
-          <span style={{ fontSize: 13, color: M.textMt, letterSpacing: '-0.01em' }}>— AI 다국어 상담 솔루션</span>
+          <p style={{
+            fontSize: 16, fontWeight: 400, color: 'rgba(255,255,255,0.45)',
+            letterSpacing: '-0.02em', lineHeight: 1.6,
+            maxWidth: 340, wordBreak: 'keep-all',
+          }}>
+            말이 통해야 치료가 시작됩니다.
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: 28 }}>
-          {['개인정보처리방침', '이용약관', '문의하기'].map(item => (
-            <a key={item} href="#"
-              style={{ fontSize: 13, color: M.textMt, letterSpacing: '-0.01em', transition: 'color 0.15s' }}
-              onMouseEnter={e => e.target.style.color = M.mocha}
-              onMouseLeave={e => e.target.style.color = M.textMt}
-            >{item}</a>
-          ))}
+
+        {/* Links + meta */}
+        <div className="footer-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+            {[
+              ['제품', '#modules'],
+              ['워크플로우', '#session'],
+              ['요금제', '#pricing'],
+              ['개인정보처리방침', '/privacy'],
+              ['이용약관', '/terms'],
+            ].map(([label, href]) => (
+              <a key={label} href={href} style={{
+                fontSize: 12, color: 'rgba(255,255,255,0.35)',
+                letterSpacing: '-0.01em', fontWeight: 500,
+                transition: 'color 0.15s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.75)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
+              >{label}</a>
+            ))}
+          </div>
+          <p style={{
+            fontSize: 11, color: 'rgba(255,255,255,0.22)',
+            letterSpacing: '0.01em', fontWeight: 400,
+            whiteSpace: 'nowrap',
+          }}>
+            © 2026 TikiDoc. All rights reserved.
+          </p>
         </div>
-        <p style={{ fontSize: 13, color: M.textMt, letterSpacing: '-0.01em' }}>© 2025 TikiDoc. All rights reserved.</p>
       </div>
     </footer>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Landing page ──────────────────────────────────────────────────────────────
 export default function Landing() {
   return (
     <>
       <Nav />
-      <Hero />
-      <SocialProof />
-      <Features />
-      <RotorSection />
-      <HowItWorks />
-      <Pricing />
-      <CTABanner />
+      <main>
+        <Hero />
+        <Divider />
+        <SignalBar />
+        <Divider />
+        <Modules />
+        <SessionFlow />
+        <Trust />
+        <Divider />
+        <Pricing />
+        <CTABanner />
+      </main>
       <Footer />
     </>
   );

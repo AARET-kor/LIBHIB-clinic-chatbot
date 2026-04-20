@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import QuotePage from './pages/QuotePage';
+import OverlayPrototype from './pages/OverlayPrototype';
+import TikiRoomPage from './pages/TikiRoomPage';
 
 export default function App() {
   return (
@@ -19,6 +21,12 @@ export default function App() {
 
           {/* Public — 견적서 공유 링크 (인증 불필요) */}
           <Route path="/quote/:id" element={<QuotePage />} />
+
+          {/* Public — Overlay prototype (no auth required) */}
+          <Route path="/overlay" element={<OverlayPrototype />} />
+
+          {/* Public — Tiki Room tablet prototype (no auth required) */}
+          <Route path="/room" element={<TikiRoomPage />} />
 
           {/* Protected — /app/* */}
           <Route

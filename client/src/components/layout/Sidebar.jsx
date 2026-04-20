@@ -1,9 +1,12 @@
-import { BarChart3, Settings, Shield, Stethoscope, Sparkles, MessageSquare, Users } from 'lucide-react';
+import { BarChart3, Settings, Shield, Stethoscope, Sparkles, MessageSquare, Brain, MessageCircle, BookOpen, Monitor, Users } from 'lucide-react';
 
 // ── Design tokens — Zinc base + selective accent colors ───────────────────────
-const MOCHA  = '#A47764';   // Signature — Mocha Mousse
-const SAGE   = '#5A8F80';   // Stats — Complementary sage
+const MOCHA  = '#A47764';   // Signature — Mocha Mousse / Tiki Paste / Tiki Memory
+const SAGE   = '#5A8F80';   // Tiki Talk — Complementary sage
 const GOLD   = '#D09262';   // Procedures — Warm gold
+const AZURE  = '#5B72A8';   // Protocol Library — Muted indigo
+const SLATE  = '#6E7BB8';   // Tiki Room — Muted purple-blue
+const TEAL   = '#4E8FA0';   // My Tiki — Patient management teal
 const F      = { sans: "'Pretendard Variable', 'Inter', system-ui, sans-serif" };
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,7 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 // ─────────────────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   {
-    id:            'stats',
+    id:            'analytics',
     icon:          BarChart3,
     label:         '통계',
     requiredRoles: ['owner', 'admin'],
@@ -26,11 +29,25 @@ const NAV_ITEMS = [
     accent:        GOLD,
   },
   {
-    id:            'insights',
-    icon:          Users,
-    label:         'VIP 인사이트',
+    id:            'tiki_memory',
+    icon:          Brain,
+    label:         'Tiki Memory',
     requiredRoles: ['owner', 'admin'],
     accent:        MOCHA,
+  },
+  {
+    id:            'protocol',
+    icon:          BookOpen,
+    label:         '프로토콜',
+    requiredRoles: ['owner', 'admin'],
+    accent:        AZURE,
+  },
+  {
+    id:            'my_tiki',
+    icon:          Users,
+    label:         'My Tiki',
+    requiredRoles: ['owner', 'admin'],
+    accent:        TEAL,
   },
 ];
 
@@ -134,6 +151,38 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
           {activeTab !== 'tiki_paste' && (
             <span style={{ position: 'absolute', top: -2, right: -2, width: 7, height: 7, borderRadius: '50%', background: MOCHA }} />
           )}
+        </button>
+
+        {/* Tiki Talk — sage accent */}
+        <button
+          onClick={() => onTabChange('tiki_talk')}
+          title="Tiki Talk — 실시간 진료실 통역"
+          style={activeTab === 'tiki_talk'
+            ? { background: SAGE, border: 'none', boxShadow: `0 4px 14px ${SAGE}55`, color: '#fff' }
+            : darkMode
+              ? { background: `${SAGE}10`, border: `1px solid ${SAGE}25`, color: SAGE }
+              : { background: '#fff', border: `1px solid ${SAGE}30`, color: SAGE, boxShadow: `0 1px 5px ${SAGE}15` }
+          }
+          className="w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl transition-all duration-150"
+        >
+          <MessageCircle size={17} strokeWidth={activeTab === 'tiki_talk' ? 2.5 : 1.8} />
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1 }}>통역</span>
+        </button>
+
+        {/* Tiki Room — slate accent, opens in new tab */}
+        <button
+          onClick={() => window.open('/room', '_blank')}
+          title="Tiki Room — 태블릿 AI 진료 보조"
+          style={darkMode
+            ? { background: `${SLATE}10`, border: `1px solid ${SLATE}25`, color: SLATE }
+            : { background: '#fff', border: `1px solid ${SLATE}30`, color: SLATE, boxShadow: `0 1px 5px ${SLATE}15` }
+          }
+          className="w-full flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl transition-all duration-150 relative"
+        >
+          <Monitor size={17} strokeWidth={1.8} />
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1 }}>룸</span>
+          {/* External link indicator */}
+          <span style={{ position: 'absolute', top: 3, right: 4, fontSize: 7, opacity: 0.5 }}>↗</span>
         </button>
 
         {/* Divider */}

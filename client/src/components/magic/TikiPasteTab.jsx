@@ -1,220 +1,94 @@
 import { useState, useRef, useCallback } from 'react';
 import {
   Sparkles, Clipboard, Copy, Check, AlertCircle, Loader2,
-  RefreshCcw, Globe, Lightbulb, MessageSquare, ShieldCheck,
-  CalendarCheck, ClipboardList,
+  RefreshCcw, Globe, Brain, Monitor, ScanLine,
+  ChevronRight, BookOpen, ShieldAlert, Zap, Heart,
+  TrendingUp, Save,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 디자인 토큰 — Mocha Mousse signature palette
-// ─────────────────────────────────────────────────────────────────────────────
-const CORAL  = '#A47764';   // Mocha Mousse — 공감형 signature
-const CORAL2 = '#7A5545';   // Darker mocha
-const CORAL_L= '#C4A090';   // Light mocha
-const TEAL   = '#5A8F80';   // Sage — 정보형
-const ORANGE = '#D09262';   // Gold — 세일즈형
-const ZINC   = '#1C0F0A';   // Dark text
-
-// Aliases
-const GOLD   = CORAL;
-const GOLD2  = CORAL2;
-const GOLD_L = CORAL_L;
-const DARK   = ZINC;
-
-const CARD_PALETTE = {
-  kind: {
-    light: {
-      accent:     CORAL,
-      headerBg:   'linear-gradient(90deg, #fff5f7, #fff0f3)',
-      wrapShadow: `0 2px 16px rgba(164,119,100,0.10), 0 1px 4px rgba(0,0,0,0.05)`,
-      iconBg:     'rgba(164,119,100,0.10)',
-      iconColor:  CORAL2,
-      titleColor: '#09090b',
-      bodyColor:  '#3f3f46',
-      koColor:    '#7A5545',
-      btnBorder:  `1px solid ${CORAL}55`,
-      btnColor:   CORAL2,
-      btnHover:   'rgba(164,119,100,0.06)',
-    },
-    dark: {
-      accent:     CORAL,
-      headerBg:   'linear-gradient(90deg, #1c0c10, #200d12)',
-      wrapShadow: '0 2px 16px rgba(0,0,0,0.5)',
-      iconBg:     'rgba(164,119,100,0.10)',
-      iconColor:  CORAL,
-      titleColor: '#F5EDE8',
-      bodyColor:  '#d4b8bc',
-      koColor:    '#7A5545',
-      btnBorder:  '1px solid rgba(164,119,100,0.3)',
-      btnColor:   CORAL,
-      btnHover:   'rgba(164,119,100,0.08)',
-    },
-  },
-  firm: {
-    light: {
-      accent:     TEAL,
-      headerBg:   'linear-gradient(90deg, #f0fafa, #e8f6f6)',
-      wrapShadow: '0 2px 16px rgba(6,148,148,0.08), 0 1px 4px rgba(0,0,0,0.04)',
-      iconBg:     'rgba(6,148,148,0.10)',
-      iconColor:  TEAL,
-      titleColor: '#09090b',
-      bodyColor:  '#3f3f46',
-      koColor:    '#047070',
-      btnBorder:  `1px solid ${TEAL}55`,
-      btnColor:   TEAL,
-      btnHover:   'rgba(6,148,148,0.06)',
-    },
-    dark: {
-      accent:     TEAL,
-      headerBg:   'linear-gradient(90deg, #061414, #081818)',
-      wrapShadow: '0 2px 16px rgba(0,0,0,0.5)',
-      iconBg:     'rgba(6,148,148,0.10)',
-      iconColor:  '#2ec4c4',
-      titleColor: '#c0eaea',
-      bodyColor:  '#a0cccc',
-      koColor:    '#047070',
-      btnBorder:  '1px solid rgba(6,148,148,0.3)',
-      btnColor:   '#2ec4c4',
-      btnHover:   'rgba(6,148,148,0.08)',
-    },
-  },
-  booking: {
-    light: {
-      accent:     ORANGE,
-      headerBg:   'linear-gradient(90deg, #fff8f4, #fff4ee)',
-      wrapShadow: '0 2px 16px rgba(255,130,67,0.10), 0 1px 4px rgba(0,0,0,0.05)',
-      iconBg:     'rgba(255,130,67,0.12)',
-      iconColor:  '#e06828',
-      titleColor: '#09090b',
-      bodyColor:  '#3f3f46',
-      koColor:    '#c05818',
-      btnBorder:  `1px solid ${ORANGE}55`,
-      btnColor:   '#e06828',
-      btnHover:   'rgba(255,130,67,0.06)',
-    },
-    dark: {
-      accent:     ORANGE,
-      headerBg:   'linear-gradient(90deg, #1a0e06, #201208)',
-      wrapShadow: '0 2px 16px rgba(0,0,0,0.5)',
-      iconBg:     'rgba(255,130,67,0.10)',
-      iconColor:  ORANGE,
-      titleColor: '#ffe0cc',
-      bodyColor:  '#d4b8a0',
-      koColor:    '#c05818',
-      btnBorder:  '1px solid rgba(255,130,67,0.3)',
-      btnColor:   ORANGE,
-      btnHover:   'rgba(255,130,67,0.08)',
-    },
-  },
+// ── Design tokens ─────────────────────────────────────────────────────────────
+const C = {
+  mocha:     '#A47864',
+  mochaDk:   '#7A5545',
+  mochaLt:   '#C4A090',
+  mochaPale: '#F5EDE8',
+  bg:        '#FAF6F3',
+  bgSub:     '#F0E8E3',
+  bgDeep:    '#EAE0D8',
+  white:     '#FFFFFF',
+  text:      '#1C0F0A',
+  textSub:   '#6B4A3A',
+  textMt:    '#B09080',
+  border:    '#E5CFC5',
+  borderMd:  '#CCADA0',
+  sage:      '#5A8F80',
+  sagePale:  '#E4F2EF',
+  gold:      '#D09262',
+  goldPale:  '#FBF0E6',
+  red:       '#B85C44',
+  redPale:   '#FDF2EE',
 };
 
-const CARD_DEFS = [
-  { key: 'kind',    label: '친절/상세형',    sublabel: 'Detailed & Caring',   icon: MessageSquare, palette: CARD_PALETTE.kind },
-  { key: 'firm',    label: '단호/규정안내형', sublabel: 'Firm & Policy-based', icon: ShieldCheck,   palette: CARD_PALETTE.firm },
-  { key: 'booking', label: '예약유도형',     sublabel: 'Action & Closing',    icon: CalendarCheck, palette: CARD_PALETTE.booking },
-];
+const SANS = "'Pretendard Variable', 'Inter', system-ui, -apple-system, sans-serif";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CSS keyframes
-// ─────────────────────────────────────────────────────────────────────────────
+// ── CSS keyframes ─────────────────────────────────────────────────────────────
 const GLOBAL_STYLE = `
-* { font-family: 'Pretendard Variable', 'Inter', system-ui, -apple-system, sans-serif; }
-@keyframes goldGlow {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-@keyframes inputFocusGlow {
-  0%   { box-shadow: 0 0 0 0 rgba(164,119,100,0); }
-  40%  { box-shadow: 0 0 0 4px rgba(164,119,100,0.18), 0 4px 24px rgba(164,119,100,0.10); }
-  100% { box-shadow: 0 0 0 3px rgba(164,119,100,0.12), 0 4px 20px rgba(164,119,100,0.08); }
-}
-@keyframes pasteFlash {
-  0%   { box-shadow: 0 0 0 0 rgba(164,119,100,0), 0 4px 20px rgba(0,0,0,0.06); }
-  35%  { box-shadow: 0 0 0 5px rgba(164,119,100,0.22), 0 8px 40px rgba(164,119,100,0.14); }
-  100% { box-shadow: 0 0 0 3px rgba(164,119,100,0.12), 0 4px 20px rgba(164,119,100,0.08); }
-}
-@keyframes shimmerSweep {
-  0%   { transform: translateX(-120%); }
-  100% { transform: translateX(200%); }
-}
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes sparkPop {
-  0%   { transform: scale(0.6) rotate(-8deg); opacity: 0; }
-  65%  { transform: scale(1.15) rotate(3deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0deg);   opacity: 1; }
-}
-@keyframes cardIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes tikiBurst {
-  0%   { opacity:0; transform:scale(0.1) rotate(-20deg); }
-  38%  { opacity:1; transform:scale(1.5) rotate(8deg);   }
-  65%  { opacity:0.85; transform:scale(1.2) rotate(-4deg); }
-  100% { opacity:0; transform:scale(1.9) rotate(14deg);  }
-}
-@keyframes tikiParticle {
-  0%   { opacity:1; transform:translate(0,0) scale(1); }
-  100% { opacity:0; transform:translate(var(--tx),var(--ty)) scale(0.1); }
-}
-@keyframes tikiRing {
-  0%   { opacity:0.5; transform:scale(0.5); }
-  100% { opacity:0;   transform:scale(2.4); }
-}
-@keyframes tikiBackdrop {
-  0%   { opacity:0; }
-  30%  { opacity:1; }
-  100% { opacity:0; }
-}
-.tiki-lang-chip {
-  transition: all 0.18s ease;
-  cursor: default;
-}
-.tiki-lang-chip:hover {
-  background: rgba(164,119,100,0.08) !important;
-  border-color: ${CORAL} !important;
-  color: ${CORAL2} !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(164,119,100,0.12);
-}
-.tiki-copy-btn {
-  transition: all 0.15s ease;
-}
-.tiki-copy-btn:hover {
-  transform: translateY(-1px);
-}
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+  * { font-family: ${SANS}; box-sizing: border-box; }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes shimmerSweep {
+    0%   { transform: translateX(-120%); }
+    100% { transform: translateX(220%); }
+  }
+  @keyframes pasteFlash {
+    0%   { box-shadow: 0 0 0 0 rgba(164,120,100,0), 0 2px 8px rgba(164,120,100,0.06); }
+    35%  { box-shadow: 0 0 0 4px rgba(164,120,100,0.22), 0 6px 28px rgba(164,120,100,0.14); }
+    100% { box-shadow: 0 0 0 3px rgba(164,120,100,0.10), 0 2px 8px rgba(164,120,100,0.06); }
+  }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @keyframes tikiBurst {
+    0%   { opacity:0; transform:scale(0.1) rotate(-20deg); }
+    38%  { opacity:1; transform:scale(1.5) rotate(8deg);   }
+    65%  { opacity:0.85; transform:scale(1.2) rotate(-4deg); }
+    100% { opacity:0; transform:scale(1.9) rotate(14deg);  }
+  }
+  @keyframes tikiParticle {
+    0%   { opacity:1; transform:translate(0,0) scale(1); }
+    100% { opacity:0; transform:translate(var(--tx),var(--ty)) scale(0.1); }
+  }
+  @keyframes tikiRing {
+    0%   { opacity:0.5; transform:scale(0.5); }
+    100% { opacity:0;   transform:scale(2.4); }
+  }
+  @keyframes tikiBackdrop {
+    0%   { opacity:0; }
+    30%  { opacity:1; }
+    100% { opacity:0; }
+  }
+  @keyframes analysisIn {
+    from { opacity:0; transform:translateY(-8px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .paste-textarea:focus { outline: none; }
+  .mode-tab { transition: all 0.18s ease; cursor: pointer; }
+  .action-btn { transition: all 0.15s ease; cursor: pointer; }
+  .reply-card { transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s; }
+  .reply-card:hover { transform: translateY(-2px); }
+  .copy-btn { transition: all 0.15s ease; cursor: pointer; }
+  .copy-btn:hover { opacity: 0.8; }
 `;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Toast
-// ─────────────────────────────────────────────────────────────────────────────
-function Toast({ message }) {
-  return (
-    <div
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold pointer-events-none"
-      style={{
-        background: '#1C0F0A',
-        border: `1px solid ${CORAL}55`,
-        color: '#fff',
-        animation: 'fadeSlideUp 0.2s ease-out',
-        boxShadow: `0 4px 24px rgba(164,119,100,0.25)`,
-      }}
-    >
-      <Check size={14} style={{ color: GOLD }} />
-      {message}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TikiFlash — signature ✦ effect (fixed, fullscreen overlay)
-// ─────────────────────────────────────────────────────────────────────────────
-const TIKI_SPARKS = [
+// ── TikiFlash — signature ✦ burst ─────────────────────────────────────────────
+const SPARKS = [
   { tx:'-52px', ty:'-46px', ch:'✦', sz:13, d:0    },
   { tx:' 50px', ty:'-40px', ch:'✧', sz:11, d:50   },
   { tx:' 58px', ty:' 28px', ch:'·', sz:17, d:90   },
@@ -226,97 +100,396 @@ const TIKI_SPARKS = [
   { tx:'-28px', ty:' 54px', ch:'✧', sz: 8, d:140  },
   { tx:' 32px', ty:'-54px', ch:'✦', sz: 9, d:60   },
 ];
-
 function TikiFlash({ active }) {
   if (!active) return null;
   return (
-    <div style={{
-      position:'fixed', inset:0, pointerEvents:'none', zIndex:9999,
-      display:'flex', alignItems:'center', justifyContent:'center',
-    }}>
-      {/* Radial backdrop */}
-      <div style={{
-        position:'absolute', inset:0,
-        background:`radial-gradient(circle at 50% 44%, rgba(164,119,100,0.18) 0%, transparent 55%)`,
-        animation:'tikiBackdrop 0.95s ease forwards',
-      }} />
-      {/* Outer ring */}
-      <div style={{
-        position:'absolute', width:120, height:120, borderRadius:'50%',
-        border:`2px solid ${CORAL}`,
-        animation:'tikiRing 0.9s ease-out forwards',
-      }} />
-      {/* Inner ring */}
-      <div style={{
-        position:'absolute', width:60, height:60, borderRadius:'50%',
-        border:`1.5px solid ${ORANGE}`,
-        animation:'tikiRing 0.7s ease-out 80ms forwards',
-      }} />
-      {/* Central ✦ */}
-      <div style={{
-        position:'relative', fontSize:42, lineHeight:1, color:CORAL, zIndex:1,
-        filter:`drop-shadow(0 0 14px ${CORAL}) drop-shadow(0 0 6px ${ORANGE})`,
-        animation:'tikiBurst 0.95s ease-out forwards',
-        userSelect:'none', fontFamily:'serif',
-      }}>✦</div>
-      {/* Particles */}
-      {TIKI_SPARKS.map((s, i) => (
-        <span key={i} style={{
-          position:'absolute', fontSize:s.sz, zIndex:1,
-          color: i % 3 === 0 ? CORAL : i % 3 === 1 ? ORANGE : CORAL_L,
-          top:'50%', left:'50%', transform:'translate(-50%,-50%)',
-          '--tx':s.tx, '--ty':s.ty,
-          animation:`tikiParticle 0.8s ease-out ${s.d}ms forwards`,
-          userSelect:'none', lineHeight:1,
-        }}>{s.ch}</span>
+    <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ position:'absolute', inset:0, background:`radial-gradient(circle at 50% 44%, rgba(164,120,100,0.18) 0%, transparent 55%)`, animation:'tikiBackdrop 0.95s ease forwards' }} />
+      <div style={{ position:'absolute', width:120, height:120, borderRadius:'50%', border:`2px solid ${C.mocha}`, animation:'tikiRing 0.9s ease-out forwards' }} />
+      <div style={{ position:'absolute', width:60, height:60, borderRadius:'50%', border:`1.5px solid ${C.gold}`, animation:'tikiRing 0.7s ease-out 80ms forwards' }} />
+      <div style={{ position:'relative', fontSize:42, lineHeight:1, color:C.mocha, zIndex:1, filter:`drop-shadow(0 0 14px ${C.mocha}) drop-shadow(0 0 6px ${C.gold})`, animation:'tikiBurst 0.95s ease-out forwards', userSelect:'none', fontFamily:'serif' }}>✦</div>
+      {SPARKS.map((s, i) => (
+        <span key={i} style={{ position:'absolute', fontSize:s.sz, zIndex:1, color: i%3===0 ? C.mocha : i%3===1 ? C.gold : C.mochaLt, top:'50%', left:'50%', transform:'translate(-50%,-50%)', '--tx':s.tx, '--ty':s.ty, animation:`tikiParticle 0.8s ease-out ${s.d}ms forwards`, userSelect:'none', lineHeight:1 }}>{s.ch}</span>
       ))}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Skeleton card — white + gold pulse
-// ─────────────────────────────────────────────────────────────────────────────
-function SkeletonCard({ darkMode }) {
-  const pulse = darkMode ? 'bg-white/5' : 'bg-gray-100';
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function Toast({ message }) {
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={darkMode
-        ? { background: '#18181b', border: '1px solid #222', boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }
-        : { background: '#fff', border: '1px solid #efefef', boxShadow: '0 2px 16px rgba(0,0,0,0.07)' }}
-    >
-      <div
-        className="h-12 px-4 flex items-center gap-2"
-        style={darkMode ? { background: '#1a1a1a' } : { background: '#fafafa' }}
-      >
-        <div className={`w-6 h-6 rounded-lg ${pulse} animate-pulse`} />
-        <div className={`h-2.5 ${pulse} rounded-full w-24 animate-pulse`} />
-      </div>
-      <div className="p-4 space-y-2.5">
-        {[1, 0.85, 0.95, 0.7, 0.8].map((w, i) => (
-          <div
-            key={i}
-            className={`h-2.5 ${pulse} rounded-full animate-pulse`}
-            style={{ width: `${w * 100}%`, animationDelay: `${i * 80}ms` }}
-          />
-        ))}
-        <div className={`h-2 ${pulse} rounded-full w-1/2 animate-pulse mt-3`} style={{ animationDelay: '400ms' }} />
+    <div style={{
+      position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)',
+      zIndex:9998, display:'flex', alignItems:'center', gap:8,
+      padding:'10px 18px', borderRadius:12,
+      background: C.text, border:`1px solid ${C.mocha}55`,
+      color:'#fff', fontSize:12, fontWeight:600,
+      animation:'fadeSlideUp 0.2s ease-out',
+      boxShadow:`0 4px 24px rgba(164,120,100,0.28)`,
+      pointerEvents:'none', whiteSpace:'nowrap',
+    }}>
+      <Check size={13} style={{ color:C.mocha }} />
+      {message}
+    </div>
+  );
+}
+
+// ── Input mode tabs ───────────────────────────────────────────────────────────
+const INPUT_MODES = [
+  { id: 'paste',  label: 'Paste',       icon: Clipboard,  desc: '텍스트 붙여넣기' },
+  { id: 'screen', label: 'Read Screen', icon: Monitor,    desc: '화면 스크린샷 읽기' },
+  { id: 'ocr',    label: 'OCR Capture', icon: ScanLine,   desc: '영역 캡처' },
+];
+
+function InputModeTabs({ mode, onSelect }) {
+  return (
+    <div style={{ display:'flex', gap:4, padding:'3px', background:C.bgSub, borderRadius:10, border:`1px solid ${C.border}` }}>
+      {INPUT_MODES.map(m => {
+        const active = mode === m.id;
+        const Icon = m.icon;
+        return (
+          <button key={m.id} className="mode-tab" onClick={() => onSelect(m.id)} style={{
+            display:'flex', alignItems:'center', gap:5,
+            padding:'5px 11px', borderRadius:7, border:'none',
+            background: active ? C.white : 'transparent',
+            color: active ? C.mocha : C.textMt,
+            fontSize:11, fontWeight: active ? 700 : 500,
+            boxShadow: active ? `0 1px 4px rgba(164,120,100,0.14)` : 'none',
+            letterSpacing:'-0.01em',
+          }}>
+            <Icon size={11} strokeWidth={active ? 2.2 : 1.8} />
+            {m.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Paste zone ────────────────────────────────────────────────────────────────
+function PasteZone({ value, onChange, onPaste, pasting }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{
+      position:'relative', borderRadius:14, overflow:'hidden',
+      background:C.white,
+      border:`1.5px solid ${focused || pasting ? C.mocha + '70' : C.border}`,
+      boxShadow: pasting ? undefined
+        : focused ? `0 0 0 3px rgba(164,120,100,0.12), 0 2px 12px rgba(164,120,100,0.08)`
+        : `0 1px 4px rgba(164,120,100,0.06)`,
+      animation: pasting ? 'pasteFlash 0.75s ease-out forwards' : 'none',
+      transition:'border-color 0.2s, box-shadow 0.2s',
+    }}>
+      {pasting && (
+        <div style={{ position:'absolute', inset:0, zIndex:10, pointerEvents:'none', overflow:'hidden', borderRadius:14 }}>
+          <div style={{ position:'absolute', inset:0, background:'linear-gradient(105deg, transparent 35%, rgba(164,120,100,0.12) 50%, transparent 65%)', animation:'shimmerSweep 0.6s ease-out' }} />
+        </div>
+      )}
+      <textarea
+        className="paste-textarea"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onPaste={onPaste}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder={'환자 메시지를 여기에 붙여넣으세요 (Ctrl+V / ⌘V)\n붙여넣는 즉시 자동 분석을 시작합니다\n\n예) "ヒアルロン酸の効果はいつ出ますか？副作用が心配です..."'}
+        rows={5}
+        style={{
+          width:'100%', padding:'16px 18px', fontSize:13, lineHeight:1.7,
+          color:C.text, background:'transparent', border:'none', resize:'none',
+          caretColor:C.mocha, position:'relative', zIndex:20,
+        }}
+      />
+      {/* Bottom accent line */}
+      <div style={{
+        position:'absolute', bottom:0, left:0, right:0, height:2,
+        background:`linear-gradient(90deg, transparent, ${C.mocha}, transparent)`,
+        opacity: focused || pasting ? 1 : 0,
+        transition:'opacity 0.2s',
+      }} />
+      {/* Paste badge */}
+      {pasting && (
+        <div style={{
+          position:'absolute', top:12, right:14, zIndex:30,
+          display:'flex', alignItems:'center', gap:5,
+          padding:'4px 10px', borderRadius:999,
+          background:`linear-gradient(135deg, ${C.mocha}, ${C.mochaDk})`,
+          color:'#fff', fontSize:10, fontWeight:700,
+          boxShadow:`0 2px 12px rgba(164,120,100,0.4)`,
+          animation:'fadeSlideUp 0.2s ease-out',
+        }}>
+          <Sparkles size={10} /> 분석 시작
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Read screen zone ──────────────────────────────────────────────────────────
+function ReadScreenZone({ onTextReady }) {
+  const [status, setStatus] = useState('idle'); // idle | reading | done | error
+  const [preview, setPreview] = useState('');
+
+  const handleReadClipboard = async () => {
+    setStatus('reading');
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        if (item.types.includes('text/plain')) {
+          const blob = await item.getType('text/plain');
+          const text = await blob.text();
+          if (text.trim()) {
+            setPreview(text);
+            setStatus('done');
+            onTextReady(text);
+            return;
+          }
+        }
+      }
+      // Fallback to text
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        setPreview(text);
+        setStatus('done');
+        onTextReady(text);
+        return;
+      }
+      setStatus('error');
+    } catch {
+      // Try plain text fallback
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text.trim()) {
+          setPreview(text);
+          setStatus('done');
+          onTextReady(text);
+          return;
+        }
+      } catch { /* ignore */ }
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div style={{ borderRadius:14, border:`1.5px solid ${C.border}`, background:C.white, overflow:'hidden' }}>
+      <div style={{ padding:'24px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:16, minHeight:120 }}>
+        {status === 'idle' && (
+          <>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10, textAlign:'center' }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:C.mochaPale, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <Monitor size={20} color={C.mocha} strokeWidth={1.8} />
+              </div>
+              <div>
+                <p style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:4 }}>화면 스크린샷에서 읽기</p>
+                <p style={{ fontSize:11, color:C.textMt, lineHeight:1.6 }}>채팅 화면을 캡처한 후 (Cmd+Ctrl+Shift+4)<br />클립보드 읽기 버튼을 누르세요</p>
+              </div>
+            </div>
+            <button className="action-btn" onClick={handleReadClipboard} style={{
+              display:'flex', alignItems:'center', gap:6,
+              padding:'9px 20px', borderRadius:9,
+              background:C.mocha, color:'#fff',
+              border:'none', fontSize:12, fontWeight:700,
+              boxShadow:`0 4px 14px rgba(164,120,100,0.4)`,
+              letterSpacing:'-0.01em',
+            }}>
+              <Clipboard size={13} /> 클립보드 읽기
+            </button>
+          </>
+        )}
+        {status === 'reading' && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, color:C.textSub }}>
+            <Loader2 size={16} style={{ animation:'spin 1s linear infinite', color:C.mocha }} />
+            <span style={{ fontSize:12, fontWeight:600 }}>클립보드를 읽는 중...</span>
+          </div>
+        )}
+        {status === 'done' && (
+          <div style={{ width:'100%' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+              <Check size={13} color={C.sage} />
+              <span style={{ fontSize:11, fontWeight:700, color:C.sage, letterSpacing:'0.04em' }}>텍스트 감지됨</span>
+              <button className="action-btn" onClick={() => { setStatus('idle'); setPreview(''); }} style={{ marginLeft:'auto', fontSize:10, color:C.textMt, background:'none', border:'none', padding:0 }}>다시 캡처</button>
+            </div>
+            <div style={{ padding:'10px 12px', background:C.bg, borderRadius:8, border:`1px solid ${C.border}` }}>
+              <p style={{ fontSize:12, color:C.textSub, lineHeight:1.65, whiteSpace:'pre-wrap' }}>{preview.slice(0, 200)}{preview.length > 200 ? '...' : ''}</p>
+            </div>
+          </div>
+        )}
+        {status === 'error' && (
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, textAlign:'center' }}>
+            <p style={{ fontSize:12, color:C.red, fontWeight:600 }}>클립보드 접근 권한이 없습니다</p>
+            <p style={{ fontSize:11, color:C.textMt }}>브라우저 설정에서 클립보드 권한을 허용하세요</p>
+            <button className="action-btn" onClick={() => setStatus('idle')} style={{ fontSize:11, color:C.textSub, background:'none', border:`1px solid ${C.border}`, padding:'5px 12px', borderRadius:7 }}>다시 시도</button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Result card
-// ─────────────────────────────────────────────────────────────────────────────
-function ResultCard({ def, option, darkMode, onCopy, index }) {
-  const [copied, setCopied] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const ac = darkMode ? def.palette.dark : def.palette.light;
+// ── OCR capture zone ──────────────────────────────────────────────────────────
+function OCRCaptureZone({ onTextReady }) {
+  const [pastedText, setPastedText] = useState('');
 
-  const replyText = typeof option === 'string' ? option : (option?.reply || '');
-  const koText    = typeof option === 'string' ? '' : (option?.ko_translation || '');
+  const openOverlay = () => {
+    window.open('/overlay', '_blank', 'width=420,height=680,toolbar=no,menubar=no');
+  };
+
+  return (
+    <div style={{ borderRadius:14, border:`1.5px solid ${C.border}`, background:C.white, overflow:'hidden' }}>
+      <div style={{ padding:'20px', display:'flex', flexDirection:'column', gap:16 }}>
+        <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+          <div style={{ width:40, height:40, borderRadius:11, background:C.mochaPale, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <ScanLine size={18} color={C.mocha} strokeWidth={1.8} />
+          </div>
+          <div>
+            <p style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:3 }}>화면 영역 OCR 캡처</p>
+            <p style={{ fontSize:11, color:C.textMt, lineHeight:1.6 }}>오버레이 창을 열어 화면에서 직접 영역을 캡처하거나, 캡처한 결과 텍스트를 아래에 붙여넣으세요.</p>
+          </div>
+        </div>
+
+        <button className="action-btn" onClick={openOverlay} style={{
+          display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+          padding:'10px', borderRadius:9,
+          background:C.bgSub, color:C.textSub,
+          border:`1.5px solid ${C.border}`,
+          fontSize:12, fontWeight:700, letterSpacing:'-0.01em',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = C.mochaPale; e.currentTarget.style.borderColor = C.mochaLt; e.currentTarget.style.color = C.mocha; }}
+          onMouseLeave={e => { e.currentTarget.style.background = C.bgSub; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSub; }}
+        >
+          <ScanLine size={13} /> 오버레이 창 열기 <ChevronRight size={11} style={{ opacity:0.5 }} />
+        </button>
+
+        <div>
+          <label style={{ fontSize:10, fontWeight:700, color:C.textMt, textTransform:'uppercase', letterSpacing:'0.08em', display:'block', marginBottom:6 }}>캡처 결과 텍스트</label>
+          <textarea
+            className="paste-textarea"
+            value={pastedText}
+            onChange={e => { setPastedText(e.target.value); if (e.target.value.trim()) onTextReady(e.target.value); }}
+            placeholder="오버레이에서 캡처한 텍스트를 여기에 붙여넣으세요"
+            rows={3}
+            style={{
+              width:'100%', padding:'10px 12px', fontSize:12, lineHeight:1.65,
+              color:C.text, background:C.bg, border:`1px solid ${C.border}`,
+              borderRadius:9, resize:'none', caretColor:C.mocha,
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Analysis strip ────────────────────────────────────────────────────────────
+function AnalysisStrip({ result }) {
+  const risk = result?.risk_level || 'low';
+  const isRisk = risk === 'high' || risk === 'medium';
+
+  return (
+    <div style={{ animation:'analysisIn 0.35s ease-out' }}>
+      {/* Korean interpretation */}
+      {result?.ko_summary && (
+        <div style={{
+          padding:'12px 16px', marginBottom:12,
+          background:C.bgSub,
+          borderRadius:12,
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
+            <BookOpen size={11} color={C.textMt} />
+            <span style={{ fontSize:10, fontWeight:700, color:C.textMt, textTransform:'uppercase', letterSpacing:'0.08em' }}>한국어 해석 · 직원 참고용</span>
+          </div>
+          <p style={{ fontSize:13, color:C.textSub, lineHeight:1.65, letterSpacing:'-0.01em' }}>{result.ko_summary}</p>
+        </div>
+      )}
+
+      {/* Metadata pills row */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+        {/* Language badge */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:999, background:C.mochaPale, border:`1px solid ${C.border}` }}>
+          <Globe size={11} color={C.mocha} />
+          <span style={{ fontSize:11, fontWeight:700, color:C.mocha, letterSpacing:'-0.01em' }}>{result?.detected_language || '언어 감지됨'}</span>
+        </div>
+
+        {/* Intent badge */}
+        {result?.intent && (
+          <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:999, background:C.bgSub }}>
+            <span style={{ fontSize:11, fontWeight:600, color:C.textSub, letterSpacing:'-0.01em' }}>{result.intent}</span>
+          </div>
+        )}
+
+        {/* Risk flag */}
+        {isRisk && (
+          <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:999, background:C.redPale, border:`1px solid ${C.red}35` }}>
+            <ShieldAlert size={11} color={C.red} />
+            <span style={{ fontSize:11, fontWeight:700, color:C.red, letterSpacing:'-0.01em' }}>
+              {risk === 'high' ? '높은 위험 — 전송 전 확인 필요' : '주의 필요'}
+            </span>
+          </div>
+        )}
+
+        <span style={{ fontSize:11, color:C.textMt, marginLeft:'auto', letterSpacing:'-0.01em' }}>답변은 환자 언어로 · 한국어 해석은 참고용</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Skeleton card ─────────────────────────────────────────────────────────────
+function SkeletonCard({ delay = 0 }) {
+  return (
+    <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:16, overflow:'hidden', animationDelay:`${delay}ms` }}>
+      <div style={{ padding:'14px 16px', background:C.bgSub, borderBottom:`1px solid ${C.border}`, display:'flex', alignItems:'center', gap:10 }}>
+        <div style={{ width:28, height:28, borderRadius:8, background:C.bgDeep, animation:'pulse 1.4s ease-in-out infinite' }} />
+        <div style={{ flex:1 }}>
+          <div style={{ height:8, width:80, background:C.bgDeep, borderRadius:4, marginBottom:5, animation:'pulse 1.4s ease-in-out infinite' }} />
+          <div style={{ height:6, width:50, background:C.bgDeep, borderRadius:4, animation:'pulse 1.4s 200ms ease-in-out infinite' }} />
+        </div>
+      </div>
+      <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:7 }}>
+        {[100, 88, 95, 72, 82].map((w, i) => (
+          <div key={i} style={{ height:7, borderRadius:4, background:C.bgSub, width:`${w}%`, animation:`pulse 1.4s ${i*100}ms ease-in-out infinite` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Reply card ────────────────────────────────────────────────────────────────
+const REPLY_TYPES = [
+  {
+    key:      'firm',
+    label:    '빠른 답장',
+    sublabel: 'Quick Reply',
+    icon:     Zap,
+    accent:   C.mocha,
+    pale:     C.mochaPale,
+    hint:     '간결하고 명확한 답장',
+  },
+  {
+    key:      'kind',
+    label:    '정중한 답장',
+    sublabel: 'Natural Reply',
+    icon:     Heart,
+    accent:   C.sage,
+    pale:     C.sagePale,
+    hint:     '따뜻하고 상세한 답장',
+  },
+  {
+    key:      'booking',
+    label:    '상담 유도',
+    sublabel: 'Conversion Reply',
+    icon:     TrendingUp,
+    accent:   C.gold,
+    pale:     C.goldPale,
+    hint:     '예약·상담 전환 유도',
+  },
+];
+
+function ReplyCard({ type, option, onCopy, delay }) {
+  const [copied, setCopied] = useState(false);
+  const Icon = type.icon;
+
+  const replyText  = typeof option === 'string' ? option : (option?.reply || '');
+  const koText     = typeof option === 'string' ? '' : (option?.ko_translation || '');
 
   const handleCopy = async () => {
     if (!replyText) return;
@@ -324,85 +497,57 @@ function ResultCard({ def, option, darkMode, onCopy, index }) {
       await navigator.clipboard.writeText(replyText);
       setCopied(true);
       onCopy?.(replyText);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 2200);
     } catch { /* ignore */ }
   };
 
   return (
-    <div
-      className="flex flex-col rounded-2xl overflow-hidden"
-      style={{
-        background: darkMode ? '#18181b' : '#ffffff',
-        border: darkMode ? '1px solid #222' : '1px solid #f0f0f0',
-        boxShadow: hovered
-          ? `0 8px 40px rgba(164,119,100,0.18), 0 2px 8px rgba(0,0,0,0.08)`
-          : ac.wrapShadow,
-        animation: `cardIn 0.4s ease-out ${index * 80}ms both`,
-        transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+    <div className="reply-card" style={{
+      background: C.white,
+      borderRadius: 16,
+      overflow: 'hidden',
+      display: 'flex', flexDirection: 'column',
+      animation: `cardIn 0.4s ease-out ${delay}ms both`,
+      boxShadow: `0 2px 12px rgba(164,120,100,0.08), 0 1px 2px rgba(164,120,100,0.04)`,
+    }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 28px rgba(164,120,100,0.14), 0 2px 6px rgba(164,120,100,0.06)`; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = `0 2px 12px rgba(164,120,100,0.08), 0 1px 2px rgba(164,120,100,0.04)`; }}
     >
-      {/* Header stripe */}
-      <div
-        className="flex items-center gap-2.5 px-4 py-3"
-        style={{ background: ac.headerBg, borderBottom: darkMode ? '1px solid #1a1a1a' : '1px solid #f5f5f5' }}
-      >
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: ac.iconBg }}
-        >
-          <def.icon size={14} style={{ color: ac.iconColor }} strokeWidth={2} />
+      {/* Header */}
+      <div style={{ padding:'12px 14px', background:C.bgSub, borderBottom:`1px solid ${C.border}`, display:'flex', alignItems:'center', gap:10 }}>
+        <div style={{ width:30, height:30, borderRadius:9, background:type.pale, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <Icon size={13} color={type.accent} strokeWidth={2} />
         </div>
         <div>
-          <p className="text-xs font-bold" style={{ color: ac.titleColor }}>{def.label}</p>
-          <p className="text-[10px]" style={{ color: darkMode ? '#555' : '#aaa' }}>{def.sublabel}</p>
+          <p style={{ fontSize:12, fontWeight:800, color:C.text, letterSpacing:'-0.02em' }}>{type.label}</p>
+          <p style={{ fontSize:10, color:C.textMt, letterSpacing:'0.02em' }}>{type.hint}</p>
         </div>
-        {/* accent dot */}
-        <div
-          className="ml-auto w-1.5 h-1.5 rounded-full"
-          style={{ background: ac.accent, opacity: 0.7 }}
-        />
+        <div style={{ marginLeft:'auto', width:6, height:6, borderRadius:'50%', background:type.accent, opacity:0.7 }} />
       </div>
 
-      {/* Body */}
-      <div className="flex-1 px-4 pt-3.5 pb-2">
-        <p
-          className="text-sm leading-relaxed whitespace-pre-wrap"
-          style={{ color: ac.bodyColor }}
-        >{replyText}</p>
+      {/* Reply text */}
+      <div style={{ flex:1, padding:'14px 14px 10px', minHeight:80 }}>
+        <p style={{ fontSize:13, color:C.textSub, lineHeight:1.75, whiteSpace:'pre-wrap', letterSpacing:'-0.01em' }}>{replyText}</p>
       </div>
 
       {/* Korean translation */}
       {koText && (
-        <div
-          className="mx-4 mb-3 px-3 py-2.5 rounded-xl"
-          style={darkMode
-            ? { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }
-            : { background: '#fafafa', border: '1px solid #efefef' }}
-        >
-          <p
-            className="text-[9px] font-bold uppercase tracking-widest mb-1.5"
-            style={{ color: darkMode ? '#444' : '#bbb' }}
-          >한국어 해석 · 직원 참고용</p>
-          <p className="text-xs leading-relaxed" style={{ color: ac.koColor }}>{koText}</p>
+        <div style={{ margin:'0 14px 12px', padding:'10px 12px', background:C.bg, border:`1px solid ${C.border}`, borderRadius:9 }}>
+          <p style={{ fontSize:9, fontWeight:800, color:C.textMt, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:5 }}>한국어 해석</p>
+          <p style={{ fontSize:11, color:C.textSub, lineHeight:1.6 }}>{koText}</p>
         </div>
       )}
 
       {/* Copy button */}
-      <div className="px-4 pb-4 flex justify-end">
-        <button
-          onClick={handleCopy}
-          className="tiki-copy-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold"
-          style={{
-            border: copied ? '1px solid #22c55e' : ac.btnBorder,
-            color:  copied ? '#22c55e' : ac.btnColor,
-            background: copied
-              ? 'rgba(34,197,94,0.08)'
-              : hovered ? ac.btnHover : 'transparent',
-          }}
-        >
+      <div style={{ padding:'0 14px 14px', display:'flex', justifyContent:'flex-end' }}>
+        <button className="copy-btn" onClick={handleCopy} style={{
+          display:'flex', alignItems:'center', gap:5,
+          padding:'6px 14px', borderRadius:8, border:'none',
+          background: copied ? C.sagePale : type.pale,
+          color: copied ? C.sage : type.accent,
+          fontSize:11, fontWeight:700, letterSpacing:'-0.01em',
+          cursor:'pointer',
+        }}>
           {copied ? <Check size={11} /> : <Copy size={11} />}
           {copied ? '복사됨' : '복사하기'}
         </button>
@@ -411,109 +556,122 @@ function ResultCard({ def, option, darkMode, onCopy, index }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PasteZone — 플로팅 카드 + 골드 포커스 글로우
-// ─────────────────────────────────────────────────────────────────────────────
-function PasteZone({ value, onChange, onPaste, darkMode, pasting }) {
-  const [focused, setFocused] = useState(false);
+// ── Save to memory bar ────────────────────────────────────────────────────────
+function SaveToMemoryBar({ result, input }) {
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const boxShadow = pasting
-    ? undefined  // controlled by animation
-    : focused
-      ? `0 0 0 3px rgba(164,119,100,0.20), 0 4px 24px rgba(164,119,100,0.12), 0 1px 3px rgba(0,0,0,0.06)`
-      : darkMode
-        ? '0 2px 12px rgba(0,0,0,0.4)'
-        : '0 2px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04)';
+  const handleSave = async () => {
+    setSaving(true);
+    // TODO: POST to /api/memory
+    await new Promise(r => setTimeout(r, 800));
+    setSaved(true);
+    setSaving(false);
+  };
 
   return (
-    <div
-      className="relative rounded-2xl overflow-hidden"
-      style={{
-        background: darkMode ? '#18181b' : '#ffffff',
-        border: darkMode
-          ? `1px solid ${focused || pasting ? GOLD + '55' : '#27272a'}`
-          : `1px solid ${focused || pasting ? GOLD + '80' : '#e4e4e7'}`,
-        boxShadow: pasting ? undefined : boxShadow,
-        animation: pasting ? 'pasteFlash 0.8s ease-out forwards' : 'none',
-        transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
-      }}
-    >
-      {/* Shimmer sweep on paste */}
-      {pasting && (
-        <div
-          className="absolute inset-0 z-10 pointer-events-none overflow-hidden rounded-2xl"
-        >
-          <div
-            style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(105deg, transparent 35%, rgba(164,119,100,0.14) 50%, transparent 65%)',
-              animation: 'shimmerSweep 0.65s ease-out',
-            }}
-          />
-        </div>
+    <div style={{
+      display:'flex', alignItems:'center', gap:12,
+      padding:'14px 18px', borderRadius:12,
+      background: saved ? C.sagePale : C.bgSub,
+      animation:'fadeSlideUp 0.3s ease-out',
+      transition:'all 0.2s',
+    }}>
+      <div style={{ width:32, height:32, borderRadius:9, background: saved ? C.sage + '20' : C.mochaPale, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+        <Brain size={14} color={saved ? C.sage : C.mocha} />
+      </div>
+      <div style={{ flex:1 }}>
+        <p style={{ fontSize:12, fontWeight:700, color:saved ? C.sage : C.textSub, letterSpacing:'-0.01em' }}>
+          {saved ? 'Tiki Memory에 저장되었습니다' : '이 상담을 환자 기록에 저장'}
+        </p>
+        <p style={{ fontSize:10, color:C.textMt, marginTop:2 }}>
+          {saved ? '환자 기록 → Tiki Memory에서 확인할 수 있습니다' : '환자 언어, 의도, 시술 관심사가 자동으로 기록됩니다'}
+        </p>
+      </div>
+      {!saved && (
+        <button className="action-btn" onClick={handleSave} disabled={saving} style={{
+          display:'flex', alignItems:'center', gap:5,
+          padding:'7px 16px', borderRadius:8,
+          background: C.mocha, color:'#fff',
+          border:'none', fontSize:11, fontWeight:700,
+          boxShadow:`0 3px 12px rgba(164,120,100,0.35)`,
+          opacity: saving ? 0.7 : 1,
+          cursor: saving ? 'default' : 'pointer',
+          letterSpacing:'-0.01em', flexShrink:0,
+        }}>
+          {saving ? <Loader2 size={11} style={{ animation:'spin 1s linear infinite' }} /> : <Save size={11} />}
+          {saving ? '저장 중...' : 'Memory 저장'}
+        </button>
       )}
-
-      <textarea
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        onPaste={onPaste}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        placeholder={`여기에 환자 메시지를 붙여넣으세요 (Ctrl+V / ⌘V)\n붙여넣는 즉시 AI가 자동 분석합니다\n\n예) "肉毒素の料金はいくらですか？副作用が心配です..."`}
-        rows={5}
-        className="w-full px-5 pt-5 pb-4 text-sm leading-relaxed resize-none focus:outline-none bg-transparent relative z-20"
-        style={{
-          color: darkMode ? '#e8dcc8' : '#1a1a1a',
-          caretColor: GOLD,
-        }}
-      />
-
-      {/* Paste badge */}
-      {pasting && (
-        <div
-          className="absolute top-3 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
-          style={{
-            background: `linear-gradient(135deg, ${GOLD}, ${GOLD2})`,
-            color: '#fff',
-            animation: 'sparkPop 0.3s ease-out',
-            boxShadow: `0 2px 12px rgba(164,119,100,0.4)`,
-          }}
-        >
-          <Sparkles size={10} />
-          분석 시작
-        </div>
-      )}
-
-      {/* Focus gold line at bottom */}
-      <div
-        style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '2px',
-          background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`,
-          opacity: focused || pasting ? 1 : 0,
-          transition: 'opacity 0.25s ease',
-        }}
-      />
+      {saved && <Check size={16} color={C.sage} />}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TikiPasteTab — main
-// ─────────────────────────────────────────────────────────────────────────────
-export default function TikiPasteTab({ darkMode }) {
+// ── Empty state ───────────────────────────────────────────────────────────────
+function EmptyState({ mode }) {
+  const hints = {
+    paste: [
+      { flag:'🇯🇵', text:'ヒアルロン酸の効果はいつ出ますか？副作用が心配です' },
+      { flag:'🇨🇳', text:'这个手术恢复期多久？有没有副作用？价格大概是多少？' },
+      { flag:'🇺🇸', text:'Is the filler procedure painful? How long is recovery?' },
+    ],
+    screen: null,
+    ocr: null,
+  };
+  const examples = hints[mode] || hints.paste;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'40px 24px 32px', gap:24 }}>
+      <div style={{ width:56, height:56, borderRadius:16, background:C.mochaPale, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 4px 20px rgba(164,120,100,0.12)` }}>
+        <Sparkles size={24} color={C.mocha} strokeWidth={1.5} />
+      </div>
+      <div style={{ textAlign:'center' }}>
+        <p style={{ fontSize:14, fontWeight:800, color:C.text, marginBottom:6, letterSpacing:'-0.02em' }}>외국인 환자 메시지를 분석합니다</p>
+        <p style={{ fontSize:12, color:C.textMt, lineHeight:1.7 }}>메시지를 붙여넣으면 언어를 감지하고<br />의료적으로 안전한 답장 3가지를 즉시 생성합니다</p>
+      </div>
+      {examples && (
+        <div style={{ width:'100%', maxWidth:480, display:'flex', flexDirection:'column', gap:8 }}>
+          <p style={{ fontSize:10, fontWeight:700, color:C.textMt, textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'center', marginBottom:4 }}>예시 메시지</p>
+          {examples.map((ex, i) => (
+            <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', background:C.white, boxShadow:`0 1px 6px rgba(164,120,100,0.07)`, borderRadius:10 }}>
+              <span style={{ fontSize:16, flexShrink:0 }}>{ex.flag}</span>
+              <p style={{ fontSize:12, color:C.textSub, lineHeight:1.6, letterSpacing:'-0.01em' }}>{ex.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Language chips */}
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center' }}>
+        {[['🇯🇵','일본어'],['🇨🇳','중국어'],['🇺🇸','영어'],['🇹🇭','태국어'],['🇻🇳','베트남어'],['🇷🇺','러시아어'],['🇸🇦','아랍어'],['🇦🇪','아랍어(UAE)']].map(([f,l]) => (
+          <div key={l} style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 10px', background:C.bgSub, borderRadius:999, fontSize:11, color:C.textMt, fontWeight:500 }}>
+            <span style={{ fontSize:13 }}>{f}</span>{l}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function TikiPasteTab() {
   const { clinicId, session } = useAuth();
   const clinicName = session?.clinic?.name || '클리닉';
 
+  const [mode,       setMode]       = useState('paste'); // 'paste' | 'screen' | 'ocr'
   const [input,      setInput]      = useState('');
   const [loading,    setLoading]    = useState(false);
   const [result,     setResult]     = useState(null);
   const [error,      setError]      = useState(null);
-  const [pasteErr,   setPasteErr]   = useState(false);
   const [toast,      setToast]      = useState('');
-  const [lastCopied, setLastCopied] = useState('');
   const [pasting,    setPasting]    = useState(false);
   const [tikiActive, setTikiActive] = useState(false);
   const tikiTimer = useRef(null);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2200);
+  };
 
   const triggerTiki = useCallback(() => {
     clearTimeout(tikiTimer.current);
@@ -560,7 +718,6 @@ export default function TikiPasteTab({ darkMode }) {
   }, [handleGenerate, triggerTiki]);
 
   const handleClipboardBtn = useCallback(async () => {
-    setPasteErr(false);
     try {
       const text = await navigator.clipboard.readText();
       if (text.trim()) {
@@ -572,364 +729,200 @@ export default function TikiPasteTab({ darkMode }) {
         setTimeout(() => setPasting(false), 750);
         handleGenerate(text);
       }
-    } catch {
-      setPasteErr(true);
-      setTimeout(() => setPasteErr(false), 3000);
-    }
+    } catch { /* permission denied — user can paste manually */ }
   }, [handleGenerate, triggerTiki]);
 
+  const handleModeTextReady = useCallback((text) => {
+    setInput(text);
+    setResult(null);
+    setError(null);
+    handleGenerate(text);
+  }, [handleGenerate]);
+
   const handleReset = () => {
-    setInput(''); setResult(null); setError(null); setLastCopied('');
+    setInput(''); setResult(null); setError(null);
   };
 
-  const handleCardCopy = (replyText) => {
-    setLastCopied(replyText);
-    setToast('클립보드에 복사되었습니다');
-    triggerTiki();
-    setTimeout(() => setToast(''), 2200);
+  const handleModeSwitch = (newMode) => {
+    setMode(newMode);
+    setInput('');
+    setResult(null);
+    setError(null);
   };
 
-  // ── 모드별 색상 ─────────────────────────────────────────────────────────────
-  const pageBg   = darkMode ? '#0a0a0a' : '#ffffff';
-  const mutedCol = darkMode ? '#555' : '#aaa';
-  const divCol   = darkMode ? '#1e1e1e' : '#e4e4e7';
+  const hasContent = input.trim() || result || loading;
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto" style={{ background: pageBg, position: 'relative' }}>
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflowY:'auto', background:C.bg, fontFamily:SANS }}>
       <TikiFlash active={tikiActive} />
+      {toast && <Toast message={toast} />}
       <style>{GLOBAL_STYLE}</style>
 
-      {/* ── Page header ─────────────────────────────────────────────────────── */}
-      <div
-        className="sticky top-0 z-10 px-4 sm:px-8 py-4 flex items-center justify-between"
-        style={{
-          background: darkMode ? '#0a0a0a' : '#ffffff',
-          borderBottom: `1px solid ${divCol}`,
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center shadow"
-            style={{
-              background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD2} 50%, ${GOLD_L} 100%)`,
-              backgroundSize: '200% 200%',
-              animation: 'goldGlow 4s ease infinite',
-              boxShadow: `0 2px 16px rgba(164,119,100,0.4)`,
-            }}
-          >
-            <Sparkles size={16} className="text-white" fill="rgba(255,255,255,0.5)" />
+      {/* ── Sticky header ─────────────────────────────────────────────────────── */}
+      <div style={{
+        position:'sticky', top:0, zIndex:40,
+        padding:'12px 24px',
+        background:`${C.bg}f0`,
+        backdropFilter:'blur(16px)',
+        WebkitBackdropFilter:'blur(16px)',
+        boxShadow:`0 1px 0 ${C.border}, 0 4px 16px rgba(164,120,100,0.04)`,
+        display:'flex', alignItems:'center', gap:16,
+      }}>
+        {/* Logo */}
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ width:34, height:34, borderRadius:10, background:`linear-gradient(135deg, ${C.mocha}, ${C.mochaDk})`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:`0 3px 12px rgba(164,120,100,0.40)`, flexShrink:0 }}>
+            <Sparkles size={15} color="#fff" fill="rgba(255,255,255,0.5)" />
           </div>
           <div>
-            <h1
-              className="text-sm font-extrabold flex items-center gap-2"
-              style={{ color: darkMode ? '#fafafa' : '#09090b', letterSpacing: '-0.02em' }}
-            >
-              Tiki Paste
-              <span
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                style={{
-                  background: darkMode ? 'rgba(164,119,100,0.12)' : '#F5EDE8',
-                  color: darkMode ? GOLD : GOLD2,
-                  border: `1px solid ${darkMode ? 'rgba(164,119,100,0.25)' : '#CCADA0'}`,
-                }}
-              >
-                수석 상담실장 AI
-              </span>
-            </h1>
-            <p className="text-[11px] mt-0.5" style={{ color: mutedCol }}>
-              붙여넣는 즉시 — 강남 10년차 상담실장이 환자 언어로 답변 3종을 완성합니다
-            </p>
+            <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+              <span style={{ fontSize:14, fontWeight:800, color:C.text, letterSpacing:'-0.03em' }}>Tiki Paste</span>
+              <span style={{ fontSize:9, fontWeight:700, color:C.mocha, background:C.mochaPale, padding:'2px 7px', borderRadius:999, letterSpacing:'0.04em', textTransform:'uppercase' }}>AI Copilot</span>
+            </div>
+            <p style={{ fontSize:10, color:C.textMt, marginTop:2 }}>외국어 메시지 → 의료 안전 답장 3종</p>
           </div>
         </div>
 
-        {(result || input) && (
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-            style={{
-              color: darkMode ? '#666' : '#999',
-              border: `1px solid ${divCol}`,
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.color = darkMode ? '#ccc' : '#333';
-              e.currentTarget.style.borderColor = darkMode ? '#444' : '#ccc';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.color = darkMode ? '#666' : '#999';
-              e.currentTarget.style.borderColor = divCol;
-            }}
+        {/* Mode selector — center */}
+        <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
+          <InputModeTabs mode={mode} onSelect={handleModeSwitch} />
+        </div>
+
+        {/* Reset */}
+        {hasContent && (
+          <button className="action-btn" onClick={handleReset} style={{
+            display:'flex', alignItems:'center', gap:5,
+            padding:'6px 12px', borderRadius:8,
+            background:'transparent', color:C.textMt,
+            border:`1px solid ${C.border}`,
+            fontSize:11, fontWeight:600,
+          }}
+            onMouseEnter={e => { e.currentTarget.style.color = C.textSub; e.currentTarget.style.borderColor = C.borderMd; }}
+            onMouseLeave={e => { e.currentTarget.style.color = C.textMt; e.currentTarget.style.borderColor = C.border; }}
           >
-            <RefreshCcw size={11} />새로 시작
+            <RefreshCcw size={11} /> 새로 시작
           </button>
         )}
       </div>
 
-      {/* ── Main workspace ──────────────────────────────────────────────────── */}
-      <div className="flex-1 px-4 sm:px-8 py-6 max-w-5xl w-full mx-auto space-y-5">
+      {/* ── Content ───────────────────────────────────────────────────────────── */}
+      <div style={{ flex:1, maxWidth:900, width:'100%', margin:'0 auto', padding:'24px 24px 40px', display:'flex', flexDirection:'column', gap:20 }}>
 
-        {/* ── Paste zone ──────────────────────────────────────────────────── */}
-        <div>
-          <PasteZone
-            value={input}
-            onChange={(v) => { setInput(v); setResult(null); setError(null); }}
-            onPaste={handleTextareaPaste}
-            darkMode={darkMode}
-            pasting={pasting}
-          />
+        {/* ── Input section ──────────────────────────────────────────────────── */}
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {mode === 'paste' && (
+            <PasteZone
+              value={input}
+              onChange={(v) => { setInput(v); setResult(null); setError(null); }}
+              onPaste={handleTextareaPaste}
+              pasting={pasting}
+            />
+          )}
+          {mode === 'screen' && <ReadScreenZone onTextReady={handleModeTextReady} />}
+          {mode === 'ocr'    && <OCRCaptureZone onTextReady={handleModeTextReady} />}
 
-          <div className="flex items-center justify-between mt-2.5 px-1 gap-2">
-            <div className="flex items-center gap-2">
-              {input.length > 0 && (
-                <span className="text-[10px]" style={{ color: mutedCol }}>{input.length}자</span>
-              )}
-              <button
-                onClick={handleClipboardBtn}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                style={pasteErr
-                  ? { border: '1px solid #ef4444', color: '#ef4444', background: '#fff5f5' }
-                  : {
-                    border: `1px solid ${divCol}`,
-                    color: darkMode ? '#888' : '#666',
-                    background: 'transparent',
-                  }}
-                onMouseEnter={e => {
-                  if (!pasteErr) {
-                    e.currentTarget.style.borderColor = GOLD + '80';
-                    e.currentTarget.style.color = darkMode ? GOLD : GOLD2;
-                  }
+          {/* Action row — paste mode only */}
+          {mode === 'paste' && (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                {input.length > 0 && (
+                  <span style={{ fontSize:10, color:C.textMt, fontWeight:500 }}>{input.length}자</span>
+                )}
+                <button className="action-btn" onClick={handleClipboardBtn} style={{
+                  display:'flex', alignItems:'center', gap:5,
+                  padding:'6px 12px', borderRadius:8,
+                  background:'transparent', color:C.textMt,
+                  border:`1px solid ${C.border}`,
+                  fontSize:11, fontWeight:600,
                 }}
-                onMouseLeave={e => {
-                  if (!pasteErr) {
-                    e.currentTarget.style.borderColor = divCol;
-                    e.currentTarget.style.color = darkMode ? '#888' : '#666';
-                  }
-                }}
-              >
-                <Clipboard size={11} />
-                {pasteErr ? '권한 필요' : '클립보드에서 붙여넣기'}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.mocha + '60'; e.currentTarget.style.color = C.mocha; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textMt; }}
+                >
+                  <Clipboard size={11} /> 클립보드에서 붙여넣기
+                </button>
+              </div>
+
+              <button className="action-btn" onClick={() => handleGenerate()} disabled={!input.trim() || loading} style={{
+                display:'flex', alignItems:'center', gap:6,
+                padding:'8px 18px', borderRadius:9, border:'none',
+                background: input.trim() && !loading ? C.mocha : C.bgDeep,
+                color: input.trim() && !loading ? '#fff' : C.textMt,
+                fontSize:12, fontWeight:700, letterSpacing:'-0.01em',
+                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+                boxShadow: input.trim() && !loading ? `0 3px 14px rgba(164,120,100,0.40)` : 'none',
+                transition:'all 0.15s',
+              }}>
+                {loading
+                  ? <><Loader2 size={12} style={{ animation:'spin 1s linear infinite' }} /> 분석 중...</>
+                  : <><Sparkles size={12} /> 답장 생성</>
+                }
               </button>
             </div>
-
-            <button
-              onClick={() => handleGenerate()}
-              disabled={!input.trim() || loading}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all"
-              style={input.trim() && !loading ? {
-                background: `linear-gradient(135deg, ${GOLD}, ${GOLD2})`,
-                color: '#fff',
-                boxShadow: `0 2px 12px rgba(164,119,100,0.35)`,
-              } : {
-                background: darkMode ? '#1a1a1a' : '#f5f5f5',
-                color: darkMode ? '#444' : '#ccc',
-                cursor: 'not-allowed',
-              }}
-            >
-              {loading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-              {loading ? '분석 중...' : '수동 생성'}
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* ── Copied preview ──────────────────────────────────────────────── */}
-        {lastCopied && !loading && (
-          <div
-            className="flex items-start gap-3 px-4 py-3 rounded-xl"
-            style={{
-              background: darkMode ? 'rgba(164,119,100,0.05)' : '#FAF6F3',
-              border: `1px solid ${darkMode ? 'rgba(164,119,100,0.15)' : '#E5CFC5'}`,
-            }}
-          >
-            <ClipboardList size={13} className="shrink-0 mt-0.5" style={{ color: GOLD }} />
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold mb-1" style={{ color: GOLD2 }}>
-                현재 클립보드에 복사된 메시지
-              </p>
-              <p
-                className="text-xs leading-relaxed line-clamp-3 whitespace-pre-wrap"
-                style={{ color: darkMode ? '#c8b880' : '#7A5545' }}
-              >{lastCopied}</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Loading ─────────────────────────────────────────────────────── */}
+        {/* ── Loading state ──────────────────────────────────────────────────── */}
         {loading && (
-          <div className="space-y-4">
-            <div
-              className="flex items-center gap-3 px-4 py-3.5 rounded-xl"
-              style={{
-                background: darkMode ? 'rgba(164,119,100,0.05)' : '#FAF6F3',
-                border: `1px solid ${darkMode ? 'rgba(164,119,100,0.15)' : '#E5CFC5'}`,
-              }}
-            >
-              <Loader2 size={15} className="animate-spin shrink-0" style={{ color: GOLD }} />
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', background:C.mochaPale, border:`1px solid ${C.border}`, borderRadius:11 }}>
+              <Loader2 size={14} style={{ animation:'spin 1s linear infinite', color:C.mocha, flexShrink:0 }} />
               <div>
-                <p className="text-xs font-semibold" style={{ color: darkMode ? '#F5EDE8' : '#7A5545' }}>
-                  10년차 상담실장이 답변을 작성 중입니다...
-                </p>
-                <p className="text-[10px] mt-0.5" style={{ color: mutedCol }}>
-                  언어 감지 → 의도 파악 → 병원 DB 검색 → 3가지 답변 생성
-                </p>
+                <p style={{ fontSize:12, fontWeight:700, color:C.mochaDk }}>언어 감지 → 의도 파악 → 답장 3종 생성 중...</p>
+                <p style={{ fontSize:10, color:C.textMt, marginTop:2 }}>병원 시술 DB를 참조하여 의료적으로 안전한 답변을 준비합니다</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[0,1,2].map(i => <SkeletonCard key={i} darkMode={darkMode} />)}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:14 }}>
+              {[0, 100, 200].map(d => <SkeletonCard key={d} delay={d} />)}
             </div>
           </div>
         )}
 
-        {/* ── Error ───────────────────────────────────────────────────────── */}
+        {/* ── Error state ────────────────────────────────────────────────────── */}
         {error && !loading && (
-          <div
-            className="flex items-start gap-3 px-4 py-3 rounded-xl"
-            style={{
-              background: darkMode ? 'rgba(239,68,68,0.08)' : '#fff5f5',
-              border: darkMode ? '1px solid rgba(239,68,68,0.2)' : '1px solid #fecaca',
-              color: darkMode ? '#f87171' : '#dc2626',
-            }}
-          >
-            <AlertCircle size={14} className="shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold">생성 실패</p>
-              <p className="text-[11px] mt-0.5 opacity-80">{error}</p>
+          <div style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'13px 16px', background:C.redPale, border:`1px solid ${C.red}35`, borderRadius:11 }}>
+            <AlertCircle size={14} color={C.red} style={{ flexShrink:0, marginTop:1 }} />
+            <div style={{ flex:1 }}>
+              <p style={{ fontSize:12, fontWeight:700, color:C.red, marginBottom:3 }}>생성 실패</p>
+              <p style={{ fontSize:11, color:C.red, opacity:0.75 }}>{error}</p>
             </div>
-            <button
-              onClick={() => handleGenerate()}
-              className="ml-auto text-[11px] font-semibold shrink-0 underline underline-offset-2"
-            >다시 시도</button>
+            <button className="action-btn" onClick={() => handleGenerate()} style={{ fontSize:11, fontWeight:700, color:C.red, background:'none', border:`1px solid ${C.red}40`, padding:'5px 12px', borderRadius:7, flexShrink:0 }}>
+              다시 시도
+            </button>
           </div>
         )}
 
-        {/* ── Results ─────────────────────────────────────────────────────── */}
+        {/* ── Analysis strip ─────────────────────────────────────────────────── */}
         {result && !loading && (
-          <div className="space-y-4">
-            {/* 언어 / 의도 배지 */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-                style={{
-                  background: darkMode ? 'rgba(164,119,100,0.10)' : '#F5EDE8',
-                  border: `1px solid ${darkMode ? 'rgba(164,119,100,0.25)' : '#CCADA0'}`,
-                  color: darkMode ? GOLD : GOLD2,
-                }}
-              >
-                <Globe size={11} />
-                {result.detected_language || '언어 감지됨'}
-              </div>
-              {result.intent && (
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-                  style={{
-                    background: darkMode ? '#1a1a1a' : '#f8f8f8',
-                    border: `1px solid ${divCol}`,
-                    color: darkMode ? '#888' : '#555',
-                  }}
-                >
-                  <Lightbulb size={11} />
-                  {result.intent}
-                </div>
-              )}
-              <span className="text-[11px]" style={{ color: mutedCol }}>
-                · 답변은 환자 언어로 작성 / 한국어 해석은 직원 참고용
-              </span>
-            </div>
+          <AnalysisStrip result={result} />
+        )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {CARD_DEFS.map((def, i) => (
-                <ResultCard
-                  key={def.key}
-                  def={def}
-                  option={result.options?.[def.key]}
-                  darkMode={darkMode}
-                  onCopy={handleCardCopy}
-                  index={i}
+        {/* ── Reply cards ────────────────────────────────────────────────────── */}
+        {result && !loading && (
+          <div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:14 }}>
+              {REPLY_TYPES.map((type, i) => (
+                <ReplyCard
+                  key={type.key}
+                  type={type}
+                  option={result.options?.[type.key]}
+                  onCopy={(text) => { showToast('클립보드에 복사되었습니다'); triggerTiki(); }}
+                  delay={i * 80}
                 />
               ))}
             </div>
-
-            <p className="text-center text-[11px]" style={{ color: mutedCol }}>
-              💡 복사 버튼은 환자에게 보낼 원문만 복사합니다. 한국어 해석은 직원 전용입니다.
+            <p style={{ textAlign:'center', fontSize:10, color:C.textMt, marginTop:12, letterSpacing:'-0.01em' }}>
+              복사 버튼은 환자에게 전송할 원문만 복사합니다 · 한국어 해석은 직원 전용입니다
             </p>
           </div>
         )}
 
-        {/* ── Empty state ─────────────────────────────────────────────────── */}
-        {!input && !loading && !result && (
-          <div
-            className="flex flex-col items-center justify-center py-16 gap-6"
-            style={{ color: mutedCol }}
-          >
-            {/* 아이콘 */}
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{
-                background: darkMode
-                  ? 'rgba(164,119,100,0.08)'
-                  : 'linear-gradient(145deg, #fff5f7, #fff0f3)',
-                border: `1px solid ${darkMode ? 'rgba(164,119,100,0.15)' : '#E5CFC5'}`,
-                boxShadow: darkMode ? 'none' : '0 4px 20px rgba(164,119,100,0.12)',
-              }}
-            >
-              <Sparkles
-                size={28}
-                strokeWidth={1.4}
-                style={{ color: darkMode ? 'rgba(164,119,100,0.5)' : GOLD }}
-              />
-            </div>
-
-            <div className="text-center space-y-2">
-              <p
-                className="text-sm font-bold"
-                style={{ color: darkMode ? '#e8dcc8' : '#1a1a1a' }}
-              >
-                뇌를 1%도 쓸 필요 없습니다
-              </p>
-              <p className="text-xs">메시지를 붙여넣으면 환자 언어로 즉시 답변이 생성됩니다</p>
-              <p className="text-xs">중국어 → 중국어 답변 · 일본어 → 일본어 답변</p>
-            </div>
-
-            {/* 언어 칩 */}
-            <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-              {[
-                { emoji: '🇯🇵', label: '일본어' },
-                { emoji: '🇨🇳', label: '중국어' },
-                { emoji: '🇺🇸', label: '영어' },
-              ].map(l => (
-                <div
-                  key={l.label}
-                  className="tiki-lang-chip px-3 py-3 rounded-xl text-center text-[11px] font-medium"
-                  style={{
-                    background: darkMode ? '#18181b' : '#ffffff',
-                    border: `1px solid ${divCol}`,
-                    color: darkMode ? '#666' : '#aaa',
-                    boxShadow: darkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.04)',
-                  }}
-                >
-                  <span className="text-xl block mb-1.5">{l.emoji}</span>
-                  {l.label}
-                </div>
-              ))}
-            </div>
-
-            {/* 단축키 안내 */}
-            <div
-              className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs"
-              style={{
-                background: darkMode ? 'rgba(164,119,100,0.05)' : '#FAF6F3',
-                border: `1px solid ${darkMode ? 'rgba(164,119,100,0.12)' : '#f0e8b0'}`,
-                color: darkMode ? 'rgba(164,119,100,0.7)' : GOLD2,
-              }}
-            >
-              <span className="text-base">⚡</span>
-              <span>
-                텍스트 창에 <strong>Ctrl+V</strong> 하면 자동 생성됩니다
-              </span>
-            </div>
-          </div>
+        {/* ── Save to memory ─────────────────────────────────────────────────── */}
+        {result && !loading && (
+          <SaveToMemoryBar result={result} input={input} />
         )}
-      </div>
 
-      {toast && <Toast message={toast} />}
+        {/* ── Empty state ────────────────────────────────────────────────────── */}
+        {!hasContent && !error && <EmptyState mode={mode} />}
+      </div>
     </div>
   );
 }

@@ -10,16 +10,31 @@ export const ROLES = {
   STAFF: 'staff',
 };
 
-/** feature별 접근 가능 역할 맵 */
+/**
+ * feature별 접근 가능 역할 맵
+ * null = 모든 역할 허용
+ * ─────────────────────────────────────────────────────────────
+ * 제품 구조:
+ *   All roles  : tiki_paste, tiki_talk, tiki_room
+ *   owner/admin: tiki_memory, procedures, protocol, analytics, settings
+ */
 const FEATURE_ROLES = {
-  stats:        ['owner', 'admin'],
-  settings:     ['owner', 'admin'],
-  staff_mgmt:   ['owner', 'admin'],
+  // ── 전체 허용 (모든 직원) ────────────────────────────────────
+  tiki_paste:   null,
+  tiki_talk:    null,
+  tiki_room:    null,
+
+  // ── owner / admin 전용 ───────────────────────────────────────
+  tiki_memory:  ['owner', 'admin'],
   procedures:   ['owner', 'admin'],
-  // 아래는 모든 역할 허용 (명시 불필요 — 기본값 true)
-  chat:         null,
-  patients:     null,
-  aftercare:    null,
+  protocol:     ['owner', 'admin'],
+  analytics:    ['owner', 'admin'],
+  settings:     ['owner', 'admin'],
+  my_tiki:      ['owner', 'admin'],
+
+  // ── 레거시 ID 별칭 (하위 호환) ───────────────────────────────
+  stats:        ['owner', 'admin'],   // analytics의 구 ID
+  insights:     ['owner', 'admin'],   // tiki_memory의 구 ID
 };
 
 /**
