@@ -17,6 +17,7 @@ function isSameLocalDate(a, b) {
 export function buildPatientTodayTasks({
   visit = {},
   formsStatus = {},
+  aftercareState = null,
   now = new Date().toISOString(),
 } = {}) {
   const tasks = [];
@@ -42,6 +43,20 @@ export function buildPatientTodayTasks({
     tasks.push({
       key: "consent_form",
       tone: "action",
+    });
+  }
+
+  if ((aftercareState?.due_items || []).length > 0) {
+    tasks.push({
+      key: "aftercare_due",
+      tone: "action",
+    });
+  }
+
+  if (aftercareState?.acknowledgement) {
+    tasks.push({
+      key: "aftercare_ack",
+      tone: "watch",
     });
   }
 

@@ -6,17 +6,12 @@ import {
   getAskQuickPrompts,
   normalizeVisitStage,
 } from "./patient-ask-policy.js";
+import { getDefaultClinicRuleConfig } from "./clinic-rule-config.js";
 
 const ASK_MODEL = process.env.MODEL_HAIKU || "claude-haiku-4-5-20251001";
 const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
-
-const ESCALATION_OPTIONS = [
-  { id: "coordinator", label: "Ask coordinator" },
-  { id: "nurse", label: "Ask nurse" },
-  { id: "doctor_confirmation", label: "Doctor confirmation needed" },
-];
 
 const STAGE_SUMMARIES = {
   booked: {
@@ -142,31 +137,19 @@ export function evaluateAskPolicy({ text, visit, sourceBundle }) {
   };
 }
 
-function getFallbackText({ lang, policyResult, questionType }) {
+function getFallbackText({ lang, policyResult, questionType, clinicRuleConfig }) {
   const isUrgent = questionType === "urgent_risk";
   const isDoctor = questionType === "doctor_required";
 
-  const texts = {
-    ko: {
-      fallback: "지금 바로 단정해서 안내드리기보다, 병원 확인이 필요한 내용입니다. 안전을 위해 스태프 또는 담당 의료진 확인을 권장드립니다.",
-      escalate: isUrgent
-        ? "지금 말씀하신 내용은 빠른 확인이 필요할 수 있습니다. 즉시 병원에 연락하시고, 필요한 경우 응급 진료를 받아 주세요. 아래에서 바로 의료진 확인 요청을 남길 수 있습니다."
-        : isDoctor
-          ? "이 내용은 담당 의료진 확인이 필요한 질문입니다. 아래에서 바로 확인 요청을 남겨 주세요."
-          : "이 질문은 병원 확인이 필요한 내용입니다. 아래에서 스태프 확인 요청을 남겨 주세요.",
-    },
-    en: {
-      fallback: "This question needs clinic confirmation rather than a definite answer here. For safety, please ask staff or the clinician to confirm.",
-      escalate: isUrgent
-        ? "What you described may need prompt review. Please contact the clinic immediately and seek urgent care if needed. You can request staff review below."
-        : isDoctor
-          ? "This question needs clinician confirmation. You can request that review below."
-          : "This question needs clinic confirmation. You can request staff review below.",
-    },
-  };
+  const texts = clinicRuleConfig?.ask?.fallback_copy || getDefaultClinicRuleConfig().ask.fallback_copy;
 
   const dict = texts[lang] || texts.en;
-  return policyResult === "escalate" ? dict.escalate : dict.fallback;
+  if (policyResult === "escalate") {
+    if (isUrgent && dict.escalate_urgent) return dict.escalate_urgent;
+    if (isDoctor && dict.escalate_doctor_required) return dict.escalate_doctor_required;
+    return dict.escalate;
+  }
+  return dict.fallback;
 }
 
 function buildSourceRefs(sourceBundle) {
@@ -215,7 +198,7 @@ Question type: ${questionType}.`,
   return response.content.find((block) => block.type === "text")?.text?.trim() || null;
 }
 
-export async function generateAskAssistantPayload({ text, lang, visit, procedure, knowledgeRows }) {
+export async function generateAskAssistantPayload({ text, lang, visit, procedure, knowledgeRows, clinicRuleConfig = null }) {
   const sourceBundle = buildAskSourceBundle({ visit, procedure, knowledgeRows, lang });
   const policy = evaluateAskPolicy({ text, visit, sourceBundle });
   const sourceRefs = buildSourceRefs(sourceBundle);
@@ -236,6 +219,7 @@ export async function generateAskAssistantPayload({ text, lang, visit, procedure
       lang,
       policyResult: policy.policyResult,
       questionType: policy.questionType,
+      clinicRuleConfig,
     });
   }
 
@@ -247,25 +231,32 @@ export async function generateAskAssistantPayload({ text, lang, visit, procedure
   };
 }
 
-export function getPatientAskBootstrap({ visit, messages, escalationRequest }) {
+function buildEscalationOptions(clinicRuleConfig = null) {
+  const config = clinicRuleConfig || getDefaultClinicRuleConfig();
+  const labels = config?.ask?.escalation_labels || {};
+  return [
+    { id: "coordinator", label: labels.coordinator?.en || "Ask coordinator" },
+    { id: "nurse", label: labels.nurse?.en || "Ask nurse" },
+    { id: "doctor_confirmation", label: labels.doctor_confirmation?.en || "Doctor confirmation needed" },
+  ];
+}
+
+export function getPatientAskBootstrap({ visit, messages, escalationRequest, clinicRuleConfig = null }) {
   const stage = normalizeVisitStage(visit);
   return {
     currentStage: stage,
     stageSummary: STAGE_SUMMARIES[stage] || STAGE_SUMMARIES.booked,
-    quickPrompts: getAskQuickPrompts(stage),
+    quickPrompts: getAskQuickPrompts(stage, clinicRuleConfig),
     messages: messages || [],
-    escalationOptions: ESCALATION_OPTIONS,
+    escalationOptions: buildEscalationOptions(clinicRuleConfig),
     openEscalation: escalationRequest || null,
   };
 }
 
-export function buildEscalationAck({ lang, requestType }) {
-  const labels = {
-    coordinator: { ko: "코디네이터", en: "coordinator" },
-    nurse: { ko: "간호팀", en: "nurse" },
-    doctor_confirmation: { ko: "의료진", en: "clinician" },
-  };
-  const label = labels[requestType] || labels.coordinator;
+export function buildEscalationAck({ lang, requestType, clinicRuleConfig = null }) {
+  const config = clinicRuleConfig || getDefaultClinicRuleConfig();
+  const labels = config?.ask?.escalation_labels || {};
+  const label = labels[requestType] || labels.coordinator || { ko: "코디네이터", en: "coordinator" };
 
   if (lang === "ko") {
     return `${label.ko} 확인 요청이 접수되었습니다. 병원에서 확인 후 안내드릴 예정입니다.`;

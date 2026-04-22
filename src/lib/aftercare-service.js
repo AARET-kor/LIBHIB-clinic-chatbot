@@ -2,6 +2,7 @@ import { buildDefaultAftercareSteps, getAftercarePatientAcknowledgement } from "
 import { generatePatientToken } from "../middleware/auth.js";
 import { sendMetaMessage } from "../api/meta.js";
 import { sendSms } from "../api/solapi.js";
+import { buildJourneyEventInsert, buildOperationalAuditPayload, writeJourneyEvents } from "./ops-audit.js";
 import { writeAuditLog } from "./supabase-server.js";
 
 const LINK_SENT_VIA_VALUES = new Set(["whatsapp", "sms", "email", "kakao"]);
@@ -215,8 +216,41 @@ export async function markDueAftercareEvents(sb, runId) {
     .eq("response_status", "scheduled")
     .is("sent_at", null)
     .lte("scheduled_for", now)
-    .select("id");
+    .select("id, run_id, step_id");
   if (error) throw error;
+  if ((data || []).length > 0) {
+    const { data: run, error: runError } = await sb
+      .from("patient_aftercare_runs")
+      .select("id, clinic_id, patient_id, visit_id")
+      .eq("id", runId)
+      .maybeSingle();
+    if (runError) throw runError;
+
+    const { data: steps, error: stepError } = await sb
+      .from("aftercare_steps")
+      .select("id, step_key")
+      .in("id", [...new Set((data || []).map((row) => row.step_id).filter(Boolean))]);
+    if (stepError) throw stepError;
+    const stepMap = new Map((steps || []).map((step) => [step.id, step]));
+
+    await writeJourneyEvents(sb, (data || []).map((row) => buildJourneyEventInsert({
+      clinic_id: run?.clinic_id || null,
+      patient_id: run?.patient_id || null,
+      visit_id: run?.visit_id || null,
+      event_type: "aftercare_due_marked",
+      actor_type: "system",
+      actor_id: "scheduler",
+      payload: buildOperationalAuditPayload({
+        current_status: "due",
+        payload: {
+          event_id: row.id,
+          run_id: row.run_id,
+          step_id: row.step_id,
+          step_key: stepMap.get(row.step_id)?.step_key || null,
+        },
+      }),
+    })));
+  }
   return data?.length || 0;
 }
 
@@ -301,6 +335,26 @@ export async function deliverDueAftercareEvents(sb, clinic_id = null) {
       if (!updated) continue;
 
       sentCount += 1;
+      await writeJourneyEvents(sb, [
+        buildJourneyEventInsert({
+          clinic_id: run.clinic_id,
+          patient_id: patient.id || null,
+          visit_id: run.visit_id || null,
+          event_type: "aftercare_outbound_sent",
+          actor_type: "system",
+          actor_id: "scheduler",
+          payload: buildOperationalAuditPayload({
+            current_status: "due",
+            payload: {
+              event_id: event.id,
+              run_id: event.run_id,
+              step_id: event.step_id,
+              step_key: event.aftercare_steps?.step_key || null,
+              channel: target.channel,
+            },
+          }),
+        }),
+      ]);
       await writeAuditLog({
         eventType: "aftercare_outbound",
         clinicId: run.clinic_id,

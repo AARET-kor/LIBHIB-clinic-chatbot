@@ -1,4 +1,4 @@
-const ROOM_READY_STAGES = new Set(["pre_visit", "treatment", "post_care"]);
+import { getDefaultClinicRuleConfig } from "./clinic-rule-config.js";
 
 function toTimestamp(value) {
   if (!value) return Number.POSITIVE_INFINITY;
@@ -6,12 +6,19 @@ function toTimestamp(value) {
   return Number.isNaN(ts) ? Number.POSITIVE_INFINITY : ts;
 }
 
-export function isVisitRoomReady(visit = {}) {
+function getRoomReadyRuleConfig(clinicRuleConfig = null) {
+  const config = clinicRuleConfig || getDefaultClinicRuleConfig();
+  return config?.rooms?.room_ready || getDefaultClinicRuleConfig().rooms.room_ready;
+}
+
+export function isVisitRoomReady(visit = {}, clinicRuleConfig = null) {
+  const roomReadyConfig = getRoomReadyRuleConfig(clinicRuleConfig);
+  const allowedStages = new Set(roomReadyConfig.allowed_stages || []);
   return Boolean(
-    visit.checked_in_at &&
-    visit.intake_done &&
-    visit.consent_done &&
-    ROOM_READY_STAGES.has(visit.stage || "booked"),
+    (!roomReadyConfig.require_checked_in || visit.checked_in_at) &&
+    (!roomReadyConfig.require_intake_done || visit.intake_done) &&
+    (!roomReadyConfig.require_consent_done || visit.consent_done) &&
+    allowedStages.has(visit.stage || "booked"),
   );
 }
 
@@ -23,7 +30,7 @@ export function isVisitInRoom(visit = {}) {
   );
 }
 
-export function buildRoomOccupancy({ rooms = [], visits = [] }) {
+export function buildRoomOccupancy({ rooms = [], visits = [], clinicRuleConfig = null }) {
   return rooms.map((room) => {
     const currentVisit = visits
       .filter((visit) => visit.room_id === room.id && isVisitInRoom(visit))
@@ -37,13 +44,12 @@ export function buildRoomOccupancy({ rooms = [], visits = [] }) {
   });
 }
 
-export function getRoomReadyQueue(visits = []) {
+export function getRoomReadyQueue(visits = [], clinicRuleConfig = null) {
   return visits
-    .filter((visit) => isVisitRoomReady(visit) && !visit.room_id)
+    .filter((visit) => isVisitRoomReady(visit, clinicRuleConfig) && !visit.room_id)
     .sort((a, b) => {
       const checkInDiff = toTimestamp(a.checked_in_at) - toTimestamp(b.checked_in_at);
       if (checkInDiff !== 0) return checkInDiff;
       return toTimestamp(a.visit_date) - toTimestamp(b.visit_date);
     });
 }
-

@@ -7,6 +7,7 @@ import {
   getAskQuickPrompts,
   normalizeVisitStage,
 } from "../src/lib/patient-ask-policy.js";
+import { resolveClinicRuleConfig } from "../src/lib/clinic-rule-config.js";
 
 test("normalizeVisitStage maps arrived patient to arrived stage", () => {
   const stage = normalizeVisitStage({
@@ -29,6 +30,26 @@ test("getAskQuickPrompts returns pre-visit prompts for booked stage", () => {
       "check_in_day_of_visit",
     ],
   );
+});
+
+test("getAskQuickPrompts supports config-resolved prompt overrides while defaulting safely", () => {
+  const config = resolveClinicRuleConfig({
+    tikidoc_rules: {
+      ask: {
+        quick_prompts: {
+          booked: [
+            { id: "prepare_for_visit", text: "Bring your ID and arrive 10 minutes early." },
+          ],
+        },
+      },
+    },
+  });
+
+  const prompts = getAskQuickPrompts("booked", config);
+
+  assert.deepEqual(prompts, [
+    { id: "prepare_for_visit", text: "Bring your ID and arrive 10 minutes early." },
+  ]);
 });
 
 test("classifyAskQuestionType detects urgent risk language", () => {

@@ -58,3 +58,25 @@ test("buildPatientTodayTasks returns a calm ready state when today's tasks are c
 
   assert.deepEqual(tasks.map((task) => task.key), ["ready"]);
 });
+
+test("buildPatientTodayTasks includes aftercare due and clinic acknowledgement when present", () => {
+  const tasks = buildPatientTodayTasks({
+    visit: {
+      visit_date: new Date().toISOString(),
+      intake_done: true,
+      consent_done: true,
+      patient_arrived_at: new Date().toISOString(),
+    },
+    formsStatus: {
+      hasIntake: true,
+      hasConsent: true,
+    },
+    aftercareState: {
+      due_items: [{ id: "event-1" }],
+      acknowledgement: "A nurse is reviewing your recovery check.",
+    },
+    now: new Date().toISOString(),
+  });
+
+  assert.deepEqual(tasks.map((task) => task.key), ["aftercare_due", "aftercare_ack"]);
+});

@@ -6,6 +6,7 @@ import {
   getRoomReadyQueue,
   isVisitRoomReady,
 } from "../src/lib/room-traffic.js";
+import { resolveClinicRuleConfig } from "../src/lib/clinic-rule-config.js";
 
 test("room-ready requires check-in, required forms, and active visit stage", () => {
   assert.equal(isVisitRoomReady({
@@ -28,6 +29,33 @@ test("room-ready requires check-in, required forms, and active visit stage", () 
     consent_done: true,
     stage: "closed",
   }), false);
+});
+
+test("room-ready supports clinic-configurable requirements while preserving default shape", () => {
+  const config = resolveClinicRuleConfig({
+    tikidoc_rules: {
+      rooms: {
+        room_ready: {
+          require_consent_done: false,
+          allowed_stages: ["pre_visit"],
+        },
+      },
+    },
+  });
+
+  assert.equal(isVisitRoomReady({
+    checked_in_at: "2026-04-22T09:00:00.000Z",
+    intake_done: true,
+    consent_done: false,
+    stage: "pre_visit",
+  }, config), true);
+
+  assert.equal(isVisitRoomReady({
+    checked_in_at: "2026-04-22T09:00:00.000Z",
+    intake_done: true,
+    consent_done: false,
+    stage: "treatment",
+  }, config), false);
 });
 
 test("room occupancy marks assigned active visits as occupied", () => {

@@ -55,3 +55,60 @@ test("/api/clinic-procedures only returns active procedures for picker flows", (
     /app\.get\(\"\/api\/clinic-procedures\"[\s\S]*?\.eq\(\"clinic_id\", clinicId\)[\s\S]*?\.eq\(\"is_active\", true\)/,
   );
 });
+
+test("/api/staff/clinic-rule-config routes are staff-gated and patch is admin-only", () => {
+  assert.match(
+    serverSource,
+    /app\.get\(\"\/api\/staff\/clinic-rule-config\", requireStaffAuth,/,
+  );
+  assert.match(
+    serverSource,
+    /app\.patch\(\"\/api\/staff\/clinic-rule-config\", requireStaffAuth, requireRole\(\"owner\", \"admin\"\),/,
+  );
+});
+
+test("/api/staff/clinic-rule-config patch only uses authenticated clinic context", () => {
+  const routeStart = serverSource.indexOf('app.patch("/api/staff/clinic-rule-config"');
+  const routeEnd = serverSource.indexOf('// ── POST /api/my-tiki/links', routeStart);
+  const routeBlockMatch = routeStart >= 0 && routeEnd > routeStart
+    ? serverSource.slice(routeStart, routeEnd)
+    : "";
+  assert.ok(routeBlockMatch, "clinic rule config patch route block should exist");
+  const routeBlock = routeBlockMatch;
+  assert.match(routeBlock, /const clinic_id = req\.clinic_id;/);
+  assert.doesNotMatch(routeBlock, /req\.(body|query)\?\.clinicId|req\.(body|query)\.clinicId/);
+});
+
+test("escalation, aftercare, and room hardening paths write append-only journey events", () => {
+  assert.match(
+    serverSource,
+    /eventTypeMap = \{\s*acknowledge: "escalation_acknowledged",\s*assign: "escalation_assigned",\s*respond: "escalation_responded",\s*resolve: "escalation_resolved",\s*close: "escalation_closed"/s,
+  );
+  assert.match(
+    serverSource,
+    /event_type: "aftercare_response_recorded"/,
+  );
+  assert.match(
+    serverSource,
+    /event_type: "aftercare_reviewed"/,
+  );
+  assert.match(
+    serverSource,
+    /event_type: "room_session_ended"/,
+  );
+  assert.match(
+    serverSource,
+    /event_type: "room_next_loaded"/,
+  );
+  assert.match(
+    serverSource,
+    /event_type: "room_cleared"/,
+  );
+});
+
+test("staff aftercare API exposes scheduler health for operational visibility", () => {
+  assert.match(
+    serverSource,
+    /res\.json\(\{ items, summary, scheduler: getAftercareSchedulerHealth\(\) \}\)/,
+  );
+});

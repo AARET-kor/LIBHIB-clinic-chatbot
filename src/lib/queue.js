@@ -58,6 +58,30 @@ export const messageQueue   = makeQueue("tikidoc-messages",  INBOUND_JOB_OPTS);
 export const aftercareQueue = makeQueue("tikidoc-aftercare", AFTERCARE_JOB_OPTS);
 export { redisConnection };
 
+export function getRedisRuntimeHealth() {
+  const configured = Boolean(REDIS_URL);
+  const connectionStatus = redisConnection?.status || "disabled";
+
+  if (!configured || !redisConnection) {
+    return {
+      configured: false,
+      connection_status: "disabled",
+      available: false,
+      healthy: false,
+      reason: "redis_unavailable",
+    };
+  }
+
+  const available = ["connect", "ready"].includes(connectionStatus);
+  return {
+    configured: true,
+    connection_status: connectionStatus,
+    available,
+    healthy: available,
+    reason: available ? null : "redis_connection_unready",
+  };
+}
+
 // ── 안전한 enqueue 헬퍼 (Redis 없어도 앱 크래시 금지) ─────────────────────
 export async function safeEnqueue(queue, jobName, data, opts = {}) {
   if (!queue) {

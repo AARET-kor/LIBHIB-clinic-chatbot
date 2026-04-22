@@ -1,51 +1,4 @@
-const QUICK_PROMPTS = {
-  booked: [
-    { id: "prepare_for_visit", text: "What should I prepare?" },
-    { id: "complete_forms", text: "Where do I complete forms?" },
-    { id: "sign_consent", text: "When do I sign consent?" },
-    { id: "check_in_day_of_visit", text: "How do I check in on the day?" },
-  ],
-  pre_visit: [
-    { id: "prepare_for_visit", text: "What should I prepare?" },
-    { id: "complete_forms", text: "Where do I complete forms?" },
-    { id: "sign_consent", text: "When do I sign consent?" },
-    { id: "check_in_day_of_visit", text: "How do I check in on the day?" },
-  ],
-  arrived: [
-    { id: "where_to_wait", text: "Where should I wait?" },
-    { id: "next_step", text: "What is the next step?" },
-    { id: "how_long", text: "How long will it take?" },
-    { id: "forms_complete", text: "Are my forms complete?" },
-  ],
-  waiting: [
-    { id: "where_to_wait", text: "Where should I wait?" },
-    { id: "next_step", text: "What is the next step?" },
-    { id: "how_long", text: "How long will it take?" },
-    { id: "forms_complete", text: "Are my forms complete?" },
-  ],
-  treatment: [
-    { id: "next_step", text: "What is the next step?" },
-    { id: "how_long", text: "How long will it take?" },
-    { id: "forms_complete", text: "Are my forms complete?" },
-    { id: "doctor_confirmation", text: "I need doctor confirmation." },
-  ],
-  post_care: [
-    { id: "normal_discomfort", text: "Is this discomfort normal?" },
-    { id: "swelling_duration", text: "How long will swelling last?" },
-    { id: "precautions", text: "What precautions should I follow?" },
-    { id: "when_to_contact", text: "When should I contact the clinic?" },
-  ],
-  followup: [
-    { id: "normal_discomfort", text: "Is this discomfort normal?" },
-    { id: "swelling_duration", text: "How long will swelling last?" },
-    { id: "precautions", text: "What precautions should I follow?" },
-    { id: "when_to_contact", text: "When should I contact the clinic?" },
-  ],
-  closed: [
-    { id: "when_to_contact", text: "When should I contact the clinic?" },
-    { id: "doctor_confirmation", text: "I need doctor confirmation." },
-  ],
-};
+import { getDefaultClinicRuleConfig } from "./clinic-rule-config.js";
 
 const URGENT_RISK_PATTERNS = [
   "severe bleeding",
@@ -92,8 +45,10 @@ export function normalizeVisitStage(visit = {}) {
   return "booked";
 }
 
-export function getAskQuickPrompts(stage) {
-  return QUICK_PROMPTS[stage] || QUICK_PROMPTS.booked;
+export function getAskQuickPrompts(stage, clinicRuleConfig = null) {
+  const config = clinicRuleConfig || getDefaultClinicRuleConfig();
+  const prompts = config?.ask?.quick_prompts || {};
+  return prompts[stage] || prompts.booked || [];
 }
 
 export function classifyAskQuestionType(text = "") {

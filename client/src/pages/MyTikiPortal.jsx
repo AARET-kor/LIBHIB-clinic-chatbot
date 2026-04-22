@@ -488,7 +488,36 @@ function askPromptText(lang, prompt) {
     },
   };
 
-  return map[id]?.[lang] || map[id]?.en || prompt?.text || '';
+  const defaultEn = map[id]?.en || '';
+  if (prompt?.text && prompt.text !== defaultEn) return prompt.text;
+  return map[id]?.[lang] || defaultEn || prompt?.text || '';
+}
+
+function askEscalationLabel(lang, option) {
+  const defaultMap = {
+    coordinator: {
+      ko: '코디네이터에게 문의',
+      en: 'Ask coordinator',
+      ja: 'コーディネーターに確認',
+      zh: '联系协调员',
+    },
+    nurse: {
+      ko: '간호팀에 문의',
+      en: 'Ask nurse',
+      ja: '看護チームに確認',
+      zh: '联系护士',
+    },
+    doctor_confirmation: {
+      ko: '의료진 확인 필요',
+      en: 'Doctor confirmation needed',
+      ja: '医師確認が必要',
+      zh: '需要医生确认',
+    },
+  };
+
+  const defaultEn = defaultMap[option?.id]?.en || '';
+  if (option?.label && option.label !== defaultEn) return option.label;
+  return defaultMap[option?.id]?.[lang] || defaultEn || option?.label || '';
 }
 
 // localized form title
@@ -768,7 +797,7 @@ function ArrivalCard({ lang, token, arrivedAt, onArrived }) {
 // ═══════════════════════════════════════════════════════════════
 // Journey Tab
 // ═══════════════════════════════════════════════════════════════
-function JourneyTab({ patient, visit, clinic, lang, onGoToForms, formsStatus, arrivedAt, onArrived, token }) {
+function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare, formsStatus, aftercareState, arrivedAt, onArrived, token }) {
   const stage       = visit?.stage || 'booked';
   const stageIdx    = STAGES.indexOf(stage);
   const patientName = patient?.name || '';
@@ -793,6 +822,7 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, formsStatus, ar
       patient_arrived_at: arrivedAt || visit?.patient_arrived_at || null,
     },
     formsStatus,
+    aftercareState,
   });
 
   function taskCopy(taskKey) {
@@ -818,6 +848,28 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, formsStatus, ar
         body: tx(lang, 'fillConsent'),
         cta: tx(lang, 'goToForms'),
         action: onGoToForms,
+      };
+    }
+    if (taskKey === 'aftercare_due') {
+      return {
+        title: tx(lang, 'aftercareDue'),
+        body: lang === 'ko'
+          ? '회복 체크 항목이 도착했습니다. 지금 응답을 제출해 주세요.'
+          : lang === 'ja'
+            ? '回復チェック項目が届いています。今すぐ回答してください。'
+            : lang === 'zh'
+              ? '恢复检查项目已到达。请现在提交回答。'
+              : 'A recovery check is due now. Please submit your check-in.',
+        cta: tx(lang, 'aftercareRespond'),
+        action: onGoToAftercare,
+      };
+    }
+    if (taskKey === 'aftercare_ack') {
+      return {
+        title: tx(lang, 'aftercareAck'),
+        body: aftercareState?.acknowledgement || '',
+        cta: tx(lang, 'aftercare'),
+        action: onGoToAftercare,
       };
     }
     return {
@@ -877,8 +929,8 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, formsStatus, ar
               key={task.key}
               style={{
                 borderRadius: 14,
-                border: `1px solid ${task.tone === 'calm' ? C.success + '25' : C.teal + '20'}`,
-                background: task.tone === 'calm' ? C.successPale : C.tealPale,
+                border: `1px solid ${task.tone === 'calm' ? C.success + '25' : task.tone === 'watch' ? C.warn + '30' : C.teal + '20'}`,
+                background: task.tone === 'calm' ? C.successPale : task.tone === 'watch' ? C.warnPale : C.tealPale,
                 padding: '14px 14px',
                 display: 'flex',
                 alignItems: 'center',
@@ -887,7 +939,7 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, formsStatus, ar
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: task.tone === 'calm' ? C.success : C.tealDark, marginBottom: 4 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: task.tone === 'calm' ? C.success : task.tone === 'watch' ? C.warn : C.tealDark, marginBottom: 4 }}>
                   {copy.title}
                 </p>
                 <p style={{ fontSize: 13, color: C.text, lineHeight: 1.45 }}>
@@ -1544,7 +1596,7 @@ function FormsTab({ forms, lang, token, onFormSubmitted }) {
   );
 }
 
-function AftercareTab({ lang, token }) {
+function AftercareTab({ lang, token, onStateChange = null }) {
   const [phase, setPhase] = useState('loading');
   const [data, setData] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -1557,6 +1609,7 @@ function AftercareTab({ lang, token }) {
       const res = await api.get('/api/patient/aftercare');
       if (!res.ok) throw new Error(res.data?.error || 'aftercare_load_failed');
       setData(res.data);
+      onStateChange?.(res.data);
       setPhase('ready');
     } catch {
       setPhase('error');
@@ -1578,6 +1631,7 @@ function AftercareTab({ lang, token }) {
       });
       if (!res.ok) throw new Error(res.data?.error || 'aftercare_submit_failed');
       setData(res.data.state);
+      onStateChange?.(res.data.state);
     } catch {
       // quiet for portal simplicity
     } finally {
@@ -1909,11 +1963,6 @@ function AskTab({ lang, token }) {
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {(askData.escalationOptions || []).map(option => {
-            const labelKey = option.id === 'coordinator'
-              ? 'askCoordinator'
-              : option.id === 'nurse'
-                ? 'askNurse'
-                : 'doctorConfirm';
             const Icon = option.id === 'doctor_confirmation' ? Stethoscope : ShieldAlert;
             return (
               <button
@@ -1934,7 +1983,7 @@ function AskTab({ lang, token }) {
                 }}
               >
                 <Icon size={16} color={C.warn} />
-                <span>{tx(lang, labelKey)}</span>
+                <span>{askEscalationLabel(lang, option)}</span>
                 {escalating === option.id && (
                   <Loader2 size={14} color={C.textSub} style={{ marginLeft: 'auto', animation: 'spin 1s linear infinite' }} />
                 )}
@@ -2092,6 +2141,7 @@ export default function MyTikiPortal() {
   const [visit,     setVisit]     = useState(null);
   const [clinic,    setClinic]    = useState(null);
   const [forms,     setForms]     = useState([]);
+  const [aftercarePreview, setAftercarePreview] = useState(null);
   const [tab,       setTab]       = useState('journey'); // journey | forms | ask | aftercare
   const [arrivedAt, setArrivedAt] = useState(null);     // patient_arrived_at ISO string or null
 
@@ -2125,6 +2175,13 @@ export default function MyTikiPortal() {
       const formsRes = await api.get('/api/patient/forms');
       if (formsRes.ok) {
         setForms(formsRes.data?.forms || []);
+      }
+
+      const aftercareRes = await api.get('/api/patient/aftercare');
+      if (aftercareRes.ok) {
+        setAftercarePreview(aftercareRes.data || null);
+      } else {
+        setAftercarePreview(null);
       }
 
       setPhase('ready');
@@ -2218,6 +2275,8 @@ export default function MyTikiPortal() {
             lang={lang}
             formsStatus={formsStatus}
             onGoToForms={() => setTab('forms')}
+            onGoToAftercare={() => setTab('aftercare')}
+            aftercareState={aftercarePreview}
             arrivedAt={arrivedAt}
             onArrived={setArrivedAt}
             token={token}
@@ -2241,6 +2300,7 @@ export default function MyTikiPortal() {
           <AftercareTab
             lang={lang}
             token={token}
+            onStateChange={setAftercarePreview}
           />
         )}
       </div>

@@ -6,6 +6,7 @@ import {
   buildRoomPrepPayload,
   pickNextRoomCandidate,
 } from "../src/lib/tiki-room.js";
+import { resolveClinicRuleConfig } from "../src/lib/clinic-rule-config.js";
 
 test("buildRoomPrepPayload creates a concise doctor prep card", () => {
   const payload = buildRoomPrepPayload({
@@ -91,3 +92,42 @@ test("pickNextRoomCandidate prefers already-assigned visits for the room before 
   assert.equal(candidate.id, "visit-assigned");
 });
 
+test("pickNextRoomCandidate respects clinic-configured room-ready rules", () => {
+  const clinicRuleConfig = resolveClinicRuleConfig({
+    tikidoc_rules: {
+      rooms: {
+        room_ready: {
+          require_consent_done: false,
+          allowed_stages: ["pre_visit"],
+        },
+      },
+    },
+  });
+
+  const candidate = pickNextRoomCandidate({
+    roomId: "room-1",
+    clinicRuleConfig,
+    visits: [
+      {
+        id: "visit-treatment",
+        room_id: null,
+        room_cleared_at: null,
+        checked_in_at: "2026-04-22T09:05:00.000Z",
+        intake_done: true,
+        consent_done: false,
+        stage: "treatment",
+      },
+      {
+        id: "visit-pre-visit",
+        room_id: null,
+        room_cleared_at: null,
+        checked_in_at: "2026-04-22T09:10:00.000Z",
+        intake_done: true,
+        consent_done: false,
+        stage: "pre_visit",
+      },
+    ],
+  });
+
+  assert.equal(candidate.id, "visit-pre-visit");
+});

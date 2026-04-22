@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
 import { createClient } from "@supabase/supabase-js";
-import { aftercareQueue, redisConnection } from "../lib/queue.js";
+import { aftercareQueue, getRedisRuntimeHealth, redisConnection } from "../lib/queue.js";
 import {
   deliverDueAftercareEvents,
   ensureAftercareRunForVisit,
@@ -9,6 +9,17 @@ import {
 
 const HOURLY_PATTERN = "0 * * * *";
 const TIMEZONE = "Asia/Seoul";
+const INITIAL_RUNTIME = {
+  status: "degraded",
+  reason: "scheduler_not_started",
+  queue_enabled: Boolean(aftercareQueue),
+  worker_started: false,
+  repeat_registered: false,
+  last_started_at: null,
+  last_error: null,
+};
+
+let schedulerRuntime = { ...INITIAL_RUNTIME };
 
 function getSupabaseAdmin() {
   const url = process.env.SUPABASE_URL || "";
@@ -56,6 +67,55 @@ async function sweepAftercareDueEvents(sb, clinicId) {
   };
 }
 
+function updateSchedulerRuntime(patch = {}) {
+  schedulerRuntime = {
+    ...schedulerRuntime,
+    ...patch,
+    queue_enabled: Boolean(aftercareQueue),
+  };
+  return getAftercareSchedulerHealth();
+}
+
+export function getAftercareSchedulerHealth() {
+  const redis = getRedisRuntimeHealth();
+  const base = {
+    scheduler: "aftercare",
+    status: schedulerRuntime.status,
+    reason: schedulerRuntime.reason,
+    queue_enabled: schedulerRuntime.queue_enabled,
+    worker_started: schedulerRuntime.worker_started,
+    repeat_registered: schedulerRuntime.repeat_registered,
+    last_started_at: schedulerRuntime.last_started_at,
+    last_error: schedulerRuntime.last_error,
+    fallback_mode: schedulerRuntime.status === "degraded"
+      ? "due events still surface via patient/staff reads, but background delivery may be delayed"
+      : null,
+    redis,
+  };
+
+  if (!aftercareQueue || !redis.configured) {
+    return {
+      ...base,
+      status: "degraded",
+      reason: "redis_unavailable",
+      queue_enabled: false,
+      worker_started: false,
+      repeat_registered: false,
+      fallback_mode: "due events still surface via patient/staff reads, but background delivery is not running in the background",
+    };
+  }
+
+  if (schedulerRuntime.status !== "healthy" && !redis.available) {
+    return {
+      ...base,
+      status: "degraded",
+      reason: schedulerRuntime.reason || redis.reason || "redis_connection_unready",
+    };
+  }
+
+  return base;
+}
+
 function startAftercareWorker() {
   if (!redisConnection) return;
 
@@ -79,39 +139,86 @@ function startAftercareWorker() {
   );
 
   worker.on("failed", (_job, err) => {
-    console.error("[Aftercare Scheduler] failed:", err.message);
+    const health = updateSchedulerRuntime({
+      status: "degraded",
+      reason: "worker_failed",
+      last_error: err.message,
+      worker_started: false,
+    });
+    console.error(`[Aftercare Scheduler] status=${health.status} reason=${health.reason} error=${err.message}`);
   });
   worker.on("error", (err) => {
-    console.error("[Aftercare Scheduler] error:", err.message);
+    const health = updateSchedulerRuntime({
+      status: "degraded",
+      reason: "worker_error",
+      last_error: err.message,
+      worker_started: false,
+    });
+    console.error(`[Aftercare Scheduler] status=${health.status} reason=${health.reason} error=${err.message}`);
+  });
+
+  updateSchedulerRuntime({
+    status: "healthy",
+    reason: null,
+    worker_started: true,
+    last_error: null,
   });
 }
 
 export async function startAftercareScheduler() {
   if (!aftercareQueue) {
-    console.warn("[Aftercare Scheduler] Redis unavailable; due events stay lazy-loaded via patient/staff reads");
+    const health = updateSchedulerRuntime({
+      status: "degraded",
+      reason: "redis_unavailable",
+      worker_started: false,
+      repeat_registered: false,
+      last_error: null,
+    });
+    console.warn(`[Aftercare Scheduler] status=${health.status} reason=${health.reason} fallback=lazy_reads_only`);
     return;
   }
+  try {
+    const existing = await aftercareQueue.getRepeatableJobs();
+    const alreadySet = existing.some((job) => job.name === "aftercare-due-scan");
 
-  const existing = await aftercareQueue.getRepeatableJobs();
-  const alreadySet = existing.some((job) => job.name === "aftercare-due-scan");
+    if (!alreadySet) {
+      await aftercareQueue.add(
+        "aftercare-due-scan",
+        { clinicId: process.env.CLINIC_UUID || null },
+        {
+          repeat: {
+            pattern: HOURLY_PATTERN,
+            tz: TIMEZONE,
+          },
+          removeOnComplete: true,
+          removeOnFail: { count: 30 },
+        }
+      );
+      console.log("[Aftercare Scheduler] hourly due-scan registered");
+    }
 
-  if (!alreadySet) {
-    await aftercareQueue.add(
-      "aftercare-due-scan",
-      { clinicId: process.env.CLINIC_UUID || null },
-      {
-        repeat: {
-          pattern: HOURLY_PATTERN,
-          tz: TIMEZONE,
-        },
-        removeOnComplete: true,
-        removeOnFail: { count: 30 },
-      }
-    );
-    console.log("[Aftercare Scheduler] hourly due-scan registered");
+    updateSchedulerRuntime({
+      repeat_registered: true,
+      last_started_at: new Date().toISOString(),
+      last_error: null,
+      status: "healthy",
+      reason: null,
+    });
+
+    startAftercareWorker();
+    const health = getAftercareSchedulerHealth();
+    console.log(`[Aftercare Scheduler] status=${health.status} queue=${health.queue_enabled ? "enabled" : "disabled"} redis=${health.redis.connection_status} worker=${health.worker_started ? "started" : "stopped"}`);
+  } catch (err) {
+    const health = updateSchedulerRuntime({
+      status: "degraded",
+      reason: "startup_failed",
+      worker_started: false,
+      repeat_registered: false,
+      last_error: err.message,
+    });
+    console.error(`[Aftercare Scheduler] status=${health.status} reason=${health.reason} error=${err.message}`);
+    throw err;
   }
-
-  startAftercareWorker();
 }
 
 export { sweepAftercareDueEvents };

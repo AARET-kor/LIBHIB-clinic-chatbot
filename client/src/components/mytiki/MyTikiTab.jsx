@@ -28,22 +28,28 @@ import QuickVisitCreate from './QuickVisitCreate';
 import CsvImportModal   from './CsvImportModal';
 import { deriveArrivalFlowState } from '../../lib/opsBoardArrival';
 import { buildQrImageUrl, shouldPollOpsBoard } from '../../lib/opsLite';
+import {
+  AFTERCARE_FILTER_LABELS,
+  ESCALATION_PRIORITY_META,
+  ESCALATION_ROLE_LABELS,
+  ESCALATION_STATUS_LABELS,
+  ESCALATION_TYPE_LABELS,
+  ROOM_TYPE_LABELS,
+  STAGE_META,
+  STAGE_ORDER,
+  getAftercareGroupLabel,
+  getAftercareRiskMeta,
+  getEscalationGroupLabel,
+  getEscalationPriorityMeta,
+  getOperationalUrgencyMeta,
+  isAftercareUnanswered,
+  isEscalationUnanswered,
+} from '../../lib/opsStatusMeta';
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const TEAL = '#4E8FA0';
 const SAGE = '#5A8F80';
 const F    = { sans: "'Pretendard Variable', 'Inter', system-ui, sans-serif" };
-
-// ── Stage meta ───────────────────────────────────────────────────────────────
-const STAGE_META = {
-  booked:    { label: '예약 확정', color: '#5B72A8', bg: '#5B72A810' },
-  pre_visit: { label: '방문 전',   color: '#D09262', bg: '#D0926210' },
-  treatment: { label: '시술 중',   color: '#5A8F80', bg: '#5A8F8010' },
-  post_care: { label: '사후 관리', color: '#A47764', bg: '#A4776410' },
-  followup:  { label: '팔로업',    color: '#9B72CF', bg: '#9B72CF10' },
-  closed:    { label: '완료',      color: '#6B7280', bg: '#6B728010' },
-};
-const STAGE_ORDER = ['booked','pre_visit','treatment','post_care','followup','closed'];
 
 // ── Link status meta ─────────────────────────────────────────────────────────
 const LINK_META = {
@@ -61,62 +67,6 @@ const DATE_RANGES = [
   { key: 'week',     label: '이번주' },
   { key: 'all',      label: '전체' },
 ];
-
-const ESCALATION_TYPE_LABELS = {
-  simple_logistics: '단순 운영 문의',
-  billing_or_booking: '예약·결제 문의',
-  symptom_concern: '증상 문의',
-  aftercare_concern: '사후관리 문의',
-  urgent_risk: '긴급 위험',
-  doctor_required: '의료진 확인 필요',
-};
-
-const ESCALATION_STATUS_LABELS = {
-  requested: '요청됨',
-  assigned: '배정됨',
-  acknowledged: '확인 중',
-  responded: '답변 처리',
-  resolved: '해결됨',
-  closed: '종료됨',
-};
-
-const ESCALATION_PRIORITY_META = {
-  low:    { label: '낮음', color: '#6B7280', bg: '#F3F4F6' },
-  normal: { label: '보통', color: '#5B72A8', bg: '#EEF2FF' },
-  high:   { label: '높음', color: '#D09262', bg: '#FFF7ED' },
-  urgent: { label: '긴급', color: '#DC2626', bg: '#FEF2F2' },
-};
-
-const ESCALATION_ROLE_LABELS = {
-  coordinator: '코디네이터',
-  nurse: '간호팀',
-  doctor: '의료진',
-  front_desk: '프런트',
-};
-
-const ROOM_TYPE_LABELS = {
-  consultation: '상담실',
-  vip: 'VIP',
-  procedure: '시술실',
-  care: '케어실',
-  other: '기타',
-};
-
-const AFTERCARE_FILTER_LABELS = {
-  all: '전체',
-  due: '응답 대기',
-  responded: '응답 완료',
-  concern: '주의',
-  urgent: '긴급',
-  safe_for_return: '리턴 가능',
-};
-
-const AFTERCARE_RISK_META = {
-  normal:  { label: '정상', color: '#16A34A', bg: '#F0FDF4' },
-  watch:   { label: '관찰', color: '#D97706', bg: '#FFFBEB' },
-  concern: { label: '주의', color: '#D09262', bg: '#FFF7ED' },
-  urgent:  { label: '긴급', color: '#DC2626', bg: '#FEF2F2' },
-};
 
 // ── Auth helper ──────────────────────────────────────────────────────────────
 async function authHeaders() {
@@ -150,10 +100,12 @@ function normalizeVisit(v) {
     room_cleared_at:     v.room_cleared_at    || null,
     room_type:           v.room_type          || v.rooms?.room_type || null,
     patient_arrived_at:  v.patient_arrived_at || null,
+    room_ready:          v.room_ready ?? null,
   };
 }
 
 function isVisitRoomReadyForOps(visit) {
+  if (typeof visit.room_ready === 'boolean') return visit.room_ready;
   return Boolean(
     visit.checked_in_at &&
     visit.intake_done &&
@@ -196,20 +148,20 @@ function fmtAgo(iso) {
 function ArrivalBadge({ arrivedAt, checkedInAt, formsReady, darkMode }) {
   if (!arrivedAt) return null;
   const agoLabel   = fmtAgo(arrivedAt);
-  const readyColor = '#16A34A';
-  const arrColor   = '#D09262';
   const state = deriveArrivalFlowState({
     patient_arrived_at: arrivedAt,
     checked_in_at: checkedInAt,
     intake_done: formsReady,
     consent_done: formsReady,
   });
+  const urgencyMeta = getOperationalUrgencyMeta({ kind: 'arrival', state });
+  const arrivalMeta = getOperationalUrgencyMeta({ kind: 'arrival', state: 'desk_confirmation' });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
       <span
         className="inline-flex items-center gap-0.5"
-        style={{ fontSize: 10, fontWeight: 700, color: arrColor }}
+        style={{ fontSize: 10, fontWeight: 700, color: arrivalMeta.color }}
         title={`환자 도착 신호: ${new Date(arrivedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}`}
       >
         <Navigation size={9} strokeWidth={2.5} />
@@ -218,7 +170,7 @@ function ArrivalBadge({ arrivedAt, checkedInAt, formsReady, darkMode }) {
       {state === 'desk_confirmation' && (
         <span
           className="inline-flex items-center gap-0.5"
-          style={{ fontSize: 9, fontWeight: 700, color: '#B45309' }}
+          style={{ fontSize: 9, fontWeight: 700, color: urgencyMeta.color }}
         >
           <LogIn size={9} strokeWidth={2.5} />
           데스크 확인 필요
@@ -227,7 +179,7 @@ function ArrivalBadge({ arrivedAt, checkedInAt, formsReady, darkMode }) {
       {state === 'forms_pending' && (
         <span
           className="inline-flex items-center gap-0.5"
-          style={{ fontSize: 9, fontWeight: 700, color: '#D09262' }}
+          style={{ fontSize: 9, fontWeight: 700, color: urgencyMeta.color }}
         >
           <FileText size={9} strokeWidth={2.5} />
           서류 확인 필요
@@ -236,7 +188,7 @@ function ArrivalBadge({ arrivedAt, checkedInAt, formsReady, darkMode }) {
       {state === 'room_ready' && (
         <span
           className="inline-flex items-center gap-0.5"
-          style={{ fontSize: 9, fontWeight: 700, color: readyColor }}
+          style={{ fontSize: 9, fontWeight: 700, color: urgencyMeta.color }}
         >
           <CheckCircle2 size={9} strokeWidth={2.5} />
           룸 준비
@@ -801,14 +753,19 @@ function EscalationMiniCard({ label, value, sub, color, darkMode }) {
   );
 }
 
-function EscalationTaskCard({ item, darkMode, onOpen }) {
-  const priority = ESCALATION_PRIORITY_META[item.priority] || ESCALATION_PRIORITY_META.normal;
+function EscalationTaskCard({ item, darkMode, onOpen, staffUsers = [] }) {
+  const priority = getEscalationPriorityMeta(item.priority);
   const typeLabel = ESCALATION_TYPE_LABELS[item.escalation_type] || item.escalation_type;
   const roleLabel = ESCALATION_ROLE_LABELS[item.assigned_role] || item.assigned_role;
   const patientName = item.patients?.name || '(이름 없음)';
   const patientFlag = item.patients?.flag || '🏥';
   const procedureName = item.visits?.procedures?.name_ko || item.visits?.procedures?.name_en || '방문 컨텍스트 없음';
-  const unanswered = item.status === 'requested' || item.status === 'assigned';
+  const unanswered = isEscalationUnanswered(item);
+  const ownerUser = (staffUsers || []).find((user) => user.user_id === item.assigned_user_id);
+  const latestActorId = item.closed_by || item.resolved_by || item.responded_by || item.acknowledged_by || null;
+  const latestActor = (staffUsers || []).find((user) => user.user_id === latestActorId);
+  const ownerLabel = ownerUser?.email || roleLabel || 'queue';
+  const latestActorLabel = latestActor?.email || '—';
 
   return (
     <button
@@ -849,6 +806,10 @@ function EscalationTaskCard({ item, darkMode, onOpen }) {
         {item.patient_visible_status_text}
       </p>
 
+      <div className={`mt-2 text-[10px] ${darkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
+        Owner: {ownerLabel} · Last: {latestActorLabel}
+      </div>
+
       <div className={`mt-2 text-[10px] font-medium ${darkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
         {fmtAgo(item.opened_at || item.created_at)}
       </div>
@@ -857,11 +818,11 @@ function EscalationTaskCard({ item, darkMode, onOpen }) {
 }
 
 function AftercareTaskCard({ item, darkMode, busy, onReview }) {
-  const risk = AFTERCARE_RISK_META[item.risk_level] || AFTERCARE_RISK_META.normal;
+  const risk = getAftercareRiskMeta(item.risk_level);
   const patient = item.patient_aftercare_runs?.patients || {};
   const visit = item.patient_aftercare_runs?.visits || {};
   const procedureName = visit?.procedures?.name_ko || visit?.procedures?.name_en || '사후관리';
-  const unanswered = item.response_status === 'due' || (item.sent_at && !item.responded_at);
+  const unanswered = isAftercareUnanswered(item);
 
   return (
     <div className={`rounded-xl border p-3 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
@@ -989,7 +950,7 @@ function EscalationDetailDrawer({
           <div className={`rounded-xl p-4 border ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-slate-50 border-slate-100'}`}>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-teal-700 bg-teal-50">{ESCALATION_TYPE_LABELS[item.escalation_type] || item.escalation_type}</span>
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: (ESCALATION_PRIORITY_META[item.priority] || ESCALATION_PRIORITY_META.normal).color, background: (ESCALATION_PRIORITY_META[item.priority] || ESCALATION_PRIORITY_META.normal).bg }}>{(ESCALATION_PRIORITY_META[item.priority] || ESCALATION_PRIORITY_META.normal).label}</span>
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: getEscalationPriorityMeta(item.priority).color, background: getEscalationPriorityMeta(item.priority).bg }}>{getEscalationPriorityMeta(item.priority).label}</span>
               <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${darkMode ? 'text-zinc-300 bg-zinc-800' : 'text-zinc-600 bg-white border border-zinc-200'}`}>{ESCALATION_STATUS_LABELS[item.status] || item.status}</span>
             </div>
             <p className={`text-[12px] mt-3 leading-6 ${darkMode ? 'text-zinc-200' : 'text-zinc-700'}`}>{item.source_message?.content || '원문 메시지 없음'}</p>
@@ -1156,6 +1117,7 @@ export default function MyTikiTab({ darkMode }) {
   const [escalationSummary, setEscalationSummary] = useState({ open: 0, urgent: 0, unanswered: 0 });
   const [aftercareItems,  setAftercareItems]  = useState([]);
   const [aftercareSummary, setAftercareSummary] = useState({ due: 0, responded: 0, concern: 0, urgent: 0, safe_for_return: 0 });
+  const [aftercareScheduler, setAftercareScheduler] = useState(null);
   const [staffUsers,      setStaffUsers]      = useState([]);
   const [loadingEscalations, setLoadingEscalations] = useState(true);
   const [loadingAftercare, setLoadingAftercare] = useState(true);
@@ -1284,6 +1246,7 @@ export default function MyTikiTab({ darkMode }) {
       const data = await res.json();
       setAftercareItems(data.items || []);
       setAftercareSummary(data.summary || { due: 0, responded: 0, concern: 0, urgent: 0, safe_for_return: 0 });
+      setAftercareScheduler(data.scheduler || null);
     } catch (err) {
       console.error('[aftercare]', err.message);
     } finally {
@@ -1317,6 +1280,12 @@ export default function MyTikiTab({ darkMode }) {
     acc[key].push(item);
     return acc;
   }, {});
+  const escalationUrgentMeta = getOperationalUrgencyMeta({ kind: 'escalation', priority: 'urgent' });
+  const escalationHighMeta = getOperationalUrgencyMeta({ kind: 'escalation', priority: 'high' });
+  const aftercareDueMeta = getOperationalUrgencyMeta({ kind: 'arrival', state: 'forms_pending' });
+  const aftercareConcernMeta = getOperationalUrgencyMeta({ kind: 'aftercare', riskLevel: 'concern' });
+  const aftercareUrgentMeta = getOperationalUrgencyMeta({ kind: 'aftercare', riskLevel: 'urgent', urgentFlag: true });
+  const aftercareSafeReturnMeta = getOperationalUrgencyMeta({ kind: 'room', roomReady: true });
 
   // ── Check-in action ────────────────────────────────────────────────────────
   async function handleCheckIn(visitId) {
@@ -1572,6 +1541,12 @@ export default function MyTikiTab({ darkMode }) {
           <SummaryCard label="활성 링크"   value={loading ? '…' : summary.activeLinks}   color="#5B72A8" sub="발송·열람됨"     darkMode={darkMode} />
         </div>
 
+        {aftercareScheduler?.status === 'degraded' && (
+          <div className={`mt-2 rounded-xl border px-3 py-2 text-[11px] ${darkMode ? 'border-amber-800 bg-amber-950/40 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+            Aftercare scheduler degraded · background delivery may be delayed.
+          </div>
+        )}
+
         <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: darkMode ? '#27272A' : '#E5E7EB', background: darkMode ? '#111827' : '#FFFCF8' }}>
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -1637,11 +1612,11 @@ export default function MyTikiTab({ darkMode }) {
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mt-4">
-            <EscalationMiniCard label="Open Items" value={loadingEscalations ? '…' : escalationSummary.open} sub="진행 중 triage" color="#A47764" darkMode={darkMode} />
-            <EscalationMiniCard label="Urgent" value={loadingEscalations ? '…' : escalationSummary.urgent} sub="즉시 검토 필요" color="#DC2626" darkMode={darkMode} />
-            <EscalationMiniCard label="Unanswered" value={loadingEscalations ? '…' : escalationSummary.unanswered} sub="아직 확인 전" color="#D09262" darkMode={darkMode} />
-          </div>
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          <EscalationMiniCard label="Open Items" value={loadingEscalations ? '…' : escalationSummary.open} sub="진행 중 triage" color={TEAL} darkMode={darkMode} />
+          <EscalationMiniCard label="Urgent" value={loadingEscalations ? '…' : escalationSummary.urgent} sub="즉시 검토 필요" color={escalationUrgentMeta.color} darkMode={darkMode} />
+          <EscalationMiniCard label="Unanswered" value={loadingEscalations ? '…' : escalationSummary.unanswered} sub="아직 확인 전" color={escalationHighMeta.color} darkMode={darkMode} />
+        </div>
 
           <div className="mt-4 flex items-center gap-2 flex-wrap">
             {[
@@ -1685,17 +1660,13 @@ export default function MyTikiTab({ darkMode }) {
                 <div key={groupKey}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-[11px] font-bold ${textP}`}>
-                      {escalationGroupBy === 'priority'
-                        ? (ESCALATION_PRIORITY_META[groupKey]?.label || groupKey)
-                        : escalationGroupBy === 'role'
-                          ? (ESCALATION_ROLE_LABELS[groupKey] || groupKey)
-                          : (ESCALATION_STATUS_LABELS[groupKey] || groupKey)}
+                      {getEscalationGroupLabel(escalationGroupBy, groupKey)}
                     </span>
                     <span className={`text-[10px] ${textS}`}>{items.length}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {items.map(item => (
-                      <EscalationTaskCard key={item.id} item={item} darkMode={darkMode} onOpen={openEscalation} />
+                      <EscalationTaskCard key={item.id} item={item} darkMode={darkMode} onOpen={openEscalation} staffUsers={staffUsers} />
                     ))}
                   </div>
                 </div>
@@ -1718,12 +1689,20 @@ export default function MyTikiTab({ darkMode }) {
             </button>
           </div>
 
+          {aftercareScheduler?.status === 'degraded' && (
+            <div className={`mt-3 rounded-xl border px-3 py-2 text-[11px] ${darkMode ? 'border-amber-800 bg-amber-950/40 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+              Aftercare scheduler degraded
+              {aftercareScheduler.reason ? ` — ${aftercareScheduler.reason.replaceAll('_', ' ')}` : ''}
+              {aftercareScheduler.fallback_mode ? ` · ${aftercareScheduler.fallback_mode}` : ''}
+            </div>
+          )}
+
           <div className="grid grid-cols-5 gap-2 mt-4">
-            <EscalationMiniCard label="Due" value={loadingAftercare ? '…' : aftercareSummary.due} sub="응답 대기" color="#4E8FA0" darkMode={darkMode} />
-            <EscalationMiniCard label="Responded" value={loadingAftercare ? '…' : aftercareSummary.responded} sub="환자 응답 완료" color="#5A8F80" darkMode={darkMode} />
-            <EscalationMiniCard label="Concern" value={loadingAftercare ? '…' : aftercareSummary.concern} sub="검토 필요" color="#D09262" darkMode={darkMode} />
-            <EscalationMiniCard label="Urgent" value={loadingAftercare ? '…' : aftercareSummary.urgent} sub="긴급 신호" color="#DC2626" darkMode={darkMode} />
-            <EscalationMiniCard label="Safe Return" value={loadingAftercare ? '…' : aftercareSummary.safe_for_return} sub="재방문 제안 가능" color={TEAL} darkMode={darkMode} />
+            <EscalationMiniCard label="Due" value={loadingAftercare ? '…' : aftercareSummary.due} sub="응답 대기" color={aftercareDueMeta.color} darkMode={darkMode} />
+            <EscalationMiniCard label="Responded" value={loadingAftercare ? '…' : aftercareSummary.responded} sub="환자 응답 완료" color={SAGE} darkMode={darkMode} />
+            <EscalationMiniCard label="Concern" value={loadingAftercare ? '…' : aftercareSummary.concern} sub="검토 필요" color={aftercareConcernMeta.color} darkMode={darkMode} />
+            <EscalationMiniCard label="Urgent" value={loadingAftercare ? '…' : aftercareSummary.urgent} sub="긴급 신호" color={aftercareUrgentMeta.color} darkMode={darkMode} />
+            <EscalationMiniCard label="Safe Return" value={loadingAftercare ? '…' : aftercareSummary.safe_for_return} sub="재방문 제안 가능" color={aftercareSafeReturnMeta.color} darkMode={darkMode} />
           </div>
 
           <div className="mt-4 flex items-center gap-2 flex-wrap">
@@ -1751,7 +1730,7 @@ export default function MyTikiTab({ darkMode }) {
                 <div key={groupKey}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-[11px] font-bold ${textP}`}>
-                      {groupKey === 'urgent' ? '긴급' : (AFTERCARE_RISK_META[groupKey]?.label || groupKey)}
+                      {getAftercareGroupLabel(groupKey)}
                     </span>
                     <span className={`text-[10px] ${textS}`}>{items.length}</span>
                   </div>

@@ -1,6 +1,6 @@
 # TikiDoc Product Decisions
 
-Last updated: 2026-04-22
+Last updated: 2026-04-23
 
 ## Non-negotiable product rules
 
@@ -29,6 +29,10 @@ Last updated: 2026-04-22
   - safe fallback
   - escalation
 - Ask should not invent, diagnose, or over-reassure.
+- High-churn Ask knobs may be clinic-configurable through `clinics.settings.tikidoc_rules`, but:
+  - only approved prompt/fallback/label subsets are writable
+  - classification and source restriction logic stay in code
+  - this is not a prompt CMS
 
 ### Escalation
 
@@ -54,6 +58,10 @@ Last updated: 2026-04-22
   - which are occupied
   - who is ready next
 - Assign / clear / reassign must stay symmetric and operationally obvious.
+- Room-ready gate conditions may be clinic-configurable through `clinics.settings.tikidoc_rules`, but:
+  - only a narrow subset is writable
+  - the room traffic model stays in code
+  - this is not a room workflow builder
 
 ### Tiki Room
 
@@ -87,6 +95,15 @@ Last updated: 2026-04-22
 - `stage` remains the main visit workflow term unless there is a strong reason not to.
 - Do not introduce parallel terms like `operational_status` or `journey_state` for the same visit workflow without an explicit migration decision.
 - Use `escalation_type` for triage category. Do not add parallel names like `issue_type` or `handoff_reason` casually.
+- Use `status` for escalation lifecycle state, and `response_status` for aftercare event response state. Do not collapse them into one shared field name.
+- Ownership / actor tracking stays split intentionally:
+  - current owner = `assigned_role` / `assigned_user_id`
+  - transition actor = action-specific `*_by` fields where present
+  - history actor = append-only `patient_journey_events.actor_type` / `actor_id`
+- Treat urgency as a derived operational marker, not a second workflow engine:
+  - escalation urgency comes from `priority`
+  - aftercare urgency comes from `risk_level` / `urgent_flag`
+  - arrival and room readiness stay derived UI signals
 - Use `room_id`, `room assignment`, `room session`, and `room clear` consistently:
   - `room assignment` = visit placed into a room
   - `room session` = live room interaction state
@@ -97,3 +114,29 @@ Last updated: 2026-04-22
 - `tests/build passing` means code runs.
 - `phase operationally closed` means the workflow is usable in real clinic operations.
 - These are different states and should be tracked separately in `phase_status.md`.
+
+## Deferred / Later
+
+Not built yet:
+
+- Batch 5C:
+  - scheduler degraded mode visibility
+  - light audit trail standardization
+  - ownership / actor tracking standardization
+- Batch 6:
+  - richer voice / TTS for Tiki Room
+  - aftercare trigger editor
+- later hardening:
+  - remove the external QR dependency
+
+Why:
+
+- Current work focused on safe control-layer hardening, not feature expansion.
+- The minimal clinic config write path is intentionally API-only.
+
+What should explicitly NOT be built yet:
+
+- admin CMS
+- generic settings page
+- no-code rule editor
+- universal rules engine

@@ -45,7 +45,7 @@ import { PROCEDURE_TEMPLATES } from "./data/procedure-templates.js";
 // ── Phase 3: 새 모듈 import ───────────────────────────────────────────────────
 import metaWebhookRouter            from "./src/api/webhook/meta.js";
 import { startMessageWorker }       from "./src/workers/messageWorker.js";
-import { startAftercareScheduler }  from "./src/scheduler/aftercare.js";
+import { getAftercareSchedulerHealth, startAftercareScheduler }  from "./src/scheduler/aftercare.js";
 
 // ── Phase 4: My Tiki 인증 미들웨어 ────────────────────────────────────────────
 import {
@@ -55,6 +55,7 @@ import {
   generatePatientToken,
 } from "./src/middleware/auth.js";
 import {
+  buildEscalationAck,
   generateAskAssistantPayload,
   getPatientAskBootstrap,
 } from "./src/lib/patient-ask-service.js";
@@ -79,11 +80,19 @@ import {
   fetchPatientAftercareState,
 } from "./src/lib/aftercare-service.js";
 import {
+  applyClinicRulePatchToSettings,
+  extractClinicRuleOverrides,
+  loadClinicRuleConfig,
+  resolveClinicRuleConfig,
+} from "./src/lib/clinic-rule-config.js";
+import { validateClinicRulePatch } from "./src/lib/clinic-rule-config-validate.js";
+import {
   buildEscalationUpdateForAction,
   createEscalationInsert,
   summarizeEscalationCounts,
 } from "./src/lib/escalation-service.js";
-import { buildJourneyEventInsert } from "./src/lib/ops-audit.js";
+import { buildJourneyEventInsert, buildOperationalAuditPayload, writeJourneyEvents } from "./src/lib/ops-audit.js";
+import { writeAuditLog } from "./src/lib/supabase-server.js";
 
 // ── 모델 상수 (env로 override 가능) ───────────────────────────────────────────
 const MODEL_HAIKU  = process.env.MODEL_HAIKU  || "claude-haiku-4-5-20251001";
@@ -2107,6 +2116,100 @@ app.get("/api/quotes/:id", async (req, res) => {
 // MY TIKI — 스태프용 관리 API  (requireStaffAuth 필수)
 // ════════════════════════════════════════════════════════════════════════════
 
+app.get("/api/staff/clinic-rule-config", requireStaffAuth, async (req, res) => {
+  const clinic_id = req.clinic_id;
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    const { data, error } = await sb
+      .from("clinics")
+      .select("settings")
+      .eq("id", clinic_id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    const settings = data?.settings || {};
+    return res.json({
+      ok: true,
+      clinic_id,
+      overrides: extractClinicRuleOverrides(settings),
+      resolved: resolveClinicRuleConfig(settings),
+      writable_keys: [
+        "ask.quick_prompts",
+        "ask.fallback_copy",
+        "ask.escalation_labels",
+        "rooms.room_ready.require_checked_in",
+        "rooms.room_ready.require_intake_done",
+        "rooms.room_ready.require_consent_done",
+        "rooms.room_ready.allowed_stages",
+      ],
+    });
+  } catch (err) {
+    console.error("[clinic-rule-config:get]", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch("/api/staff/clinic-rule-config", requireStaffAuth, requireRole("owner", "admin"), async (req, res) => {
+  const clinic_id = req.clinic_id;
+  const actor_user_id = req.staff_user_id;
+  const sb = getSbAdmin();
+  if (!sb) return res.status(503).json({ error: "Database unavailable" });
+
+  try {
+    const { patch, changedPaths } = validateClinicRulePatch(req.body || {});
+
+    const { data: clinic, error: fetchErr } = await sb
+      .from("clinics")
+      .select("settings")
+      .eq("id", clinic_id)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!clinic) return res.status(404).json({ error: "Clinic not found" });
+
+    const currentSettings = clinic.settings || {};
+    const nextSettings = applyClinicRulePatchToSettings(currentSettings, patch);
+
+    const { data: updated, error: updateErr } = await sb
+      .from("clinics")
+      .update({ settings: nextSettings })
+      .eq("id", clinic_id)
+      .select("settings")
+      .single();
+    if (updateErr) throw updateErr;
+
+    await writeAuditLog({
+      eventType: "clinic_rule_config_updated",
+      clinicId: clinic_id,
+      channel: "dashboard",
+      direction: "internal",
+      status: "success",
+      intent: "clinic_rule_config",
+      errorMessage: JSON.stringify({
+        actor_user_id,
+        changed_paths: changedPaths,
+        patch,
+      }),
+    });
+
+    return res.json({
+      ok: true,
+      clinic_id,
+      changed_paths: changedPaths,
+      overrides: extractClinicRuleOverrides(updated?.settings || nextSettings),
+      resolved: resolveClinicRuleConfig(updated?.settings || nextSettings),
+    });
+  } catch (err) {
+    const status = err.statusCode || 500;
+    if (status >= 500) {
+      console.error("[clinic-rule-config:patch]", err.message);
+    }
+    return res.status(status).json({ error: err.message });
+  }
+});
+
 // ── POST /api/my-tiki/links
 // 새 My Tiki 매직 링크 발급 (예약 확정 후 스태프가 호출)
 // body: { visitId, patientLang?, sentVia?, customMessage? }
@@ -2366,6 +2469,7 @@ app.post("/api/my-tiki/visits/:id/check-in", requireStaffAuth, async (req, res) 
   if (!sb) return res.status(503).json({ error: "Database unavailable" });
 
   try {
+    const clinicRuleConfig = await loadClinicRuleConfig(sb, clinic_id);
     const now = new Date().toISOString();
     const { data: existing, error: existingErr } = await sb
       .from("visits")
@@ -2383,7 +2487,7 @@ app.post("/api/my-tiki/visits/:id/check-in", requireStaffAuth, async (req, res) 
         checked_in_at: existing.checked_in_at,
         patient_arrived_at: existing.patient_arrived_at,
         room: existing.room,
-        room_ready: isVisitRoomReady(existing),
+        room_ready: isVisitRoomReady(existing, clinicRuleConfig),
       });
     }
 
@@ -2422,7 +2526,7 @@ app.post("/api/my-tiki/visits/:id/check-in", requireStaffAuth, async (req, res) 
       checked_in_at: data.checked_in_at,
       patient_arrived_at: data.patient_arrived_at,
       room: data.room,
-      room_ready: isVisitRoomReady(data),
+      room_ready: isVisitRoomReady(data, clinicRuleConfig),
     });
   } catch (err) {
     console.error("[MyTiki/check-in]", err.message);
@@ -2463,6 +2567,7 @@ app.get("/api/staff/rooms", requireStaffAuth, async (req, res) => {
   if (!sb) return res.status(503).json({ error: "Database unavailable" });
 
   try {
+    const clinicRuleConfig = await loadClinicRuleConfig(sb, clinic_id);
     const [rooms, visits] = await Promise.all([
       loadClinicRooms(sb, clinic_id, { includeInactive: req.query.includeInactive === "true" }),
       sb
@@ -2483,6 +2588,7 @@ app.get("/api/staff/rooms", requireStaffAuth, async (req, res) => {
       rooms: buildRoomOccupancy({
         rooms,
         visits: (visits.data || []).map(normalizeRoomVisit),
+        clinicRuleConfig,
       }),
     });
   } catch (err) {
@@ -2575,6 +2681,7 @@ app.post("/api/staff/visits/:id/assign-room", requireStaffAuth, async (req, res)
   if (!room_id) return res.status(400).json({ error: "room_id required" });
 
   try {
+    const clinicRuleConfig = await loadClinicRuleConfig(sb, clinic_id);
 	    const [{ data: room, error: roomError }, { data: visit, error: visitError }] = await Promise.all([
       sb
         .from("rooms")
@@ -2654,7 +2761,7 @@ app.post("/api/staff/visits/:id/assign-room", requireStaffAuth, async (req, res)
 	    res.json({
       ok: true,
       visit: normalizeRoomVisit(data),
-      room_ready: isVisitRoomReady(data),
+      room_ready: isVisitRoomReady(data, clinicRuleConfig),
     });
   } catch (err) {
     console.error("[Staff/visits/assign-room]", err.message);
@@ -2725,12 +2832,13 @@ app.get("/api/staff/ops-board", requireStaffAuth, async (req, res) => {
   if (!sb) return res.status(503).json({ error: "Database unavailable" });
 
   try {
+    const clinicRuleConfig = await loadClinicRuleConfig(sb, clinic_id);
     const [visits, roomVisits, rooms] = await Promise.all([
-      fetchOpsBoardVisits({ sb, clinic_id, dateRange, stage, limit }),
-      fetchOpsBoardVisits({ sb, clinic_id, dateRange, stage: "all", limit }),
+      fetchOpsBoardVisits({ sb, clinic_id, clinicRuleConfig, dateRange, stage, limit }),
+      fetchOpsBoardVisits({ sb, clinic_id, clinicRuleConfig, dateRange, stage: "all", limit }),
       loadClinicRooms(sb, clinic_id),
     ]);
-    const roomData = buildRoomSummary(rooms, roomVisits);
+    const roomData = buildRoomSummary(rooms, roomVisits, clinicRuleConfig);
 
     res.json({
       visits,
@@ -3416,13 +3524,14 @@ function buildVisitSummary(visits = []) {
     checkedIn: visits.filter((visit) => visit.checked_in_at).length,
     activeLinks: visits.filter((visit) => visit.link_status === "active" || visit.link_status === "opened").length,
     arrived: visits.filter((visit) => visit.patient_arrived_at).length,
-    roomReady: visits.filter((visit) => isVisitRoomReady(visit)).length,
+    roomReady: visits.filter((visit) => visit.room_ready).length,
   };
 }
 
 async function fetchOpsBoardVisits({
   sb,
   clinic_id,
+  clinicRuleConfig = null,
   dateRange = "today",
   stage,
   limit = 200,
@@ -3512,6 +3621,7 @@ async function fetchOpsBoardVisits({
 
   return visits.map((visit) => normalizeRoomVisit({
     ...visit,
+    room_ready: isVisitRoomReady(visit, clinicRuleConfig),
     link: linksMap[visit.id] || null,
     link_status: linkStatus(linksMap[visit.id]),
     unreviewed_forms: unreviewedMap[visit.id] || 0,
@@ -3545,9 +3655,9 @@ async function loadClinicProcedures(sb, clinic_id) {
   return data || [];
 }
 
-function buildRoomSummary(rooms = [], visits = []) {
-  const occupancy = buildRoomOccupancy({ rooms, visits });
-  const queue = getRoomReadyQueue(visits);
+function buildRoomSummary(rooms = [], visits = [], clinicRuleConfig = null) {
+  const occupancy = buildRoomOccupancy({ rooms, visits, clinicRuleConfig });
+  const queue = getRoomReadyQueue(visits, clinicRuleConfig);
   return {
     rooms: occupancy,
     room_ready_queue: queue,
@@ -3736,12 +3846,13 @@ async function buildRoomCurrentPayload(sb, roomId, expectedClinicId = null) {
   const room = await fetchRoomById(sb, roomId);
   if (!room) return null;
   if (expectedClinicId && room.clinic_id !== expectedClinicId) return null;
+  const clinicRuleConfig = await loadClinicRuleConfig(sb, room.clinic_id);
 
   const [session, currentVisit, clinicRooms, allVisits] = await Promise.all([
     fetchActiveRoomSession(sb, roomId),
     fetchRoomVisitContext(sb, room.clinic_id, roomId),
     loadClinicRooms(sb, room.clinic_id),
-    fetchOpsBoardVisits({ sb, clinic_id: room.clinic_id, dateRange: "today", stage: "all", limit: 300 }),
+    fetchOpsBoardVisits({ sb, clinic_id: room.clinic_id, clinicRuleConfig, dateRange: "today", stage: "all", limit: 300 }),
   ]);
 
   const effectiveSession = currentVisit
@@ -3770,6 +3881,7 @@ async function buildRoomCurrentPayload(sb, roomId, expectedClinicId = null) {
   const nextCandidate = pickNextRoomCandidate({
     roomId: room.id,
     visits: allVisits,
+    clinicRuleConfig,
   });
 
   return {
@@ -4055,6 +4167,29 @@ app.post("/api/patient/aftercare/respond", requirePatientToken, async (req, res)
 
     const state = await fetchPatientAftercareState(sb, clinic_id, patient_id, visit_id);
 
+    await writeJourneyEvents(sb, [
+      buildJourneyEventInsert({
+        clinic_id,
+        patient_id: patient_id || null,
+        visit_id: visit_id || null,
+        event_type: "aftercare_response_recorded",
+        actor_type: "patient",
+        actor_id: patient_id ? String(patient_id) : null,
+        payload: buildOperationalAuditPayload({
+          current_status: "responded",
+          payload: {
+            event_id: eventId,
+            run_id: event.run_id,
+            risk_level: evaluation.risk_level,
+            urgent_flag: evaluation.urgent_flag,
+            escalation_request_id: escalationRequest?.id || null,
+            next_action_type: evaluation.next_action_type,
+            safe_for_return: evaluation.safe_for_return,
+          },
+        }),
+      }),
+    ]);
+
     res.json({
       ok: true,
       event: updatedEvent,
@@ -4141,6 +4276,7 @@ app.get("/api/patient/ask", requirePatientToken, async (req, res) => {
       visit_id,
       patient_lang,
     });
+    const clinicRuleConfig = await loadClinicRuleConfig(sb, clinic_id);
 
     const conversation = await getOrCreateAskConversation(sb, {
       clinic_id,
@@ -4154,6 +4290,7 @@ app.get("/api/patient/ask", requirePatientToken, async (req, res) => {
       visit: context.visit,
       messages,
       escalationRequest: context.openEscalation,
+      clinicRuleConfig,
     });
 
     res.json({
@@ -4185,6 +4322,7 @@ app.post("/api/patient/ask/messages", requirePatientToken, async (req, res) => {
       visit_id,
       patient_lang,
     });
+    const clinicRuleConfig = await loadClinicRuleConfig(sb, clinic_id);
 
     const conversation = await getOrCreateAskConversation(sb, {
       clinic_id,
@@ -4219,6 +4357,7 @@ app.post("/api/patient/ask/messages", requirePatientToken, async (req, res) => {
       visit: context.visit,
       procedure: context.procedure,
       knowledgeRows: context.knowledgeRows,
+      clinicRuleConfig,
     });
 
     const { data: assistantMessage, error: aErr } = await sb
@@ -4288,6 +4427,7 @@ app.post("/api/patient/ask/escalations", requirePatientToken, async (req, res) =
       visit_id,
       patient_lang,
     });
+    const clinicRuleConfig = await loadClinicRuleConfig(sb, clinic_id);
 
     const conversation = await getOrCreateAskConversation(sb, {
       clinic_id,
@@ -4334,7 +4474,11 @@ app.post("/api/patient/ask/escalations", requirePatientToken, async (req, res) =
         conversation_id: conversation.id,
         role: "assistant",
         channel: "web",
-        content: requestRow.patient_visible_status_text,
+        content: buildEscalationAck({
+          lang: patient_lang || "en",
+          requestType,
+          clinicRuleConfig,
+        }),
         metadata: {
           sender_type: "assistant",
           message_type: "escalation_ack",
@@ -4384,6 +4528,7 @@ app.get("/api/staff/escalations", requireStaffAuth, async (req, res) => {
         id, clinic_id, patient_id, visit_id, conversation_id, source_message_id,
         escalation_type, priority, assigned_role, assigned_user_id, status,
         patient_visible_status_text, opened_at, acknowledged_at, responded_at,
+        acknowledged_by, responded_by, resolved_by, closed_by,
         resolved_at, closed_at, created_at, updated_at,
         patients ( id, name, flag, lang ),
         visits ( id, stage, visit_date, room, procedures ( id, name_ko, name_en ) )
@@ -4459,7 +4604,7 @@ app.get("/api/staff/aftercare", requireStaffAuth, async (req, res) => {
       safe_for_return: items.filter((item) => item.safe_for_return).length,
     };
 
-    res.json({ items, summary });
+    res.json({ items, summary, scheduler: getAftercareSchedulerHealth() });
   } catch (err) {
     console.error("[Staff/aftercare]", err.message);
     res.status(500).json({ error: err.message });
@@ -4507,6 +4652,26 @@ app.post("/api/staff/aftercare/:eventId/review", requireStaffAuth, async (req, r
       `)
       .single();
     if (error) throw error;
+
+    await writeJourneyEvents(sb, [
+      buildJourneyEventInsert({
+        clinic_id,
+        patient_id: run.patient_id || null,
+        visit_id: run.visit_id || null,
+        event_type: "aftercare_reviewed",
+        actor_type: "staff",
+        actor_id: req.staff_user_id || null,
+        payload: buildOperationalAuditPayload({
+          current_status: data.response_status,
+          payload: {
+            event_id: data.id,
+            run_id: data.run_id,
+            risk_level: data.risk_level,
+            urgent_flag: data.urgent_flag,
+          },
+        }),
+      }),
+    ]);
 
     res.json({ item: data });
   } catch (err) {
@@ -4589,6 +4754,37 @@ async function applyEscalationAction(req, res, action) {
       `)
       .single();
     if (error) throw error;
+
+    const eventTypeMap = {
+      acknowledge: "escalation_acknowledged",
+      assign: "escalation_assigned",
+      respond: "escalation_responded",
+      resolve: "escalation_resolved",
+      close: "escalation_closed",
+    };
+
+    await writeJourneyEvents(sb, [
+      buildJourneyEventInsert({
+        clinic_id,
+        patient_id: existing.patient_id || null,
+        visit_id: existing.visit_id || null,
+        event_type: eventTypeMap[action],
+        actor_type: "staff",
+        actor_id: req.staff_user_id || null,
+        payload: buildOperationalAuditPayload({
+          current_status: data.status,
+          current_owner_role: data.assigned_role || null,
+          current_owner_user_id: data.assigned_user_id || null,
+          payload: {
+            escalation_id: existing.id,
+            escalation_type: data.escalation_type,
+            from_status: existing.status,
+            to_status: data.status,
+            priority: data.priority,
+          },
+        }),
+      }),
+    ]);
 
     res.json({ item: data });
   } catch (err) {
@@ -4744,6 +4940,25 @@ app.post("/api/room/end-session", requireStaffAuth, async (req, res) => {
       return res.status(404).json({ error: "Room not found" });
     }
     const closed = await closeRoomSession(sb, roomKey, "ended");
+    if (closed) {
+      await writeJourneyEvents(sb, [
+        buildJourneyEventInsert({
+          clinic_id,
+          patient_id: closed.patient_id || null,
+          visit_id: closed.visit_id || null,
+          event_type: "room_session_ended",
+          actor_type: "staff",
+          actor_id: req.staff_user_id || null,
+          payload: buildOperationalAuditPayload({
+            current_status: closed.status,
+            payload: {
+              room_id: closed.room_id,
+              room_session_id: closed.id,
+            },
+          }),
+        }),
+      ]);
+    }
     res.json({ ok: true, session: closed });
   } catch (err) {
     console.error("[Room/end-session]", err.message);
@@ -4763,9 +4978,9 @@ app.post("/api/room/load-next", requireStaffAuth, async (req, res) => {
     const room = await fetchRoomById(sb, roomKey);
     if (!room || room.clinic_id !== clinic_id) return res.status(404).json({ error: "Room not found" });
     await closeRoomSession(sb, room.id, "ended");
-
-    const visits = await fetchOpsBoardVisits({ sb, clinic_id: room.clinic_id, dateRange: "today", stage: "all", limit: 300 });
-    const nextVisit = pickNextRoomCandidate({ roomId: room.id, visits });
+    const clinicRuleConfig = await loadClinicRuleConfig(sb, room.clinic_id);
+    const visits = await fetchOpsBoardVisits({ sb, clinic_id: room.clinic_id, clinicRuleConfig, dateRange: "today", stage: "all", limit: 300 });
+    const nextVisit = pickNextRoomCandidate({ roomId: room.id, visits, clinicRuleConfig });
     if (!nextVisit) {
       return res.json({
         ok: true,
@@ -4792,6 +5007,26 @@ app.post("/api/room/load-next", requireStaffAuth, async (req, res) => {
         .eq("id", nextVisit.id)
         .eq("clinic_id", room.clinic_id);
     }
+
+    await writeJourneyEvents(sb, [
+      buildJourneyEventInsert({
+        clinic_id,
+        patient_id: nextVisit.patient_id || null,
+        visit_id: nextVisit.id,
+        event_type: "room_next_loaded",
+        actor_type: "staff",
+        actor_id: req.staff_user_id || null,
+        payload: buildOperationalAuditPayload({
+          current_status: "active",
+          payload: {
+            room_id: room.id,
+            room_name: room.name,
+            previous_room_id: nextVisit.room_id || null,
+            source: "room_load_next",
+          },
+        }),
+      }),
+    ]);
 
     const payload = await buildRoomCurrentPayload(sb, room.id, clinic_id);
     res.json({ ok: true, ...payload });
@@ -4823,6 +5058,25 @@ app.post("/api/room/clear", requireStaffAuth, async (req, res) => {
         })
         .eq("id", current.current_patient.id)
         .eq("clinic_id", current.room.clinic_id);
+
+      await writeJourneyEvents(sb, [
+        buildJourneyEventInsert({
+          clinic_id,
+          patient_id: current.current_patient.patient_id || null,
+          visit_id: current.current_patient.id,
+          event_type: "room_cleared",
+          actor_type: "staff",
+          actor_id: req.staff_user_id || null,
+          payload: buildOperationalAuditPayload({
+            current_status: "cleared",
+            payload: {
+              room_id: current.room.id,
+              room_name: current.room.name,
+              source: "room_clear",
+            },
+          }),
+        }),
+      ]);
     }
     res.json({ ok: true });
   } catch (err) {

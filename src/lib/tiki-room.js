@@ -189,12 +189,12 @@ export function analyzeRoomLiveInput({
   };
 }
 
-export function pickNextRoomCandidate({ roomId, visits = [] }) {
+export function pickNextRoomCandidate({ roomId, visits = [], clinicRuleConfig = null }) {
   const preassigned = visits
     .filter((visit) => visit.room_id === roomId && visit.room_cleared_at)
-    .filter((visit) => isVisitRoomReady(visit))
+    .filter((visit) => isVisitRoomReady(visit, clinicRuleConfig))
     .sort((a, b) => new Date(a.checked_in_at || 0).getTime() - new Date(b.checked_in_at || 0).getTime());
 
   if (preassigned.length > 0) return preassigned[0];
-  return getRoomReadyQueue(visits)[0] || null;
+  return getRoomReadyQueue(visits, clinicRuleConfig)[0] || null;
 }
