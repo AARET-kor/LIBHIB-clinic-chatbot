@@ -5,13 +5,12 @@ import StatsTab from '../components/stats/StatsTab';
 import SettingsTab from '../components/settings/SettingsTab';
 import ProceduresTab from '../components/procedures/ProceduresTab';
 import TikiPasteTab from '../components/magic/TikiPasteTab';
-import TikiTalkTab from '../components/talk/TikiTalkTab';
 import InsightsTab from '../components/insights/InsightsTab';
 import ProtocolTab from '../components/protocol/ProtocolTab';
 import MyTikiTab from '../components/mytiki/MyTikiTab';
 import { useAuth } from '../context/AuthContext';
 import {
-  MessageSquare, LogOut, ChevronDown, User, Sun, Moon, Settings
+  Layers, LogOut, ChevronDown, User, Sun, Moon, Settings
 } from 'lucide-react';
 
 // ── Top Bar ───────────────────────────────────────────────────────────────────
@@ -20,15 +19,15 @@ function TopBar({ session, onLogout, darkMode, onToggleDark, onOpenSettings }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
-    <div className={`h-10 border-b flex items-center justify-between px-4 shrink-0 z-10 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}
+    <div className={`h-12 border-b flex items-center justify-between px-5 shrink-0 z-10 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}
       style={{ fontFamily: "'Pretendard Variable', 'Inter', system-ui, sans-serif" }}>
-      <div className="flex items-center gap-2.5 ml-1">
-        <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: '#A47764', boxShadow: '0 1px 4px rgba(164,119,100,0.4)' }}>
-          <MessageSquare size={10} className="text-white" fill="white" />
+      <div className="flex items-center gap-3">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#A47764', boxShadow: '0 2px 8px rgba(164,119,100,0.4)' }}>
+          <Layers size={14} color="#fff" strokeWidth={2.2} />
         </div>
-        <span className={`text-xs font-semibold ${darkMode ? 'text-zinc-200' : 'text-zinc-900'}`}>{session.clinic.name}</span>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${session.clinic.planColor}`}>{session.clinic.plan}</span>
-        <span className={`text-[10px] hidden sm:block ${darkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>{session.clinic.location}</span>
+        <span className={`text-sm font-bold ${darkMode ? 'text-zinc-100' : 'text-zinc-900'}`} style={{ letterSpacing: '-0.02em' }}>{session.clinic.name}</span>
+        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${session.clinic.planColor}`}>{session.clinic.plan}</span>
+        <span className={`text-[11px] hidden sm:block ${darkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>{session.clinic.location}</span>
       </div>
 
       <div className="relative">
@@ -114,9 +113,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Normalize legacy tab IDs → current IDs (backward compat for bookmarked URLs)
-  const rawTab   = searchParams.get('tab') || 'tiki_paste';
-  const activeTab = rawTab === 'stats' ? 'analytics' : rawTab === 'insights' ? 'tiki_memory' : rawTab;
+  // Normalize legacy tab IDs → current IDs
+  const rawTab   = searchParams.get('tab') || 'my_tiki';
+  const activeTab = rawTab === 'stats' ? 'analytics' : rawTab === 'insights' ? 'tiki_memory' : rawTab === 'tiki_talk' ? 'my_tiki' : rawTab;
   const setActiveTab = useCallback((tab) => {
     setSearchParams(prev => {
       const p = new URLSearchParams(prev);
@@ -151,9 +150,6 @@ export default function Dashboard() {
 
           {/* ── 티키 Paste ── */}
           {activeTab === 'tiki_paste' && <TikiPasteTab darkMode={darkMode} />}
-
-          {/* ── 티키 Talk ── */}
-          {activeTab === 'tiki_talk' && <TikiTalkTab />}
 
           {/* ── 통계 (analytics) ── */}
           {activeTab === 'analytics' && (

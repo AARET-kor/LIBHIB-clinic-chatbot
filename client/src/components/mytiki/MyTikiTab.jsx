@@ -320,7 +320,7 @@ function RoomAssignmentCell({
             className="px-1.5 py-0.5 rounded-md text-[9px] font-bold border disabled:opacity-50"
             style={{ borderColor: '#FCA5A5', color: '#DC2626', background: darkMode ? '#1C1917' : '#FEF2F2' }}
           >
-            Clear
+            방 비우기
           </button>
         </div>
       </div>
@@ -395,7 +395,7 @@ function RoomTrafficCard({ room, queueVisit, darkMode, busy, onAssignRoom, onCle
             className="mt-3 px-3 py-1.5 rounded-lg text-[10px] font-semibold border disabled:opacity-50"
             style={{ borderColor: '#FCA5A5', color: '#DC2626', background: darkMode ? '#1C1917' : '#FEF2F2' }}
           >
-            Clear room
+            방 비우기
           </button>
         </div>
       ) : (
@@ -413,7 +413,7 @@ function RoomTrafficCard({ room, queueVisit, darkMode, busy, onAssignRoom, onCle
                 className="mt-3 px-3 py-1.5 rounded-lg text-[10px] font-semibold text-white disabled:opacity-50"
                 style={{ background: TEAL }}
               >
-                Assign next
+                다음 배정
               </button>
             </>
           ) : (
@@ -443,7 +443,7 @@ function RoomPresetManager({ rooms, darkMode, onCreateRoom, onUpdateRoom }) {
     <div className={`rounded-2xl border p-4 mt-4 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className={`text-sm font-bold ${darkMode ? 'text-zinc-100' : 'text-zinc-800'}`}>Room presets</p>
+          <p className={`text-sm font-bold ${darkMode ? 'text-zinc-100' : 'text-zinc-800'}`}>방 목록</p>
           <p className={`text-[11px] mt-1 ${darkMode ? 'text-zinc-500' : 'text-zinc-500'}`}>방 이름을 반복 입력하지 않고 바로 운영에 쓸 수 있게 유지합니다.</p>
         </div>
       </div>
@@ -830,7 +830,7 @@ function EscalationTaskCard({ item, darkMode, onOpen, staffUsers = [] }) {
       </p>
 
       <div className={`mt-2 text-[10px] ${darkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
-        Owner: {ownerLabel} · Last: {latestActorLabel}
+        담당: {ownerLabel} · 최근: {latestActorLabel}
       </div>
 
       <div className={`mt-2 text-[10px] font-medium ${darkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
@@ -896,7 +896,7 @@ function AftercareTaskCard({ item, darkMode, busy, onReview }) {
           disabled={busy}
           className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold border ${darkMode ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-200 text-zinc-700 hover:bg-zinc-50'}`}
         >
-          {busy ? '검토 중…' : 'Review'}
+          {busy ? '검토 중…' : '검토'}
         </button>
       </div>
     </div>
@@ -961,7 +961,7 @@ function EscalationDetailDrawer({
       >
         <div className={`px-5 py-4 border-b flex items-center justify-between ${darkMode ? 'border-zinc-800' : 'border-zinc-100'}`}>
           <div>
-            <p className={`text-sm font-bold ${darkMode ? 'text-zinc-100' : 'text-zinc-800'}`}>Escalation Detail</p>
+            <p className={`text-sm font-bold ${darkMode ? 'text-zinc-100' : 'text-zinc-800'}`}>에스컬레이션 상세</p>
             <p className={`text-[11px] mt-1 ${darkMode ? 'text-zinc-500' : 'text-zinc-500'}`}>{item.patients?.flag || '🏥'} {item.patients?.name || '(이름 없음)'}</p>
           </div>
           <button onClick={onClose} className={`p-1 rounded-lg ${darkMode ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}>
@@ -979,36 +979,36 @@ function EscalationDetailDrawer({
             <p className={`text-[12px] mt-3 leading-6 ${darkMode ? 'text-zinc-200' : 'text-zinc-700'}`}>{item.source_message?.content || '원문 메시지 없음'}</p>
             <p className={`text-[11px] mt-3 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>{item.patient_visible_status_text}</p>
             <div className={`mt-4 grid grid-cols-2 gap-2 text-[10px] ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>
-              <div>Acknowledged by: {actorLabel(item.acknowledged_by)}</div>
-              <div>Responded by: {actorLabel(item.responded_by)}</div>
-              <div>Resolved by: {actorLabel(item.resolved_by)}</div>
-              <div>Closed by: {actorLabel(item.closed_by)}</div>
+              <div>확인자: {actorLabel(item.acknowledged_by)}</div>
+              <div>응답자: {actorLabel(item.responded_by)}</div>
+              <div>해결자: {actorLabel(item.resolved_by)}</div>
+              <div>종료자: {actorLabel(item.closed_by)}</div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="text-[11px] font-semibold">
-              <span className={`block mb-1 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Type</span>
+              <span className={`block mb-1 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>유형</span>
               <select value={escalationType} onChange={e => setEscalationType(e.target.value)} className={`w-full rounded-lg border px-3 py-2 text-xs ${darkMode ? 'bg-zinc-900 border-zinc-700 text-zinc-100' : 'bg-white border-zinc-200 text-zinc-700'}`}>
                 {Object.entries(ESCALATION_TYPE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
               </select>
             </label>
             <label className="text-[11px] font-semibold">
-              <span className={`block mb-1 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Priority</span>
+              <span className={`block mb-1 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>우선순위</span>
               <select value={priority} onChange={e => setPriority(e.target.value)} className={`w-full rounded-lg border px-3 py-2 text-xs ${darkMode ? 'bg-zinc-900 border-zinc-700 text-zinc-100' : 'bg-white border-zinc-200 text-zinc-700'}`}>
                 {Object.entries(ESCALATION_PRIORITY_META).map(([key, meta]) => <option key={key} value={key}>{meta.label}</option>)}
               </select>
             </label>
             <label className="text-[11px] font-semibold">
-              <span className={`block mb-1 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Assigned Role</span>
+              <span className={`block mb-1 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>담당 역할</span>
               <select value={assignedRole} onChange={e => setAssignedRole(e.target.value)} className={`w-full rounded-lg border px-3 py-2 text-xs ${darkMode ? 'bg-zinc-900 border-zinc-700 text-zinc-100' : 'bg-white border-zinc-200 text-zinc-700'}`}>
                 {Object.entries(ESCALATION_ROLE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
               </select>
             </label>
             <label className="text-[11px] font-semibold">
-              <span className={`block mb-1 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>Assigned User</span>
+              <span className={`block mb-1 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>담당자</span>
               <select value={assignedUserId} onChange={e => setAssignedUserId(e.target.value)} className={`w-full rounded-lg border px-3 py-2 text-xs ${darkMode ? 'bg-zinc-900 border-zinc-700 text-zinc-100' : 'bg-white border-zinc-200 text-zinc-700'}`}>
-                <option value="">Role queue only</option>
+                <option value="">역할 대기열</option>
                 {filteredUsers.map(user => <option key={user.user_id} value={user.user_id}>{user.email}</option>)}
               </select>
             </label>
@@ -1016,10 +1016,10 @@ function EscalationDetailDrawer({
 
           <div className="grid grid-cols-2 gap-2">
             <button onClick={() => run('assign')} className="px-3 py-2 rounded-lg text-xs font-semibold text-white" style={{ background: TEAL }}>{busy === 'assign' ? '저장 중…' : '재배정 저장'}</button>
-            <button onClick={() => run('acknowledge')} className={`px-3 py-2 rounded-lg text-xs font-semibold border ${darkMode ? 'border-zinc-700 text-zinc-200' : 'border-zinc-200 text-zinc-700'}`}>{busy === 'acknowledge' ? '처리 중…' : 'Acknowledge'}</button>
-            <button onClick={() => run('responded')} className={`px-3 py-2 rounded-lg text-xs font-semibold border ${darkMode ? 'border-zinc-700 text-zinc-200' : 'border-zinc-200 text-zinc-700'}`}>{busy === 'responded' ? '처리 중…' : 'Mark Responded'}</button>
-            <button onClick={() => run('resolve')} className={`px-3 py-2 rounded-lg text-xs font-semibold border ${darkMode ? 'border-zinc-700 text-zinc-200' : 'border-zinc-200 text-zinc-700'}`}>{busy === 'resolve' ? '처리 중…' : 'Resolve'}</button>
-            <button onClick={() => run('close')} className="col-span-2 px-3 py-2 rounded-lg text-xs font-semibold text-white bg-zinc-700">{busy === 'close' ? '처리 중…' : 'Close'}</button>
+            <button onClick={() => run('acknowledge')} className={`px-3 py-2 rounded-lg text-xs font-semibold border ${darkMode ? 'border-zinc-700 text-zinc-200' : 'border-zinc-200 text-zinc-700'}`}>{busy === 'acknowledge' ? '처리 중…' : '확인'}</button>
+            <button onClick={() => run('responded')} className={`px-3 py-2 rounded-lg text-xs font-semibold border ${darkMode ? 'border-zinc-700 text-zinc-200' : 'border-zinc-200 text-zinc-700'}`}>{busy === 'responded' ? '처리 중…' : '응답 완료'}</button>
+            <button onClick={() => run('resolve')} className={`px-3 py-2 rounded-lg text-xs font-semibold border ${darkMode ? 'border-zinc-700 text-zinc-200' : 'border-zinc-200 text-zinc-700'}`}>{busy === 'resolve' ? '처리 중…' : '해결'}</button>
+            <button onClick={() => run('close')} className="col-span-2 px-3 py-2 rounded-lg text-xs font-semibold text-white bg-zinc-700">{busy === 'close' ? '처리 중…' : '종료'}</button>
           </div>
         </div>
       </div>
@@ -1318,11 +1318,26 @@ export default function MyTikiTab({ darkMode }) {
   useEffect(() => { fetchAftercarePlans(); }, [fetchAftercarePlans]);
 
   // ── Derived filtered list ──────────────────────────────────────────────────
-  const filtered = visits.filter(v => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return v.patient_name.toLowerCase().includes(q) || v.procedure_name.toLowerCase().includes(q);
-  });
+  const filtered = visits
+    .filter(v => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return v.patient_name.toLowerCase().includes(q) || v.procedure_name.toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      // 도착 신호 환자 먼저
+      if (a.patient_arrived_at && !b.patient_arrived_at) return -1;
+      if (!a.patient_arrived_at && b.patient_arrived_at) return 1;
+      // 도착 시간 기준 (더 최근에 도착한 환자 먼저)
+      if (a.patient_arrived_at && b.patient_arrived_at) {
+        return new Date(b.patient_arrived_at) - new Date(a.patient_arrived_at);
+      }
+      // 나머지는 예약 시간 순
+      if (!a.visit_date && !b.visit_date) return 0;
+      if (!a.visit_date) return 1;
+      if (!b.visit_date) return -1;
+      return new Date(a.visit_date) - new Date(b.visit_date);
+    });
 
   const groupedEscalations = escalations.reduce((acc, item) => {
     const key = escalationGroupBy === 'priority'
@@ -1583,11 +1598,11 @@ export default function MyTikiTab({ darkMode }) {
   // ── Today date label ───────────────────────────────────────────────────────
   const todayLabel = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
   const attentionItems = [
-    escalationSummary.overdue > 0 ? `Escalation SLA 초과 ${escalationSummary.overdue}` : null,
-    escalationSummary.due_soon > 0 ? `Escalation SLA 임박 ${escalationSummary.due_soon}` : null,
-    escalationSummary.urgent > 0 ? `긴급 escalation ${escalationSummary.urgent}` : null,
-    aftercareSummary.urgent > 0 ? `긴급 aftercare ${aftercareSummary.urgent}` : null,
-    aftercareScheduler?.status === 'degraded' ? 'Aftercare scheduler degraded' : null,
+    escalationSummary.overdue > 0 ? `에스컬레이션 SLA 초과 ${escalationSummary.overdue}건` : null,
+    escalationSummary.due_soon > 0 ? `에스컬레이션 SLA 임박 ${escalationSummary.due_soon}건` : null,
+    escalationSummary.urgent > 0 ? `긴급 에스컬레이션 ${escalationSummary.urgent}건` : null,
+    aftercareSummary.urgent > 0 ? `긴급 사후관리 ${aftercareSummary.urgent}건` : null,
+    aftercareScheduler?.status === 'degraded' ? '사후관리 스케줄러 이상' : null,
   ].filter(Boolean);
 
   async function openEscalation(id) {
@@ -1641,10 +1656,10 @@ export default function MyTikiTab({ darkMode }) {
           <div>
             <div className="flex items-center gap-2">
               <ClipboardCheck size={15} style={{ color: TEAL }} />
-              <h1 className={`text-sm font-bold ${textP}`}>Tiki Desk</h1>
+              <h1 className={`text-sm font-bold ${textP}`}>티키 데스크</h1>
               <span className={`text-[11px] font-medium ${textS}`}>— {todayLabel}</span>
             </div>
-            <p className={`text-[11px] mt-0.5 ${textS}`}>코디네이터 운영 현황 · 체크인 · TikiBell triage · Rooms Lite</p>
+            <p className={`text-[11px] mt-0.5 ${textS}`}>코디네이터 운영 현황 · 체크인 · TikiBell 트리아지 · 룸 현황</p>
             {shouldPollOpsBoard(dateRange) && (
               <p className={`text-[10px] mt-1 ${textS}`}>오늘 보기에서는 20초마다 가볍게 새로고침됩니다.</p>
             )}
@@ -1686,13 +1701,13 @@ export default function MyTikiTab({ darkMode }) {
 
         {attentionItems.length > 0 && (
           <div className={`mt-2 rounded-xl border px-3 py-2 text-[11px] font-semibold ${darkMode ? 'border-amber-800 bg-amber-950/40 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-            Tiki Desk attention · {attentionItems.join(' · ')}
+            주의 필요 · {attentionItems.join(' · ')}
           </div>
         )}
 
         {aftercareScheduler?.status === 'degraded' && (
           <div className={`mt-2 rounded-xl border px-3 py-2 text-[11px] ${darkMode ? 'border-amber-800 bg-amber-950/40 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-            Aftercare scheduler degraded · background delivery may be delayed.
+            사후관리 스케줄러 이상 · 백그라운드 발송이 지연될 수 있습니다.
           </div>
         )}
 
@@ -1701,7 +1716,7 @@ export default function MyTikiTab({ darkMode }) {
             <div>
               <div className="flex items-center gap-2">
                 <DoorOpen size={14} style={{ color: TEAL }} />
-                <h2 className={`text-sm font-bold ${textP}`}>Rooms Lite</h2>
+                <h2 className={`text-sm font-bold ${textP}`}>룸 현황</h2>
               </div>
               <p className={`text-[11px] mt-1 ${textS}`}>빈 방, 사용 중인 방, 다음 배정 후보를 한 화면에서 확인합니다.</p>
             </div>
@@ -1714,10 +1729,10 @@ export default function MyTikiTab({ darkMode }) {
           </div>
 
           <div className="grid grid-cols-4 gap-2 mt-4">
-            <EscalationMiniCard label="Preset Rooms" value={loading ? '…' : roomSummary.total} sub="등록된 운영 room" color={TEAL} darkMode={darkMode} />
-            <EscalationMiniCard label="Free" value={loading ? '…' : roomSummary.free} sub="즉시 배정 가능" color="#16A34A" darkMode={darkMode} />
-            <EscalationMiniCard label="Occupied" value={loading ? '…' : roomSummary.occupied} sub="현재 사용 중" color="#DC2626" darkMode={darkMode} />
-            <EscalationMiniCard label="Ready Queue" value={loading ? '…' : roomSummary.readyQueue} sub="다음 room 후보" color="#D09262" darkMode={darkMode} />
+            <EscalationMiniCard label="방 목록" value={loading ? '…' : roomSummary.total} sub="등록된 운영 방" color={TEAL} darkMode={darkMode} />
+            <EscalationMiniCard label="빈 방" value={loading ? '…' : roomSummary.free} sub="즉시 배정 가능" color="#16A34A" darkMode={darkMode} />
+            <EscalationMiniCard label="사용 중" value={loading ? '…' : roomSummary.occupied} sub="현재 사용 중" color="#DC2626" darkMode={darkMode} />
+            <EscalationMiniCard label="대기 중" value={loading ? '…' : roomSummary.readyQueue} sub="다음 방 후보" color="#D09262" darkMode={darkMode} />
           </div>
 
           <div className="grid grid-cols-4 gap-3 mt-4">
@@ -1733,7 +1748,7 @@ export default function MyTikiTab({ darkMode }) {
               />
             ))}
             {!loading && rooms.length === 0 && (
-              <div className={`col-span-4 text-xs ${textS}`}>등록된 room preset이 없습니다. 아래에서 첫 room을 추가하면 바로 traffic control에 반영됩니다.</div>
+              <div className={`col-span-4 text-xs ${textS}`}>등록된 방이 없습니다. 아래 방 목록에서 첫 번째 방을 추가하면 바로 룸 현황에 반영됩니다.</div>
             )}
           </div>
 
@@ -1752,7 +1767,7 @@ export default function MyTikiTab({ darkMode }) {
             <div>
               <div className="flex items-center gap-2">
                 <UserCheck size={14} style={{ color: '#A47764' }} />
-                <h2 className={`text-sm font-bold ${textP}`}>Escalations</h2>
+                <h2 className={`text-sm font-bold ${textP}`}>에스컬레이션</h2>
               </div>
               <p className={`text-[11px] mt-1 ${textS}`}>환자 질문이 운영 task로 전환된 항목</p>
             </div>
@@ -1762,10 +1777,10 @@ export default function MyTikiTab({ darkMode }) {
           </div>
 
         <div className="grid grid-cols-4 gap-2 mt-4">
-          <EscalationMiniCard label="Open Items" value={loadingEscalations ? '…' : escalationSummary.open} sub="진행 중 triage" color={TEAL} darkMode={darkMode} />
-          <EscalationMiniCard label="Urgent" value={loadingEscalations ? '…' : escalationSummary.urgent} sub="즉시 검토 필요" color={escalationUrgentMeta.color} darkMode={darkMode} />
-          <EscalationMiniCard label="Overdue" value={loadingEscalations ? '…' : escalationSummary.overdue} sub="SLA 초과" color="#DC2626" darkMode={darkMode} />
-          <EscalationMiniCard label="Unanswered" value={loadingEscalations ? '…' : escalationSummary.unanswered} sub="아직 확인 전" color={escalationHighMeta.color} darkMode={darkMode} />
+          <EscalationMiniCard label="처리 중" value={loadingEscalations ? '…' : escalationSummary.open} sub="진행 중 트리아지" color={TEAL} darkMode={darkMode} />
+          <EscalationMiniCard label="긴급" value={loadingEscalations ? '…' : escalationSummary.urgent} sub="즉시 검토 필요" color={escalationUrgentMeta.color} darkMode={darkMode} />
+          <EscalationMiniCard label="SLA 초과" value={loadingEscalations ? '…' : escalationSummary.overdue} sub="기한 초과" color="#DC2626" darkMode={darkMode} />
+          <EscalationMiniCard label="미응답" value={loadingEscalations ? '…' : escalationSummary.unanswered} sub="아직 확인 전" color={escalationHighMeta.color} darkMode={darkMode} />
         </div>
 
           <div className="mt-4 flex items-center gap-2 flex-wrap">
@@ -1830,7 +1845,7 @@ export default function MyTikiTab({ darkMode }) {
             <div>
               <div className="flex items-center gap-2">
                 <ClipboardCheck size={14} style={{ color: '#4E8FA0' }} />
-                <h2 className={`text-sm font-bold ${textP}`}>Aftercare</h2>
+                <h2 className={`text-sm font-bold ${textP}`}>사후관리</h2>
               </div>
               <p className={`text-[11px] mt-1 ${textS}`}>사후관리 체크인, 위험 신호, 리턴 가능 상태를 운영 task로 확인합니다.</p>
             </div>
@@ -1848,11 +1863,11 @@ export default function MyTikiTab({ darkMode }) {
           )}
 
           <div className="grid grid-cols-5 gap-2 mt-4">
-            <EscalationMiniCard label="Due" value={loadingAftercare ? '…' : aftercareSummary.due} sub="응답 대기" color={aftercareDueMeta.color} darkMode={darkMode} />
-            <EscalationMiniCard label="Responded" value={loadingAftercare ? '…' : aftercareSummary.responded} sub="환자 응답 완료" color={SAGE} darkMode={darkMode} />
-            <EscalationMiniCard label="Concern" value={loadingAftercare ? '…' : aftercareSummary.concern} sub="검토 필요" color={aftercareConcernMeta.color} darkMode={darkMode} />
-            <EscalationMiniCard label="Urgent" value={loadingAftercare ? '…' : aftercareSummary.urgent} sub="긴급 신호" color={aftercareUrgentMeta.color} darkMode={darkMode} />
-            <EscalationMiniCard label="Safe Return" value={loadingAftercare ? '…' : aftercareSummary.safe_for_return} sub="재방문 제안 가능" color={aftercareSafeReturnMeta.color} darkMode={darkMode} />
+            <EscalationMiniCard label="응답 대기" value={loadingAftercare ? '…' : aftercareSummary.due} sub="체크인 발송됨" color={aftercareDueMeta.color} darkMode={darkMode} />
+            <EscalationMiniCard label="응답 완료" value={loadingAftercare ? '…' : aftercareSummary.responded} sub="환자 응답 완료" color={SAGE} darkMode={darkMode} />
+            <EscalationMiniCard label="주의" value={loadingAftercare ? '…' : aftercareSummary.concern} sub="검토 필요" color={aftercareConcernMeta.color} darkMode={darkMode} />
+            <EscalationMiniCard label="긴급" value={loadingAftercare ? '…' : aftercareSummary.urgent} sub="긴급 신호" color={aftercareUrgentMeta.color} darkMode={darkMode} />
+            <EscalationMiniCard label="재방문 가능" value={loadingAftercare ? '…' : aftercareSummary.safe_for_return} sub="리턴 제안 가능" color={aftercareSafeReturnMeta.color} darkMode={darkMode} />
           </div>
 
           <div className="mt-4 flex items-center gap-2 flex-wrap">
@@ -1883,7 +1898,7 @@ export default function MyTikiTab({ darkMode }) {
             <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: darkMode ? '#3F3F46' : '#E5E7EB', background: darkMode ? '#0F172A' : '#F8FAFC' }}>
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <p className={`text-[11px] font-bold ${textP}`}>Aftercare plan editor</p>
+                  <p className={`text-[11px] font-bold ${textP}`}>사후관리 플랜 편집</p>
                   <p className={`text-[11px] mt-1 ${textS}`}>시술별 체크 시점, 안내 문구, 다음 액션을 작게 조정합니다.</p>
                 </div>
                 {!canEditAftercarePlans && (
@@ -1943,7 +1958,7 @@ export default function MyTikiTab({ darkMode }) {
 
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <label className="flex flex-col gap-1">
-                          <span className={`text-[10px] font-semibold ${textS}`}>Trigger (hours)</span>
+                          <span className={`text-[10px] font-semibold ${textS}`}>발송 시점 (시간)</span>
                           <input
                             type="number"
                             min="1"
@@ -1955,7 +1970,7 @@ export default function MyTikiTab({ darkMode }) {
                           />
                         </label>
                         <label className="flex flex-col gap-1">
-                          <span className={`text-[10px] font-semibold ${textS}`}>Next action</span>
+                          <span className={`text-[10px] font-semibold ${textS}`}>다음 액션</span>
                           <select
                             value={step.next_action_type || 'continue_plan'}
                             disabled={!canEditAftercarePlans}
@@ -1970,7 +1985,7 @@ export default function MyTikiTab({ darkMode }) {
                       </div>
 
                       <label className="mt-3 flex flex-col gap-1">
-                        <span className={`text-[10px] font-semibold ${textS}`}>Content template</span>
+                        <span className={`text-[10px] font-semibold ${textS}`}>메시지 내용</span>
                         <textarea
                           rows={4}
                           value={step.content_template || ''}
@@ -1981,14 +1996,14 @@ export default function MyTikiTab({ darkMode }) {
                       </label>
 
                       <div className={`mt-3 rounded-xl border px-3 py-2 text-[11px] ${darkMode ? 'border-zinc-700 bg-zinc-900 text-zinc-300' : 'border-sky-100 bg-sky-50 text-sky-900'}`}>
-                        <div className="font-bold mb-1">Patient preview</div>
-                        <div className="leading-relaxed">{step.content_template || 'No message template set.'}</div>
+                        <div className="font-bold mb-1">환자 미리보기</div>
+                        <div className="leading-relaxed">{step.content_template || '메시지 내용을 입력하세요.'}</div>
                         <div className={`mt-2 ${textS}`}>
-                          Sends {step.trigger_offset_hours || '—'}h after aftercare starts · next action: {step.next_action_type || '—'}
+                          사후관리 시작 후 {step.trigger_offset_hours || '—'}시간 뒤 발송 · 다음: {step.next_action_type || '—'}
                         </div>
                         {Number(step.trigger_offset_hours) !== Number(step.original_trigger_offset_hours) && (
                           <div className="mt-2 font-bold text-amber-700">
-                            Timing changed. Save will ask for confirmation.
+                            타이밍 변경됨. 저장 시 확인 요청됩니다.
                           </div>
                         )}
                       </div>
