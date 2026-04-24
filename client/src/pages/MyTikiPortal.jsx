@@ -25,29 +25,134 @@ import { buildPatientTodayTasks } from '../lib/opsLite';
 
 // ── Design tokens ─────────────────────────────────────────────
 const C = {
-  bg:        '#F8F6F3',
+  bg:        '#FFFFFF',
+  appBg:     '#F8F6F3',
   surface:   '#FFFFFF',
-  teal:      '#4E8FA0',
-  tealPale:  '#EDF4F6',
-  tealDark:  '#3A7080',
-  text:      '#1A1A1A',
-  textSub:   '#6B7280',
-  textMt:    '#9CA3AF',
-  border:    '#E5E7EB',
-  success:   '#16A34A',
-  successPale: '#F0FDF4',
-  warn:      '#D97706',
-  warnPale:  '#FFFBEB',
-  error:     '#DC2626',
-  errorPale: '#FEF2F2',
+  surfaceSoft: '#F0EEE9',
+  warm:      '#F8F6F3',
+  mocha:     '#A47864',
+  mochaDark: '#8B624F',
+  mochaSoft: '#D8C0B4',
+  mochaPale: '#F3E8E2',
+  teal:      '#A47864',
+  tealPale:  '#F3E8E2',
+  tealDark:  '#8B624F',
+  text:      '#211815',
+  textSub:   '#6F5D55',
+  textMt:    '#9A8880',
+  border:    '#E7DDD7',
+  borderStrong: '#D8C8BF',
+  success:   '#527500',
+  successPale: '#F2FFD9',
+  warn:      '#9A4F00',
+  warnPale:  '#FFF0DE',
+  error:     '#B42318',
+  errorPale: '#FFE6E1',
   stage: {
-    done:    '#4E8FA0',
-    current: '#4E8FA0',
-    future:  '#D1D5DB',
+    done:    '#527500',
+    current: '#A47864',
+    future:  '#D8C8BF',
   },
 };
 
 const SANS = "'Pretendard Variable', 'Inter', -apple-system, sans-serif";
+
+const CARD_SHADOW = '0 14px 38px rgba(33, 24, 21, 0.06)';
+
+function PatientCard({ children, tone = 'default', style = {} }) {
+  const toneStyle = {
+    default: { background: C.surface, borderColor: C.border },
+    warm: { background: C.warm, borderColor: C.border },
+    brand: { background: C.mochaPale, borderColor: C.mochaSoft },
+    success: { background: C.successPale, borderColor: 'rgba(185, 250, 72, 0.9)' },
+    warning: { background: C.warnPale, borderColor: 'rgba(255, 173, 92, 0.55)' },
+    danger: { background: C.errorPale, borderColor: 'rgba(250, 87, 62, 0.38)' },
+  }[tone] || {};
+
+  return (
+    <section
+      style={{
+        borderRadius: 26,
+        border: `1px solid ${toneStyle.borderColor}`,
+        background: toneStyle.background,
+        boxShadow: tone === 'default' ? CARD_SHADOW : 'none',
+        padding: 22,
+        ...style,
+      }}
+    >
+      {children}
+    </section>
+  );
+}
+
+function PatientButton({ children, variant = 'primary', style = {}, ...props }) {
+  const base = {
+    width: '100%',
+    minHeight: 56,
+    borderRadius: 18,
+    border: '1px solid transparent',
+    padding: '0 20px',
+    fontSize: 16,
+    fontWeight: 850,
+    cursor: props.disabled ? 'default' : 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    fontFamily: SANS,
+  };
+  const variants = {
+    primary: { background: C.mocha, color: '#fff', boxShadow: '0 14px 28px rgba(164, 120, 100, 0.24)' },
+    secondary: { background: C.surface, color: C.text, borderColor: C.border },
+    quiet: { background: C.warm, color: C.textSub, borderColor: C.border },
+    danger: { background: C.errorPale, color: C.error, borderColor: 'rgba(250, 87, 62, 0.38)' },
+  };
+
+  return (
+    <button {...props} style={{ ...base, ...variants[variant], opacity: props.disabled ? 0.65 : 1, ...style }}>
+      {children}
+    </button>
+  );
+}
+
+function PatientBadge({ children, tone = 'brand', style = {} }) {
+  const tones = {
+    brand: { color: C.mochaDark, background: C.mochaPale, borderColor: C.mochaSoft },
+    success: { color: C.success, background: C.successPale, borderColor: 'rgba(185, 250, 72, 0.9)' },
+    warning: { color: C.warn, background: C.warnPale, borderColor: 'rgba(255, 173, 92, 0.55)' },
+    danger: { color: C.error, background: C.errorPale, borderColor: 'rgba(250, 87, 62, 0.38)' },
+    neutral: { color: C.textSub, background: C.warm, borderColor: C.border },
+  }[tone] || {};
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        borderRadius: 999,
+        padding: '7px 10px',
+        border: `1px solid ${tones.borderColor}`,
+        color: tones.color,
+        background: tones.background,
+        fontSize: 12,
+        fontWeight: 850,
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+        ...style,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function SectionKicker({ children }) {
+  return (
+    <p style={{ fontSize: 12, fontWeight: 900, color: C.mochaDark, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+      {children}
+    </p>
+  );
+}
 
 // ── i18n strings ──────────────────────────────────────────────
 const I18N = {
@@ -562,22 +667,25 @@ function ErrorScreen({ type, lang }) {
     <div style={{
       minHeight: '100dvh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: C.bg, fontFamily: SANS, padding: '32px 24px', textAlign: 'center',
+      background: C.appBg, fontFamily: SANS, padding: '32px 24px', textAlign: 'center',
     }}>
-      <div style={{
-        width: 56, height: 56, borderRadius: '50%',
-        background: type === 'expired' ? C.warnPale : C.errorPale,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: 20,
-      }}>
-        <AlertTriangle size={24} color={type === 'expired' ? C.warn : C.error} strokeWidth={1.8} />
-      </div>
-      <p style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>
-        {tx(lang, msgKey)}
-      </p>
-      <p style={{ fontSize: 13, color: C.textSub, lineHeight: 1.6 }}>
-        {tx(lang, 'contactStaff')}
-      </p>
+      <PatientCard tone={type === 'expired' ? 'warning' : 'danger'} style={{ width: '100%', maxWidth: 420, padding: 28 }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 22,
+          background: C.surface,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 22px',
+          border: `1px solid ${type === 'expired' ? 'rgba(255, 173, 92, 0.55)' : 'rgba(250, 87, 62, 0.38)'}`,
+        }}>
+          <AlertTriangle size={28} color={type === 'expired' ? C.warn : C.error} strokeWidth={2} />
+        </div>
+        <p style={{ fontSize: 23, lineHeight: 1.25, fontWeight: 900, letterSpacing: '-0.045em', color: C.text, marginBottom: 10 }}>
+          {tx(lang, msgKey)}
+        </p>
+        <p style={{ fontSize: 16, color: C.textSub, lineHeight: 1.65, wordBreak: 'keep-all' }}>
+          {tx(lang, 'contactStaff')}
+        </p>
+      </PatientCard>
     </div>
   );
 }
@@ -590,7 +698,7 @@ function LoadingScreen({ lang = 'ko' }) {
     <div style={{
       minHeight: '100dvh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: C.bg, fontFamily: SANS, gap: 16,
+      background: C.appBg, fontFamily: SANS, gap: 16,
     }}>
       <Loader2 size={32} color={C.teal} style={{ animation: 'spin 1s linear infinite' }} />
       <p style={{ fontSize: 13, color: C.textSub }}>{tx(lang, 'loadingPortal')}</p>
@@ -640,30 +748,25 @@ function ArrivalCard({ lang, token, arrivedAt, onArrived }) {
   // ── Arrived: show translation strip ──────────────────────────
   if (effectivelyArrived) {
     return (
-      <div style={{
-        margin: '0 0 4px',
-        borderRadius: 18,
-        overflow: 'hidden',
-        border: `1px solid ${C.success}30`,
-        background: C.successPale,
-      }}>
+      <PatientCard tone="success" style={{ margin: '0 0 4px', overflow: 'hidden', padding: 0 }}>
         {/* Confirmed banner */}
         <div style={{
-          padding: '16px 20px 12px',
+          padding: '18px 20px 14px',
           display: 'flex', alignItems: 'center', gap: 12,
         }}>
           <div style={{
-            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-            background: C.success + '18',
+            width: 48, height: 48, borderRadius: 18, flexShrink: 0,
+            background: C.surface,
+            border: '1px solid rgba(185, 250, 72, 0.9)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <CheckCircle2 size={22} color={C.success} />
+            <CheckCircle2 size={25} color={C.success} />
           </div>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: C.success, lineHeight: 1.2 }}>
+            <p style={{ fontSize: 17, fontWeight: 900, color: C.success, lineHeight: 1.2 }}>
               {tx(lang, 'arrivedTitle')}
             </p>
-            <p style={{ fontSize: 12, color: C.textSub, marginTop: 2 }}>
+            <p style={{ fontSize: 14, color: C.textSub, marginTop: 4, lineHeight: 1.45 }}>
               {tx(lang, 'arrivedSub')}
             </p>
           </div>
@@ -671,15 +774,15 @@ function ArrivalCard({ lang, token, arrivedAt, onArrived }) {
 
         {/* Translation strip — show to front desk */}
         <div style={{
-          margin: '0 12px 12px',
-          borderRadius: 12,
+          margin: '0 14px 14px',
+          borderRadius: 18,
           background: C.surface,
           border: `1px solid ${C.border}`,
           overflow: 'hidden',
         }}>
           <div style={{
             padding: '8px 14px',
-            background: C.teal,
+            background: C.mocha,
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
             <Navigation size={11} color="#fff" strokeWidth={2.5} />
@@ -691,11 +794,11 @@ function ArrivalCard({ lang, token, arrivedAt, onArrived }) {
             {ARRIVAL_PHRASES.map(({ flag, lang: pLang, text }) => (
               <div key={pLang} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontSize: 16, flexShrink: 0 }}>{flag}</span>
-                <p style={{
-                  fontSize: pLang === lang ? 16 : 13,
-                  fontWeight: pLang === lang ? 700 : 400,
+              <p style={{
+                  fontSize: pLang === lang ? 17 : 14,
+                  fontWeight: pLang === lang ? 850 : 600,
                   color: pLang === lang ? C.text : C.textSub,
-                  lineHeight: 1.4,
+                  lineHeight: 1.45,
                 }}>
                   {text}
                 </p>
@@ -703,54 +806,39 @@ function ArrivalCard({ lang, token, arrivedAt, onArrived }) {
             ))}
           </div>
         </div>
-      </div>
+      </PatientCard>
     );
   }
 
   // ── Not yet arrived: show "I'm here" button ───────────────────
   return (
-    <div style={{
-      margin: '0 0 4px',
-      borderRadius: 18,
-      background: C.tealPale,
-      border: `1px solid ${C.teal}25`,
-      padding: '20px',
-      display: 'flex', flexDirection: 'column', gap: 14,
-    }}>
+    <PatientCard tone="brand" style={{ margin: '0 0 4px', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{
-          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-          background: C.teal + '20',
+          width: 50, height: 50, borderRadius: 18, flexShrink: 0,
+          background: C.surface,
+          border: `1px solid ${C.mochaSoft}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Navigation size={20} color={C.teal} strokeWidth={2} />
+          <Navigation size={23} color={C.mocha} strokeWidth={2.2} />
         </div>
         <div>
-          <p style={{ fontSize: 15, fontWeight: 700, color: C.tealDark, lineHeight: 1.2 }}>
+          <p style={{ fontSize: 18, fontWeight: 900, color: C.mochaDark, lineHeight: 1.2, letterSpacing: '-0.025em' }}>
             {tx(lang, 'arrivalCard')}
           </p>
-          <p style={{ fontSize: 12, color: C.textSub, marginTop: 2, lineHeight: 1.4 }}>
+          <p style={{ fontSize: 14, color: C.textSub, marginTop: 4, lineHeight: 1.55 }}>
             {tx(lang, 'arrivalSub')}
           </p>
         </div>
       </div>
 
-      <button
+      <PatientButton
         onClick={handleArrive}
         disabled={phase === 'sending'}
-        style={{
-          width: '100%', padding: '14px 20px', borderRadius: 14, border: 'none',
-          background: phase === 'sending' ? C.teal + '80' : C.teal,
-          color: '#fff', fontSize: 16, fontWeight: 700,
-          cursor: phase === 'sending' ? 'default' : 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          boxShadow: `0 2px 12px ${C.teal}40`,
-          transition: 'opacity 0.2s',
-        }}
       >
         {phase === 'sending' && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
         {tx(lang, phase === 'sending' ? 'arrivalSending' : 'arrivalBtn')}
-      </button>
+      </PatientButton>
 
       {phase === 'error' && (
         <p style={{ fontSize: 12, color: C.error, textAlign: 'center' }}>
@@ -759,18 +847,18 @@ function ArrivalCard({ lang, token, arrivedAt, onArrived }) {
       )}
 
       <div style={{
-        borderRadius: 12,
+        borderRadius: 18,
         background: C.surface,
         border: `1px solid ${C.border}`,
         overflow: 'hidden',
       }}>
         <div style={{
           padding: '8px 14px',
-          background: '#F6F7F8',
+          background: C.warm,
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
-          <Navigation size={11} color={C.tealDark} strokeWidth={2.5} />
-          <p style={{ fontSize: 11, fontWeight: 700, color: C.tealDark }}>
+          <Navigation size={11} color={C.mochaDark} strokeWidth={2.5} />
+          <p style={{ fontSize: 11, fontWeight: 800, color: C.mochaDark }}>
             {tx(lang, 'arrivalFallback')}
           </p>
         </div>
@@ -779,8 +867,8 @@ function ArrivalCard({ lang, token, arrivedAt, onArrived }) {
             <div key={pLang} style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 16, flexShrink: 0 }}>{flag}</span>
               <p style={{
-                fontSize: pLang === lang ? 15 : 12.5,
-                fontWeight: pLang === lang ? 700 : 400,
+                fontSize: pLang === lang ? 16 : 13,
+                fontWeight: pLang === lang ? 850 : 600,
                 color: pLang === lang ? C.text : C.textSub,
                 lineHeight: 1.4,
               }}>
@@ -790,7 +878,7 @@ function ArrivalCard({ lang, token, arrivedAt, onArrived }) {
           ))}
         </div>
       </div>
-    </div>
+    </PatientCard>
   );
 }
 
@@ -911,7 +999,7 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare
   }
 
   return (
-    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ padding: '24px 20px 28px', display: 'flex', flexDirection: 'column', gap: 22 }}>
 
       {/* Arrival Card (today only) */}
       {showArrival && (
@@ -924,16 +1012,12 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare
       )}
 
       {/* Today / next actions */}
-      <div style={{
-        background: C.surface, borderRadius: 16, padding: '18px 18px',
-        border: `1px solid ${C.border}`, boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
-        display: 'flex', flexDirection: 'column', gap: 12,
-      }}>
+      <PatientCard style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
-          <p style={{ fontSize: 11, fontWeight: 600, color: C.textMt, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+          <SectionKicker>
             {lang === 'ko' ? 'Today' : lang === 'ja' ? 'Today' : lang === 'zh' ? 'Today' : 'Today'}
-          </p>
-          <p style={{ fontSize: 15, fontWeight: 700, color: C.text }}>
+          </SectionKicker>
+          <p style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.04em', color: C.text, lineHeight: 1.2 }}>
             {lang === 'ko' ? '오늘 / 다음 액션' : lang === 'ja' ? '今日 / 次のアクション' : lang === 'zh' ? '今天 / 下一步' : 'Today / Next Actions'}
           </p>
         </div>
@@ -943,10 +1027,10 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare
             <div
               key={task.key}
               style={{
-                borderRadius: 14,
+                borderRadius: 18,
                 border: `1px solid ${task.tone === 'calm' ? C.success + '25' : task.tone === 'watch' ? C.warn + '30' : C.teal + '20'}`,
                 background: task.tone === 'calm' ? C.successPale : task.tone === 'watch' ? C.warnPale : C.tealPale,
-                padding: '14px 14px',
+                padding: '16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -954,43 +1038,33 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: task.tone === 'calm' ? C.success : task.tone === 'watch' ? C.warn : C.tealDark, marginBottom: 4 }}>
+                <p style={{ fontSize: 12, fontWeight: 900, color: task.tone === 'calm' ? C.success : task.tone === 'watch' ? C.warn : C.mochaDark, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {copy.title}
                 </p>
-                <p style={{ fontSize: 13, color: C.text, lineHeight: 1.45 }}>
+                <p style={{ fontSize: 15, color: C.text, lineHeight: 1.58, fontWeight: 650 }}>
                   {copy.body}
                 </p>
               </div>
               {copy.action && (
-                <button
+                <PatientButton
                   onClick={copy.action}
-                  style={{
-                    flexShrink: 0,
-                    padding: '8px 12px',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: C.teal,
-                    color: '#fff',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
+                  style={{ flexShrink: 0, width: 'auto', minHeight: 42, borderRadius: 14, padding: '0 14px', fontSize: 13 }}
                 >
                   {copy.cta}
-                </button>
+                </PatientButton>
               )}
             </div>
           );
         })}
-      </div>
+      </PatientCard>
 
       {/* Greeting */}
       <div>
-        <p style={{ fontSize: 20, fontWeight: 700, color: C.text, lineHeight: 1.3 }}>
+        <p style={{ fontSize: 30, fontWeight: 950, letterSpacing: '-0.055em', color: C.text, lineHeight: 1.13, wordBreak: 'keep-all' }}>
           {patientName ? tx(lang, 'greeting', patientName) : tx(lang, 'greetingGeneric')}
         </p>
         {clinic?.clinic_name && (
-          <p style={{ fontSize: 13, color: C.textSub, marginTop: 4 }}>
+          <p style={{ fontSize: 15, fontWeight: 750, color: C.textSub, marginTop: 8, lineHeight: 1.45 }}>
             {clinic.clinic_name}
           </p>
         )}
@@ -998,40 +1072,34 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare
 
       {/* Procedure + date card */}
       {visit && (
-        <div style={{
-          background: C.surface, borderRadius: 16, padding: '18px 20px',
-          border: `1px solid ${C.border}`, boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
-        }}>
+        <PatientCard>
           <div style={{ marginBottom: procName ? 14 : 0 }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: C.textMt, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+            <SectionKicker>
               {tx(lang, 'procedure')}
-            </p>
-            <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>
+            </SectionKicker>
+            <p style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1.3, letterSpacing: '-0.035em' }}>
               {procName || tx(lang, 'noProcedure')}
             </p>
           </div>
           {visitDate && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: C.textMt, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+              <SectionKicker>
                 {tx(lang, 'visitDate')}
-              </p>
-              <p style={{ fontSize: 15, fontWeight: 600, color: C.text }}>
+              </SectionKicker>
+              <p style={{ fontSize: 17, fontWeight: 850, color: C.text }}>
                 {visitDate}
               </p>
             </div>
           )}
-        </div>
+        </PatientCard>
       )}
 
       {/* Stage progress */}
       {visit && (
-        <div style={{
-          background: C.surface, borderRadius: 16, padding: '20px',
-          border: `1px solid ${C.border}`, boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
-        }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: C.textMt, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 18 }}>
+        <PatientCard>
+          <SectionKicker>
             {tx(lang, 'journey')}
-          </p>
+          </SectionKicker>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {STAGES.map((s, i) => {
               const isDone    = i < stageIdx;
@@ -1045,7 +1113,7 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
                     <div style={{
                       width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                      background: isFuture ? 'transparent' : C.teal,
+                      background: isFuture ? 'transparent' : (isDone ? C.success : C.mocha),
                       border: isFuture ? `2px solid ${C.stage.future}` : 'none',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
@@ -1059,7 +1127,7 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare
                     {!isLast && (
                       <div style={{
                         width: 2, height: 28, marginTop: 2,
-                        background: isDone ? C.teal : C.border,
+                        background: isDone ? C.success : C.border,
                       }} />
                     )}
                   </div>
@@ -1067,15 +1135,15 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare
                   {/* Label */}
                   <div style={{ paddingBottom: isLast ? 0 : 28, paddingTop: 1 }}>
                     <p style={{
-                      fontSize: isCurrent ? 14 : 13,
-                      fontWeight: isCurrent ? 700 : isDone ? 500 : 400,
-                      color: isCurrent ? C.teal : isDone ? C.text : C.textMt,
+                      fontSize: isCurrent ? 16 : 15,
+                      fontWeight: isCurrent ? 900 : isDone ? 750 : 650,
+                      color: isCurrent ? C.mochaDark : isDone ? C.text : C.textMt,
                       lineHeight: 1.2,
                     }}>
                       {tx(lang, 'stage')[s] || s}
                     </p>
                     {isCurrent && (
-                      <p style={{ fontSize: 11, color: C.teal, marginTop: 2, fontWeight: 500 }}>
+                      <p style={{ fontSize: 12, color: C.mochaDark, marginTop: 4, fontWeight: 800 }}>
                         ← {lang === 'ko' ? '현재 단계' : lang === 'ja' ? '現在' : lang === 'zh' ? '当前阶段' : 'Current'}
                       </p>
                     )}
@@ -1084,36 +1152,27 @@ function JourneyTab({ patient, visit, clinic, lang, onGoToForms, onGoToAftercare
               );
             })}
           </div>
-        </div>
+        </PatientCard>
       )}
 
       {/* Next-step CTA */}
       {ctaMsg && (
-        <div style={{
-          background: ctaAction ? C.tealPale : C.successPale,
-          border: `1px solid ${ctaAction ? C.teal + '30' : C.success + '30'}`,
-          borderRadius: 14, padding: '16px 18px',
+        <PatientCard tone={ctaAction ? 'brand' : 'success'} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: ctaAction ? C.tealDark : C.success, flex: 1, lineHeight: 1.4 }}>
+          <p style={{ fontSize: 16, fontWeight: 850, color: ctaAction ? C.mochaDark : C.success, flex: 1, lineHeight: 1.5 }}>
             {ctaMsg}
           </p>
           {ctaAction && (
-            <button
+            <PatientButton
               onClick={ctaAction}
-              style={{
-                flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
-                padding: '8px 14px', borderRadius: 10, border: 'none',
-                background: C.teal, color: '#fff',
-                fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                boxShadow: `0 2px 8px ${C.teal}40`,
-              }}
+              style={{ flexShrink: 0, width: 'auto', minHeight: 44, borderRadius: 14, padding: '0 14px', fontSize: 13 }}
             >
               {tx(lang, 'goToForms')}
               <ChevronRight size={13} />
-            </button>
+            </PatientButton>
           )}
-        </div>
+        </PatientCard>
       )}
 
     </div>
@@ -1133,7 +1192,7 @@ function TextField({ field, value, onChange, lang, error }) {
       style={{
         width: '100%', padding: '12px 14px', borderRadius: 10,
         border: `1.5px solid ${error ? C.error : C.border}`,
-        fontSize: 15, color: C.text, background: C.surface,
+        fontSize: 16, color: C.text, background: C.surface,
         outline: 'none', boxSizing: 'border-box',
       }}
     />
@@ -1150,7 +1209,7 @@ function TextareaField({ field, value, onChange, lang, error }) {
       style={{
         width: '100%', padding: '12px 14px', borderRadius: 10,
         border: `1.5px solid ${error ? C.error : C.border}`,
-        fontSize: 15, color: C.text, background: C.surface,
+        fontSize: 16, color: C.text, background: C.surface,
         outline: 'none', resize: 'vertical', boxSizing: 'border-box',
         fontFamily: SANS, lineHeight: 1.6,
       }}
@@ -1171,7 +1230,7 @@ function RadioField({ field, value, onChange, lang, error }) {
             onClick={() => onChange(field.id, opt.value)}
             style={{
               display: 'flex', alignItems: 'center', gap: 12,
-              padding: '13px 16px', borderRadius: 12, cursor: 'pointer',
+              padding: '15px 16px', borderRadius: 16, cursor: 'pointer',
               border: `1.5px solid ${checked ? C.teal : error ? C.error : C.border}`,
               background: checked ? C.tealPale : C.surface,
               textAlign: 'left',
@@ -1185,7 +1244,7 @@ function RadioField({ field, value, onChange, lang, error }) {
             }}>
               {checked && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />}
             </div>
-            <span style={{ fontSize: 15, color: C.text, fontWeight: checked ? 600 : 400 }}>
+            <span style={{ fontSize: 16, color: C.text, fontWeight: checked ? 850 : 650, lineHeight: 1.45 }}>
               {optionLabel(opt, lang)}
             </span>
           </button>
@@ -1207,7 +1266,7 @@ function CheckboxField({ field, value, onChange, lang, error }) {
         onClick={() => onChange(field.id, !checked)}
         style={{
           display: 'flex', alignItems: 'center', gap: 12,
-          padding: '13px 16px', borderRadius: 12, cursor: 'pointer',
+          padding: '15px 16px', borderRadius: 16, cursor: 'pointer',
           border: `1.5px solid ${checked ? C.teal : error ? C.error : C.border}`,
           background: checked ? C.tealPale : C.surface,
           textAlign: 'left',
@@ -1221,7 +1280,7 @@ function CheckboxField({ field, value, onChange, lang, error }) {
         }}>
           {checked && <CheckCircle2 size={14} color="#fff" strokeWidth={3} />}
         </div>
-        <span style={{ fontSize: 15, color: C.text, fontWeight: checked ? 600 : 400 }}>
+        <span style={{ fontSize: 16, color: C.text, fontWeight: checked ? 850 : 650 }}>
           {lang === 'ko' ? '예' : lang === 'ja' ? 'はい' : lang === 'zh' ? '是' : 'Yes'}
         </span>
       </button>
@@ -1244,7 +1303,7 @@ function CheckboxField({ field, value, onChange, lang, error }) {
             onClick={() => onChange(field.id, next)}
             style={{
               display: 'flex', alignItems: 'center', gap: 12,
-              padding: '13px 16px', borderRadius: 12, cursor: 'pointer',
+              padding: '15px 16px', borderRadius: 16, cursor: 'pointer',
               border: `1.5px solid ${checked ? C.teal : error ? C.error : C.border}`,
               background: checked ? C.tealPale : C.surface,
               textAlign: 'left',
@@ -1258,7 +1317,7 @@ function CheckboxField({ field, value, onChange, lang, error }) {
             }}>
               {checked && <CheckCircle2 size={14} color="#fff" strokeWidth={3} />}
             </div>
-            <span style={{ fontSize: 15, color: C.text, fontWeight: checked ? 600 : 400 }}>
+            <span style={{ fontSize: 16, color: C.text, fontWeight: checked ? 850 : 650, lineHeight: 1.45 }}>
               {optionLabel(opt, lang)}
             </span>
           </button>
@@ -1275,9 +1334,9 @@ function DateField({ field, value, onChange, error }) {
       value={value || ''}
       onChange={e => onChange(field.id, e.target.value)}
       style={{
-        width: '100%', padding: '12px 14px', borderRadius: 10,
+        width: '100%', padding: '12px 14px', borderRadius: 16,
         border: `1.5px solid ${error ? C.error : C.border}`,
-        fontSize: 15, color: C.text, background: C.surface,
+        fontSize: 16, color: C.text, background: C.surface,
         outline: 'none', boxSizing: 'border-box',
       }}
     />
@@ -1291,7 +1350,7 @@ function SignatureField({ field, value, onChange, lang, error }) {
       type="button"
       onClick={() => onChange(field.id, signed ? null : new Date().toISOString())}
       style={{
-        width: '100%', padding: '24px 20px', borderRadius: 12, cursor: 'pointer',
+        width: '100%', padding: '28px 20px', borderRadius: 18, cursor: 'pointer',
         border: `1.5px dashed ${signed ? C.teal : error ? C.error : C.border}`,
         background: signed ? C.tealPale : C.surface,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
@@ -1332,15 +1391,10 @@ function FormField({ field, value, onChange, lang, errors }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <label style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label style={{ fontSize: 16, fontWeight: 850, color: C.text, lineHeight: 1.35 }}>{label}</label>
         {req && (
-          <span style={{
-            fontSize: 10, fontWeight: 700, color: C.teal,
-            background: C.tealPale, borderRadius: 4, padding: '1px 5px',
-          }}>
-            {tx(lang, 'required')}
-          </span>
+          <PatientBadge tone="brand" style={{ fontSize: 10, padding: '5px 7px' }}>{tx(lang, 'required')}</PatientBadge>
         )}
       </div>
       {fieldEl}
@@ -1452,8 +1506,9 @@ function FormDetail({ form, lang, token, onBack, onSubmitted }) {
       {/* Sticky form header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,
-        background: C.surface, borderBottom: `1px solid ${C.border}`,
-        padding: '14px 20px',
+        background: 'rgba(255,255,255,0.92)', borderBottom: `1px solid ${C.border}`,
+        padding: '16px 20px',
+        backdropFilter: 'blur(18px)',
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
         <button
@@ -1462,11 +1517,11 @@ function FormDetail({ form, lang, token, onBack, onSubmitted }) {
         >
           <ChevronLeft size={22} />
         </button>
-        <p style={{ fontSize: 15, fontWeight: 700, color: C.text, flex: 1 }}>{title}</p>
+        <p style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.035em', color: C.text, flex: 1, lineHeight: 1.25 }}>{title}</p>
       </div>
 
       {/* Fields */}
-      <div style={{ padding: '20px 20px 100px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <div style={{ padding: '22px 20px 112px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {fields.length === 0 ? (
           <p style={{ fontSize: 14, color: C.textSub, textAlign: 'center', marginTop: 40 }}>
             {tx(lang, 'noForms')}
@@ -1489,9 +1544,10 @@ function FormDetail({ form, lang, token, onBack, onSubmitted }) {
       {fields.length > 0 && (
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
-          background: C.surface, borderTop: `1px solid ${C.border}`,
+          background: 'rgba(255,255,255,0.94)', borderTop: `1px solid ${C.border}`,
           padding: '16px 20px',
           maxWidth: 480, margin: '0 auto',
+          backdropFilter: 'blur(18px)',
         }}>
           {submitState === 'error' && (
             <p style={{ fontSize: 12, color: C.error, marginBottom: 8, textAlign: 'center' }}>
@@ -1503,22 +1559,15 @@ function FormDetail({ form, lang, token, onBack, onSubmitted }) {
               {tx(lang, 'requiredError')}
             </p>
           )}
-          <button
+          <PatientButton
             onClick={handleSubmit}
             disabled={submitState === 'submitting'}
-            style={{
-              width: '100%', padding: '15px 20px', borderRadius: 14, border: 'none',
-              background: submitState === 'submitting' ? C.teal + '80' : C.teal,
-              color: '#fff', fontSize: 16, fontWeight: 700, cursor: submitState === 'submitting' ? 'default' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: `0 2px 12px ${C.teal}40`,
-            }}
           >
             {submitState === 'submitting' && (
               <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
             )}
             {tx(lang, submitState === 'submitting' ? 'submitting' : 'submit')}
-          </button>
+          </PatientButton>
         </div>
       )}
     </div>
@@ -1561,8 +1610,8 @@ function FormsTab({ forms, lang, token, onFormSubmitted }) {
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ padding: '22px 20px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {forms.map(form => {
           const title   = formTitle(form, lang);
           const done    = form.submitted;
@@ -1574,28 +1623,29 @@ function FormsTab({ forms, lang, token, onFormSubmitted }) {
               onClick={() => !done && setOpenForm(form)}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 16,
-                padding: '18px 18px', borderRadius: 16, cursor: done ? 'default' : 'pointer',
-                border: `1.5px solid ${done ? C.teal + '40' : C.border}`,
+                padding: '20px', borderRadius: 24, cursor: done ? 'default' : 'pointer',
+                border: `1.5px solid ${done ? 'rgba(185, 250, 72, 0.9)' : C.border}`,
                 background: done ? C.successPale : C.surface,
-                boxShadow: done ? 'none' : '0 1px 8px rgba(0,0,0,0.05)',
+                boxShadow: done ? 'none' : CARD_SHADOW,
                 textAlign: 'left',
               }}
             >
               <div style={{
-                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                background: done ? C.teal + '15' : C.tealPale,
+                width: 50, height: 50, borderRadius: 18, flexShrink: 0,
+                background: done ? C.successPale : C.mochaPale,
+                border: `1px solid ${done ? 'rgba(185, 250, 72, 0.9)' : C.mochaSoft}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {done
                   ? <CheckCircle2 size={22} color={C.success} />
-                  : <FileText size={22} color={C.teal} strokeWidth={1.8} />
+                  : <FileText size={22} color={C.mocha} strokeWidth={1.8} />
                 }
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 15, fontWeight: 700, color: done ? C.textSub : C.text, marginBottom: 3 }}>
+                <p style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.035em', color: done ? C.textSub : C.text, marginBottom: 5, lineHeight: 1.25 }}>
                   {title}
                 </p>
-                <p style={{ fontSize: 12, color: done ? C.success : C.textMt, fontWeight: done ? 600 : 400 }}>
+                <p style={{ fontSize: 14, color: done ? C.success : C.textMt, fontWeight: done ? 850 : 700 }}>
                   {done
                     ? tx(lang, 'formsDone')
                     : `${(form.fields || []).length > 0 ? (form.fields || []).length : '?'} ${lang === 'ko' ? '개 항목' : lang === 'ja' ? '項目' : lang === 'zh' ? '个问题' : 'questions'}`
@@ -1673,47 +1723,46 @@ function AftercareTab({ lang, token, onStateChange = null }) {
   }
 
   return (
-    <div style={{ padding: '18px 16px 92px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 18 }}>
-        <p style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tx(lang, 'aftercareTitle')}</p>
-        <p style={{ fontSize: 12, color: C.textSub, lineHeight: 1.55, marginTop: 4 }}>{tx(lang, 'aftercareSubtitle')}</p>
+    <div style={{ padding: '22px 20px 96px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PatientCard>
+        <SectionKicker>TikiBell</SectionKicker>
+        <p style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-0.045em', color: C.text, lineHeight: 1.2 }}>{tx(lang, 'aftercareTitle')}</p>
+        <p style={{ fontSize: 15, color: C.textSub, lineHeight: 1.65, marginTop: 8, fontWeight: 650 }}>{tx(lang, 'aftercareSubtitle')}</p>
         {data.acknowledgement && (
           <div style={{ marginTop: 12, padding: '12px 13px', borderRadius: 14, background: C.warnPale, border: `1px solid ${C.warn}25`, fontSize: 12, color: C.warn, lineHeight: 1.5 }}>
             <div style={{ fontSize: 10, fontWeight: 800, marginBottom: 4 }}>{tx(lang, 'aftercareAck')}</div>
             {data.acknowledgement}
           </div>
         )}
-      </div>
+      </PatientCard>
 
       {(data.due_items || []).length === 0 && (data.completed_items || []).length === 0 ? (
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 18, color: C.textSub, fontSize: 13 }}>
+        <PatientCard style={{ color: C.textSub, fontSize: 15, lineHeight: 1.6 }}>
           {tx(lang, 'aftercareEmpty')}
-        </div>
+        </PatientCard>
       ) : null}
 
       {(data.due_items || []).map((event) => {
         const step = event.aftercare_steps || {};
         const current = answers[event.id] || {};
         return (
-          <div key={event.id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 16 }}>
+          <PatientCard key={event.id}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{step.step_key || tx(lang, 'aftercareDue')}</p>
-                <p style={{ fontSize: 12, color: C.textSub, lineHeight: 1.55, marginTop: 4 }}>
+                <p style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.035em', color: C.text }}>{step.step_key || tx(lang, 'aftercareDue')}</p>
+                <p style={{ fontSize: 15, color: C.textSub, lineHeight: 1.65, marginTop: 7, fontWeight: 650 }}>
                   {step.content_template}
                 </p>
               </div>
-              <span style={{ fontSize: 10, fontWeight: 800, color: C.tealDark, background: C.tealPale, borderRadius: 999, padding: '6px 10px' }}>
-                {tx(lang, 'aftercareDue')}
-              </span>
+              <PatientBadge tone="brand">{tx(lang, 'aftercareDue')}</PatientBadge>
             </div>
 
             <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
-              <label style={{ fontSize: 12, color: C.text }}>
+              <label style={{ fontSize: 15, fontWeight: 750, color: C.text }}>
                 Pain level (0-10)
                 <input type="range" min="0" max="10" value={current.pain_level ?? 0} onChange={(e) => setEventField(event.id, 'pain_level', Number(e.target.value))} style={{ width: '100%' }} />
               </label>
-              <label style={{ fontSize: 12, color: C.text }}>
+              <label style={{ fontSize: 15, fontWeight: 750, color: C.text }}>
                 Swelling
                 <select value={current.swelling_level || 'mild'} onChange={(e) => setEventField(event.id, 'swelling_level', e.target.value)} style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 12, border: `1px solid ${C.border}`, background: '#fff' }}>
                   <option value="none">None</option>
@@ -1722,7 +1771,7 @@ function AftercareTab({ lang, token, onStateChange = null }) {
                   <option value="severe">Severe</option>
                 </select>
               </label>
-              <label style={{ fontSize: 12, color: C.text }}>
+              <label style={{ fontSize: 15, fontWeight: 750, color: C.text }}>
                 Anxiety / distress
                 <select value={current.anxiety_level || 'low'} onChange={(e) => setEventField(event.id, 'anxiety_level', e.target.value)} style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 12, border: `1px solid ${C.border}`, background: '#fff' }}>
                   <option value="low">Low</option>
@@ -1730,19 +1779,19 @@ function AftercareTab({ lang, token, onStateChange = null }) {
                   <option value="high">High</option>
                 </select>
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.text }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 750, color: C.text }}>
                 <input type="checkbox" checked={!!current.bleeding} onChange={(e) => setEventField(event.id, 'bleeding', e.target.checked)} />
                 Bleeding
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.text }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 750, color: C.text }}>
                 <input type="checkbox" checked={!!current.worsening} onChange={(e) => setEventField(event.id, 'worsening', e.target.checked)} />
                 Symptoms feel worse
               </label>
-              <label style={{ fontSize: 12, color: C.text }}>
+              <label style={{ fontSize: 15, fontWeight: 750, color: C.text }}>
                 Notes
                 <textarea value={current.free_text || ''} onChange={(e) => setEventField(event.id, 'free_text', e.target.value)} rows={3} style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 12, border: `1px solid ${C.border}`, background: '#fff', resize: 'vertical' }} />
               </label>
-              <label style={{ fontSize: 12, color: C.text }}>
+              <label style={{ fontSize: 15, fontWeight: 750, color: C.text }}>
                 Satisfaction
                 <select value={current.satisfaction_score || 5} onChange={(e) => setEventField(event.id, 'satisfaction_score', Number(e.target.value))} style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 12, border: `1px solid ${C.border}`, background: '#fff' }}>
                   {[1,2,3,4,5].map((score) => <option key={score} value={score}>{score}</option>)}
@@ -1750,31 +1799,20 @@ function AftercareTab({ lang, token, onStateChange = null }) {
               </label>
             </div>
 
-            <button
+            <PatientButton
               onClick={() => submitResponse(event.id)}
               disabled={submitting}
-              style={{
-                width: '100%',
-                marginTop: 14,
-                padding: '13px 18px',
-                borderRadius: 14,
-                border: 'none',
-                background: C.teal,
-                color: '#fff',
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: submitting ? 'default' : 'pointer',
-              }}
+              style={{ marginTop: 16 }}
             >
               {submitting ? tx(lang, 'submitting') : tx(lang, 'aftercareRespond')}
-            </button>
-          </div>
+            </PatientButton>
+          </PatientCard>
         );
       })}
 
       {(data.completed_items || []).length > 0 && (
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 16 }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 10 }}>{tx(lang, 'aftercareDone')}</p>
+        <PatientCard>
+          <p style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 12 }}>{tx(lang, 'aftercareDone')}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {data.completed_items.map((event) => (
               <div key={event.id} style={{ borderRadius: 14, background: C.successPale, padding: '12px 13px' }}>
@@ -1783,24 +1821,13 @@ function AftercareTab({ lang, token, onStateChange = null }) {
               </div>
             ))}
           </div>
-        </div>
+        </PatientCard>
       )}
 
       {data.safe_for_return && (
-        <button
-          style={{
-            padding: '14px 18px',
-            borderRadius: 16,
-            border: 'none',
-            background: C.teal,
-            color: '#fff',
-            fontSize: 14,
-            fontWeight: 700,
-            boxShadow: `0 2px 12px ${C.teal}35`,
-          }}
-        >
+        <PatientButton>
           {tx(lang, 'rebookCta')}
-        </button>
+        </PatientButton>
       )}
     </div>
   );
@@ -1907,41 +1934,32 @@ function AskTab({ lang, token }) {
   }
 
   return (
-    <div style={{ padding: '18px 16px 92px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: 18,
-        padding: 18,
-      }}>
+    <div style={{ padding: '22px 20px 96px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PatientCard tone="brand">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{
-            width: 40, height: 40, borderRadius: 12,
-            background: C.tealPale,
+            width: 50, height: 50, borderRadius: 18,
+            background: C.surface,
+            border: `1px solid ${C.mochaSoft}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
             <MessageCircle size={20} color={C.tealDark} />
           </div>
           <div>
-            <p style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{tx(lang, 'askTitle')}</p>
-            <p style={{ fontSize: 12, color: C.textSub, lineHeight: 1.55, marginTop: 4 }}>
+            <p style={{ fontSize: 22, fontWeight: 950, letterSpacing: '-0.045em', color: C.text }}>{tx(lang, 'askTitle')}</p>
+            <p style={{ fontSize: 15, color: C.textSub, lineHeight: 1.65, marginTop: 7, fontWeight: 650 }}>
               {tx(lang, 'askSubtitle')}
             </p>
-            <p style={{ fontSize: 12, color: C.tealDark, lineHeight: 1.55, marginTop: 10, fontWeight: 600 }}>
+            <p style={{ fontSize: 14, color: C.mochaDark, lineHeight: 1.62, marginTop: 12, fontWeight: 800 }}>
               {askStageSummary(lang, askData.currentStage)}
             </p>
           </div>
         </div>
-      </div>
+      </PatientCard>
 
-      <div style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: 18,
-        padding: 16,
-      }}>
-        <p style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 10 }}>
+      <PatientCard>
+        <p style={{ fontSize: 17, fontWeight: 900, color: C.text, marginBottom: 12 }}>
           {tx(lang, 'quickQuestions')}
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -1951,13 +1969,14 @@ function AskTab({ lang, token }) {
               onClick={() => sendMessage(askPromptText(lang, prompt), 'quick_prompt')}
               style={{
                 padding: '12px 12px',
-                borderRadius: 14,
+                borderRadius: 18,
                 border: `1px solid ${C.border}`,
-                background: '#FBFBFA',
+                background: C.warm,
                 textAlign: 'left',
-                fontSize: 12,
+                fontSize: 14,
+                fontWeight: 750,
                 color: C.text,
-                lineHeight: 1.45,
+                lineHeight: 1.5,
                 cursor: 'pointer',
               }}
             >
@@ -1965,15 +1984,10 @@ function AskTab({ lang, token }) {
             </button>
           ))}
         </div>
-      </div>
+      </PatientCard>
 
-      <div style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: 18,
-        padding: 16,
-      }}>
-        <p style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 10 }}>
+      <PatientCard>
+        <p style={{ fontSize: 17, fontWeight: 900, color: C.text, marginBottom: 12 }}>
           {tx(lang, 'escalation')}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1988,13 +2002,13 @@ function AskTab({ lang, token }) {
                   alignItems: 'center',
                   gap: 10,
                   padding: '12px 14px',
-                  borderRadius: 14,
+                  borderRadius: 18,
                   border: `1px solid ${C.border}`,
-                  background: '#FFFDFC',
+                  background: C.warm,
                   cursor: 'pointer',
                   color: C.text,
-                  fontSize: 13,
-                  fontWeight: 600,
+                  fontSize: 15,
+                  fontWeight: 800,
                 }}
               >
                 <Icon size={16} color={C.warn} />
@@ -2023,19 +2037,14 @@ function AskTab({ lang, token }) {
             {askData.openEscalation.patient_visible_status_text}
           </div>
         )}
-      </div>
+      </PatientCard>
 
-      <div style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: 18,
-        padding: 16,
-      }}>
-        <p style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 10 }}>
+      <PatientCard>
+        <p style={{ fontSize: 17, fontWeight: 900, color: C.text, marginBottom: 12 }}>
           {tx(lang, 'recentMessages')}
         </p>
         {(askData.messages || []).length === 0 ? (
-          <p style={{ fontSize: 12, color: C.textSub, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 15, color: C.textSub, lineHeight: 1.6 }}>
             {tx(lang, 'askEmpty')}
           </p>
         ) : (
@@ -2079,18 +2088,18 @@ function AskTab({ lang, token }) {
             })}
           </div>
         )}
-      </div>
+      </PatientCard>
 
       <div style={{
         position: 'sticky',
         bottom: 0,
-        background: `linear-gradient(180deg, rgba(248,246,243,0) 0%, ${C.bg} 18%, ${C.bg} 100%)`,
+          background: `linear-gradient(180deg, rgba(248,246,243,0) 0%, ${C.appBg} 18%, ${C.appBg} 100%)`,
         paddingTop: 8,
       }}>
         <div style={{
           background: C.surface,
           border: `1px solid ${C.border}`,
-          borderRadius: 18,
+          borderRadius: 24,
           padding: 10,
           display: 'flex',
           gap: 8,
@@ -2107,8 +2116,8 @@ function AskTab({ lang, token }) {
               outline: 'none',
               resize: 'none',
               fontFamily: SANS,
-              fontSize: 13,
-              lineHeight: 1.45,
+              fontSize: 15,
+              lineHeight: 1.55,
               color: C.text,
               background: 'transparent',
               padding: '8px 6px',
@@ -2118,9 +2127,9 @@ function AskTab({ lang, token }) {
             onClick={() => sendMessage(input, 'free_text')}
             disabled={sending || !input.trim()}
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 14,
+              width: 48,
+              height: 48,
+              borderRadius: 18,
               border: 'none',
               background: sending || !input.trim() ? '#D5D9DD' : C.teal,
               color: '#fff',
@@ -2244,41 +2253,66 @@ export default function MyTikiPortal() {
       minHeight: '100dvh',
       maxWidth: 480,
       margin: '0 auto',
-      background: C.bg,
+      background: C.appBg,
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
+      boxShadow: '0 0 0 1px rgba(231,221,215,0.6)',
     }}>
 
       {/* ── Top bar ─────────────────────────────────────────── */}
       <div style={{
-        background: C.surface,
+        background: 'rgba(255,255,255,0.94)',
         borderBottom: `1px solid ${C.border}`,
-        padding: '16px 20px 14px',
+        padding: '16px 20px 15px',
         flexShrink: 0,
         position: 'sticky', top: 0, zIndex: 30,
+        backdropFilter: 'blur(18px)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 32, height: 32, borderRadius: 10,
-              background: C.teal,
+              width: 42, height: 42, borderRadius: 16,
+              background: C.mocha,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
+              boxShadow: '0 10px 24px rgba(164,120,100,0.22)',
             }}>
               <span style={{ color: '#fff', fontSize: 14, fontWeight: 800, letterSpacing: '-0.02em' }}>T</span>
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: C.text, lineHeight: 1.1 }}>
+              <p style={{ fontSize: 16, fontWeight: 950, color: C.text, lineHeight: 1.1, letterSpacing: '-0.04em' }}>
                 {clinic?.clinic_short_name || clinic?.clinic_name || 'My Tiki'}
               </p>
               {patient?.name && (
-                <p style={{ fontSize: 11, color: C.textSub, lineHeight: 1.1 }}>
+                <p style={{ fontSize: 13, fontWeight: 750, color: C.textSub, lineHeight: 1.1, marginTop: 4 }}>
                   {patient.flag || ''} {patient.name}
                 </p>
               )}
             </div>
           </div>
+          <select
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+            aria-label="Language"
+            style={{
+              minWidth: 104,
+              height: 38,
+              borderRadius: 999,
+              border: `1px solid ${C.border}`,
+              background: C.warm,
+              color: C.textSub,
+              fontSize: 13,
+              fontWeight: 850,
+              padding: '0 10px',
+              outline: 'none',
+            }}
+          >
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="zh">中文</option>
+          </select>
         </div>
       </div>
 
@@ -2328,11 +2362,12 @@ export default function MyTikiPortal() {
         position: 'fixed', bottom: 0, left: '50%',
         transform: 'translateX(-50%)',
         width: '100%', maxWidth: 480,
-        background: C.surface,
+        background: 'rgba(255,255,255,0.94)',
         borderTop: `1px solid ${C.border}`,
         display: 'flex',
         zIndex: 40,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        backdropFilter: 'blur(18px)',
       }}>
         {[
           { id: 'journey', icon: MapPin,          labelKey: 'journey' },
@@ -2348,7 +2383,7 @@ export default function MyTikiPortal() {
               style={{
                 flex: 1, display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                gap: 4, padding: '10px 8px 12px',
+                gap: 5, padding: '11px 8px 13px',
                 background: 'none', border: 'none', cursor: 'pointer',
                 position: 'relative',
               }}
@@ -2357,7 +2392,7 @@ export default function MyTikiPortal() {
                 <Icon
                   size={22}
                   strokeWidth={active ? 2.2 : 1.6}
-                  color={active ? C.teal : C.textMt}
+                  color={active ? C.mocha : C.textMt}
                 />
                 {badge > 0 && (
                   <span style={{
@@ -2372,13 +2407,13 @@ export default function MyTikiPortal() {
                   </span>
                 )}
               </div>
-              <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, color: active ? C.teal : C.textMt }}>
+              <span style={{ fontSize: 11, fontWeight: active ? 900 : 750, color: active ? C.mochaDark : C.textMt, lineHeight: 1.15, maxWidth: 88, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {tx(lang, labelKey)}
               </span>
               {active && (
                 <div style={{
                   position: 'absolute', top: 0, left: '20%', right: '20%', height: 2,
-                  background: C.teal, borderRadius: '0 0 2px 2px',
+                  background: C.mocha, borderRadius: '0 0 2px 2px',
                 }} />
               )}
             </button>

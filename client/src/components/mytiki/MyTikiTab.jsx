@@ -48,8 +48,11 @@ import {
 } from '../../lib/opsStatusMeta';
 
 // ── Design tokens ────────────────────────────────────────────────────────────
-const TEAL = '#4E8FA0';
-const SAGE = '#5A8F80';
+const MOCHA = '#A47864';
+const MOCHA_DARK = '#8B624F';
+const MOCHA_SOFT = '#D8C0B4';
+const TEAL = MOCHA;
+const SAGE = '#527500';
 const F    = { sans: "'Pretendard Variable', 'Inter', system-ui, sans-serif" };
 
 // ── Link status meta ─────────────────────────────────────────────────────────
@@ -259,12 +262,12 @@ function UnreviewedPip({ count }) {
 }
 
 const DESK_TONE = {
-  urgent: { color: '#B42318', bg: '#FEF3F2', border: '#FDA29B' },
-  warn: { color: '#B54708', bg: '#FFFAEB', border: '#FEDF89' },
-  ready: { color: '#027A48', bg: '#ECFDF3', border: '#ABEFC6' },
-  steady: { color: '#175CD3', bg: '#EFF8FF', border: '#B2DDFF' },
-  info: { color: '#4E8FA0', bg: '#EDF4F6', border: '#B9D5DC' },
-  muted: { color: '#667085', bg: '#F9FAFB', border: '#EAECF0' },
+  urgent: { color: '#B42318', bg: '#FFE6E1', border: 'rgba(250, 87, 62, 0.38)' },
+  warn: { color: '#9A4F00', bg: '#FFF0DE', border: 'rgba(255, 173, 92, 0.55)' },
+  ready: { color: '#527500', bg: '#F2FFD9', border: 'rgba(185, 250, 72, 0.9)' },
+  steady: { color: MOCHA_DARK, bg: '#F3E8E2', border: MOCHA_SOFT },
+  info: { color: MOCHA_DARK, bg: '#F8F6F3', border: '#E7DDD7' },
+  muted: { color: '#6F5D55', bg: '#F8F6F3', border: '#E7DDD7' },
 };
 
 function DeskMetric({ label, value, helper, tone = 'info', darkMode }) {
@@ -275,15 +278,15 @@ function DeskMetric({ label, value, helper, tone = 'info', darkMode }) {
       style={{
         borderColor: darkMode ? '#27272A' : m.border,
         background: darkMode ? '#18181B' : '#FFFFFF',
-        borderRadius: 10,
-        padding: '14px 16px',
-        minHeight: 104,
-        boxShadow: darkMode ? 'none' : '0 8px 22px rgba(15, 23, 42, 0.05)',
+        borderRadius: 18,
+        padding: '17px 18px',
+        minHeight: 116,
+        boxShadow: darkMode ? 'none' : '0 12px 32px rgba(33, 24, 21, 0.06)',
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 800, color: darkMode ? '#D4D4D8' : '#344054' }}>{label}</div>
-      <div style={{ marginTop: 8, fontSize: 34, lineHeight: 1, fontWeight: 900, color: m.color }}>{value}</div>
-      <div style={{ marginTop: 8, fontSize: 12, lineHeight: 1.35, fontWeight: 650, color: darkMode ? '#A1A1AA' : '#667085' }}>{helper}</div>
+      <div style={{ fontSize: 14, fontWeight: 850, color: darkMode ? '#D4D4D8' : '#6F5D55' }}>{label}</div>
+      <div style={{ marginTop: 10, fontSize: 38, lineHeight: 1, fontWeight: 950, letterSpacing: '-0.05em', color: m.color }}>{value}</div>
+      <div style={{ marginTop: 9, fontSize: 13, lineHeight: 1.35, fontWeight: 700, color: darkMode ? '#A1A1AA' : '#9A8880' }}>{helper}</div>
     </div>
   );
 }
@@ -301,19 +304,19 @@ function FlowPatientLine({ visit, mode, darkMode }) {
     <div
       className="border"
       style={{
-        borderColor: darkMode ? '#27272A' : '#EAECF0',
+        borderColor: darkMode ? '#27272A' : '#E7DDD7',
         background: darkMode ? '#111827' : '#FFFFFF',
-        borderRadius: 8,
-        padding: '12px 13px',
-        minHeight: 78,
+        borderRadius: 16,
+        padding: '14px 15px',
+        minHeight: 88,
       }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div style={{ fontSize: 15, lineHeight: 1.2, fontWeight: 850, color: darkMode ? '#FAFAFA' : '#101828' }} className="truncate">
+          <div style={{ fontSize: 16, lineHeight: 1.2, fontWeight: 900, color: darkMode ? '#FAFAFA' : '#211815' }} className="truncate">
             {visit.patient_flag} {visit.patient_name}
           </div>
-          <div style={{ marginTop: 5, fontSize: 12, lineHeight: 1.3, fontWeight: 650, color: darkMode ? '#A1A1AA' : '#667085' }} className="truncate">
+          <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.3, fontWeight: 700, color: darkMode ? '#A1A1AA' : '#6F5D55' }} className="truncate">
             {visit.procedure_name}
           </div>
         </div>
@@ -324,8 +327,8 @@ function FlowPatientLine({ visit, mode, darkMode }) {
             background: tone.bg,
             color: tone.color,
             borderRadius: 999,
-            padding: '5px 8px',
-            fontSize: 11,
+            padding: '6px 10px',
+            fontSize: 12,
             fontWeight: 850,
             whiteSpace: 'nowrap',
           }}
@@ -334,10 +337,10 @@ function FlowPatientLine({ visit, mode, darkMode }) {
         </span>
       </div>
       <div className="flex items-center justify-between gap-3" style={{ marginTop: 10 }}>
-        <span style={{ fontSize: 18, lineHeight: 1, fontWeight: 900, color: darkMode ? '#E4E4E7' : '#1D2939' }}>
+        <span style={{ fontSize: 20, lineHeight: 1, fontWeight: 950, color: darkMode ? '#E4E4E7' : '#211815' }}>
           {fmtVisitTime(timeSource, 'today')}
         </span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#A1A1AA' : '#667085' }} className="truncate">
+        <span style={{ fontSize: 13, fontWeight: 750, color: darkMode ? '#A1A1AA' : '#6F5D55' }} className="truncate">
           {mode === 'next' ? action.detail : visit.link_status === 'opened' ? 'My Tiki 열람' : LINK_META[visit.link_status]?.label || '상태 확인'}
         </span>
       </div>
@@ -350,30 +353,30 @@ function FlowColumn({ title, subtitle, empty, visits, mode, darkMode }) {
     <section
       className="border"
       style={{
-        borderColor: darkMode ? '#27272A' : '#E5E7EB',
-        background: darkMode ? '#18181B' : '#F9FAFB',
-        borderRadius: 10,
-        padding: 14,
+        borderColor: darkMode ? '#27272A' : '#E7DDD7',
+        background: darkMode ? '#18181B' : '#F8F6F3',
+        borderRadius: 22,
+        padding: 16,
         minHeight: 398,
       }}
     >
       <div>
-        <h3 style={{ fontSize: 18, lineHeight: 1.2, fontWeight: 900, color: darkMode ? '#FAFAFA' : '#101828' }}>{title}</h3>
-        <p style={{ marginTop: 4, fontSize: 12, lineHeight: 1.35, fontWeight: 650, color: darkMode ? '#A1A1AA' : '#667085' }}>{subtitle}</p>
+        <h3 style={{ fontSize: 21, lineHeight: 1.14, fontWeight: 950, letterSpacing: '-0.04em', color: darkMode ? '#FAFAFA' : '#211815' }}>{title}</h3>
+        <p style={{ marginTop: 6, fontSize: 13, lineHeight: 1.35, fontWeight: 750, color: darkMode ? '#A1A1AA' : '#6F5D55' }}>{subtitle}</p>
       </div>
       <div className="mt-4 space-y-2.5">
         {visits.length === 0 ? (
           <div
             className="border border-dashed"
             style={{
-              borderColor: darkMode ? '#3F3F46' : '#D0D5DD',
-              borderRadius: 8,
+              borderColor: darkMode ? '#3F3F46' : '#D8C8BF',
+              borderRadius: 16,
               minHeight: 118,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: darkMode ? '#71717A' : '#98A2B3',
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 750,
               textAlign: 'center',
               padding: 18,
@@ -392,7 +395,7 @@ function FlowColumn({ title, subtitle, empty, visits, mode, darkMode }) {
 function TikiDeskCommandBoard({ flow, counts, loading, darkMode }) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-6 gap-3.5">
         <DeskMetric label="오늘 예약" value={loading ? '…' : counts.total} helper="예약 시간 기준" tone="info" darkMode={darkMode} />
         <DeskMetric label="도착 알림" value={loading ? '…' : counts.arrived} helper="저 왔어요 / 체크인" tone="warn" darkMode={darkMode} />
         <DeskMetric label="대기 흐름" value={loading ? '…' : counts.waiting} helper="확인·서류·룸 대기" tone="steady" darkMode={darkMode} />
@@ -1346,14 +1349,14 @@ export default function MyTikiTab({ darkMode }) {
   const [ensuringAftercarePlan, setEnsuringAftercarePlan] = useState(false);
 
   // ── Theme ──────────────────────────────────────────────────────────────────
-  const bg        = darkMode ? 'bg-zinc-950' : 'bg-slate-50';
-  const textP     = darkMode ? 'text-zinc-100' : 'text-zinc-800';
-  const textS     = darkMode ? 'text-zinc-400' : 'text-zinc-500';
-  const borderCls = darkMode ? 'border-zinc-800' : 'border-zinc-200';
+  const bg        = darkMode ? 'bg-zinc-950' : 'td-page';
+  const textP     = darkMode ? 'text-zinc-100' : 'text-[#211815]';
+  const textS     = darkMode ? 'text-zinc-400' : 'text-[#6F5D55]';
+  const borderCls = darkMode ? 'border-zinc-800' : 'border-[#E7DDD7]';
   const headerBg  = darkMode ? 'bg-zinc-900' : 'bg-white';
   const inputBg   = darkMode
     ? 'bg-zinc-800 border-zinc-700 text-zinc-200 placeholder-zinc-500'
-    : 'bg-white border-zinc-200 text-zinc-700 placeholder-zinc-400';
+    : 'bg-white border-[#E7DDD7] text-[#211815] placeholder-[#9A8880]';
 
   // ── Fetch visits ───────────────────────────────────────────────────────────
   const fetchVisits = useCallback(async () => {
@@ -1829,44 +1832,44 @@ export default function MyTikiTab({ darkMode }) {
     <div className={`flex-1 flex flex-col overflow-hidden ${bg}`} style={{ fontFamily: F.sans }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className={`px-7 py-6 border-b ${headerBg} ${borderCls} shrink-0`}>
+      <div className={`px-8 py-7 border-b ${headerBg} ${borderCls} shrink-0`}>
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
               <div
                 className="flex items-center justify-center"
-                style={{ width: 42, height: 42, borderRadius: 10, background: TEAL, boxShadow: `0 10px 24px ${TEAL}35` }}
+                style={{ width: 50, height: 50, borderRadius: 18, background: TEAL, boxShadow: `0 12px 28px ${TEAL}30` }}
               >
-                <ClipboardCheck size={22} color="#fff" strokeWidth={2.6} />
+                <ClipboardCheck size={25} color="#fff" strokeWidth={2.6} />
               </div>
               <div>
-                <h1 className={`text-[28px] leading-none font-black ${textP}`}>오늘 운영</h1>
-                <p className={`text-[14px] mt-2 font-semibold ${textS}`}>Tiki Desk · {todayLabel}</p>
+                <h1 className={`text-[34px] leading-none font-black tracking-[-0.055em] ${textP}`}>오늘 운영</h1>
+                <p className={`text-[15px] mt-2.5 font-bold ${textS}`}>Tiki Desk · {todayLabel}</p>
               </div>
             </div>
-            <p className={`text-[14px] mt-4 font-semibold ${textS}`}>예약 순서, 실제 도착 순서, 지금 처리할 일을 한 화면에서 봅니다.</p>
+            <p className={`text-[16px] mt-5 font-bold leading-relaxed ${textS}`}>예약 순서, 실제 도착 순서, 지금 처리할 일을 한 화면에서 봅니다.</p>
             {shouldPollOpsBoard(dateRange) && (
-              <p className={`text-[12px] mt-1 font-medium ${textS}`}>오늘 보기는 20초마다 자동 새로고침됩니다.</p>
+              <p className={`text-[13px] mt-1.5 font-semibold ${textS}`}>오늘 보기는 20초마다 자동 새로고침됩니다.</p>
             )}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowCsvImport(true)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-lg text-[13px] font-bold border transition-colors ${darkMode ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-200 text-zinc-700 hover:bg-zinc-50'}`}
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-[14px] font-bold border transition-colors ${darkMode ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-[#E7DDD7] text-[#6F5D55] hover:bg-[#F8F6F3]'}`}
               title="CSV 일괄 가져오기"
             >
               CSV 가져오기
             </button>
             <button
               onClick={() => setShowQuickCreate(true)}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg text-[13px] font-bold text-white"
-              style={{ background: TEAL, boxShadow: `0 8px 20px ${TEAL}35` }}
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl text-[14px] font-bold text-white"
+              style={{ background: TEAL, boxShadow: `0 12px 28px ${TEAL}28` }}
             >
               <Plus size={16} strokeWidth={2.6} /> 새 환자
             </button>
             <button
               onClick={fetchVisits}
-              className={`p-3 rounded-lg transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-800' : 'text-zinc-500 hover:bg-zinc-100'}`}
+              className={`p-3 rounded-2xl transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-800' : 'text-[#9A8880] hover:bg-[#F8F6F3]'}`}
               title="새로고침"
             >
               <RefreshCw size={18} />

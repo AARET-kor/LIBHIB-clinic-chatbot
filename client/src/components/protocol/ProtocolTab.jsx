@@ -9,20 +9,23 @@ import {
 } from 'lucide-react';
 
 const C = {
-  blue: '#3B6EA8',
-  green: '#327A61',
+  mocha: '#A47864',
+  mochaDark: '#8B624F',
+  mochaSoft: '#D8C0B4',
+  green: '#527500',
   red: '#B42318',
-  amber: '#B54708',
-  text: '#1F2937',
-  sub: '#667085',
-  muted: '#98A2B3',
-  line: '#E5E7EB',
+  amber: '#9A4F00',
+  text: '#211815',
+  sub: '#6F5D55',
+  muted: '#9A8880',
+  line: '#E7DDD7',
+  surface: '#F8F6F3',
 };
 
 const F = { sans: "'Pretendard Variable', 'Inter', system-ui, sans-serif" };
 
 const STATS = [
-  { label: '안전 기준', value: 3, tone: 'blue' },
+  { label: '안전 기준', value: 3, tone: 'mocha' },
   { label: '금지 표현', value: 3, tone: 'red' },
   { label: '승인 문구', value: 3, tone: 'green' },
   { label: '보완 필요', value: 4, tone: 'amber' },
@@ -31,7 +34,7 @@ const STATS = [
 const SECTIONS = [
   {
     icon: ShieldCheck,
-    accent: C.blue,
+    accent: C.mocha,
     title: '응대 기준',
     subtitle: '직원이 환자 문의에 답할 때 반드시 지켜야 하는 기준',
     items: [
@@ -109,11 +112,11 @@ const GAPS = [
 
 function toneColor(tone) {
   return {
-    blue: C.blue,
+    mocha: C.mochaDark,
     green: C.green,
     red: C.red,
     amber: C.amber,
-  }[tone] || C.blue;
+  }[tone] || C.mochaDark;
 }
 
 function StatTile({ label, value, tone, darkMode }) {
@@ -122,15 +125,15 @@ function StatTile({ label, value, tone, darkMode }) {
     <div
       className="border"
       style={{
-        borderColor: darkMode ? '#27272A' : '#EAECF0',
+        borderColor: darkMode ? '#27272A' : C.line,
         background: darkMode ? '#18181B' : '#FFFFFF',
-        borderRadius: 8,
-        padding: '16px 18px',
-        minHeight: 104,
+        borderRadius: 18,
+        padding: '18px 20px',
+        minHeight: 112,
       }}
     >
-      <div style={{ fontSize: 14, fontWeight: 850, color: darkMode ? '#D4D4D8' : C.sub }}>{label}</div>
-      <div style={{ marginTop: 10, fontSize: 34, lineHeight: 1, fontWeight: 950, color }}>{value}</div>
+      <div style={{ fontSize: 15, fontWeight: 850, color: darkMode ? '#D4D4D8' : C.sub }}>{label}</div>
+      <div style={{ marginTop: 11, fontSize: 38, lineHeight: 1, fontWeight: 950, letterSpacing: '-0.05em', color }}>{value}</div>
     </div>
   );
 }
@@ -140,21 +143,21 @@ function ProtocolItem({ item, accent, darkMode }) {
     <div
       className="border"
       style={{
-        borderColor: darkMode ? '#27272A' : '#EAECF0',
+        borderColor: darkMode ? '#27272A' : C.line,
         background: darkMode ? '#111827' : '#FFFFFF',
-        borderRadius: 8,
-        padding: '16px 18px',
+        borderRadius: 18,
+        padding: '18px 20px',
       }}
     >
       <div className="flex items-start justify-between gap-4">
-        <h3 style={{ fontSize: 17, lineHeight: 1.25, fontWeight: 900, color: darkMode ? '#FAFAFA' : C.text }}>
+        <h3 style={{ fontSize: 19, lineHeight: 1.25, fontWeight: 920, color: darkMode ? '#FAFAFA' : C.text }}>
           {item.title}
         </h3>
         <span
           className="shrink-0"
           style={{
             borderRadius: 999,
-            padding: '5px 9px',
+            padding: '6px 10px',
             background: `${accent}12`,
             color: accent,
             fontSize: 12,
@@ -164,7 +167,7 @@ function ProtocolItem({ item, accent, darkMode }) {
           {item.tag}
         </span>
       </div>
-      <p style={{ marginTop: 9, fontSize: 14, lineHeight: 1.65, fontWeight: 600, color: darkMode ? '#A1A1AA' : C.sub }}>
+      <p style={{ marginTop: 11, fontSize: 15, lineHeight: 1.68, fontWeight: 650, color: darkMode ? '#A1A1AA' : C.sub }}>
         {item.body}
       </p>
     </div>
@@ -178,9 +181,9 @@ function ProtocolSection({ section, darkMode }) {
       <div className="flex items-center gap-3">
         <div
           style={{
-            width: 42,
-            height: 42,
-            borderRadius: 9,
+            width: 48,
+            height: 48,
+            borderRadius: 16,
             background: `${section.accent}14`,
             color: section.accent,
             display: 'flex',
@@ -188,13 +191,13 @@ function ProtocolSection({ section, darkMode }) {
             justifyContent: 'center',
           }}
         >
-          <Icon size={24} strokeWidth={2.3} />
+          <Icon size={25} strokeWidth={2.3} />
         </div>
         <div>
-          <h2 style={{ fontSize: 22, lineHeight: 1.1, fontWeight: 950, color: darkMode ? '#FAFAFA' : C.text }}>
+          <h2 style={{ fontSize: 25, lineHeight: 1.08, fontWeight: 950, letterSpacing: '-0.045em', color: darkMode ? '#FAFAFA' : C.text }}>
             {section.title}
           </h2>
-          <p style={{ marginTop: 6, fontSize: 14, lineHeight: 1.35, fontWeight: 700, color: darkMode ? '#A1A1AA' : C.sub }}>
+          <p style={{ marginTop: 8, fontSize: 15, lineHeight: 1.35, fontWeight: 750, color: darkMode ? '#A1A1AA' : C.sub }}>
             {section.subtitle}
           </p>
         </div>
@@ -222,9 +225,9 @@ function GapChecklist({ darkMode }) {
       <div className="flex items-center gap-3">
         <div
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 9,
+            width: 48,
+            height: 48,
+            borderRadius: 16,
             background: '#FFFAEB',
             color: C.amber,
             display: 'flex',
@@ -249,14 +252,14 @@ function GapChecklist({ darkMode }) {
             key={gap}
             className="flex items-start gap-3 border"
             style={{
-              borderColor: darkMode ? '#44403C' : '#FEC84B',
+              borderColor: darkMode ? '#44403C' : 'rgba(255, 173, 92, 0.55)',
               background: darkMode ? '#292524' : '#FFFFFF',
-              borderRadius: 8,
-              padding: '13px 14px',
+              borderRadius: 18,
+              padding: '16px 18px',
             }}
           >
             <FileCheck2 size={18} style={{ color: C.amber, marginTop: 1, flexShrink: 0 }} />
-            <span style={{ fontSize: 14, lineHeight: 1.45, fontWeight: 750, color: darkMode ? '#E7E5E4' : '#344054' }}>
+            <span style={{ fontSize: 15, lineHeight: 1.5, fontWeight: 750, color: darkMode ? '#E7E5E4' : C.text }}>
               {gap}
             </span>
           </div>
@@ -267,7 +270,7 @@ function GapChecklist({ darkMode }) {
 }
 
 export default function ProtocolTab({ darkMode }) {
-  const bg = darkMode ? '#09090B' : '#F8FAFC';
+  const bg = darkMode ? '#09090B' : '#F8F6F3';
   const headerBg = darkMode ? '#18181B' : '#FFFFFF';
 
   return (
@@ -276,7 +279,7 @@ export default function ProtocolTab({ darkMode }) {
     >
       <div
         style={{
-          padding: '24px 28px',
+          padding: '30px 32px',
           borderBottom: `1px solid ${darkMode ? '#27272A' : C.line}`,
           background: headerBg,
           flexShrink: 0,
@@ -288,22 +291,22 @@ export default function ProtocolTab({ darkMode }) {
               style={{
                 width: 48,
                 height: 48,
-                borderRadius: 10,
-                background: C.blue,
+                borderRadius: 18,
+                background: C.mocha,
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 20px rgba(59, 110, 168, 0.25)',
+                boxShadow: '0 12px 28px rgba(164, 120, 100, 0.22)',
               }}
             >
               <BookOpen size={26} strokeWidth={2.4} />
             </div>
             <div className="min-w-0">
-              <h1 style={{ fontSize: 30, lineHeight: 1, fontWeight: 950, color: darkMode ? '#FAFAFA' : C.text }}>
+              <h1 style={{ fontSize: 36, lineHeight: 1, fontWeight: 950, letterSpacing: '-0.055em', color: darkMode ? '#FAFAFA' : C.text }}>
                 프로토콜
               </h1>
-              <p style={{ marginTop: 10, fontSize: 15, lineHeight: 1.35, fontWeight: 700, color: darkMode ? '#A1A1AA' : C.sub }}>
+              <p style={{ marginTop: 12, fontSize: 16, lineHeight: 1.45, fontWeight: 750, color: darkMode ? '#A1A1AA' : C.sub }}>
                 병원 응대 기준, 금지 표현, 승인 문구를 한눈에 점검합니다.
               </p>
             </div>
@@ -311,11 +314,11 @@ export default function ProtocolTab({ darkMode }) {
           <div
             className="flex items-center gap-2 border"
             style={{
-              borderColor: darkMode ? '#3F3F46' : '#D0D5DD',
+              borderColor: darkMode ? '#3F3F46' : C.line,
               borderRadius: 999,
               padding: '8px 12px',
               color: darkMode ? '#A1A1AA' : C.sub,
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 800,
               whiteSpace: 'nowrap',
             }}
@@ -332,7 +335,7 @@ export default function ProtocolTab({ darkMode }) {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '26px 28px 36px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '30px 32px 42px' }}>
         <div className="space-y-8">
           {SECTIONS.map((section) => (
             <ProtocolSection key={section.title} section={section} darkMode={darkMode} />

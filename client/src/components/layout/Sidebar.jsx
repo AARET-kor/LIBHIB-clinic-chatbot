@@ -5,7 +5,7 @@
  * 중단:     티키 데스크 → 메모리 → 프로토콜 → 시술 관리 → 통계
  * 하단:     설정 + 사용자 정보
  *
- * 크기 기준: 아이콘 24-28px, 라벨 14-15px, 사이드바 폭 184px
+ * 크기 기준: 아이콘 24-28px, 라벨 15-16px, 사이드바 폭 208px
  */
 
 import { BarChart3, Settings, Shield, Stethoscope, Sparkles, Brain,
@@ -13,12 +13,14 @@ import { BarChart3, Settings, Shield, Stethoscope, Sparkles, Brain,
 import { useAuth } from '../../context/AuthContext';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const MOCHA = '#A47764';   // Tiki Paste
-const SAGE  = '#5A8F80';   // Tiki Desk
-const GOLD  = '#C4882A';   // 시술 관리
-const AZURE = '#5B72A8';   // 프로토콜
-const SLATE = '#6E7BB8';   // Tiki Room
-const AMBER = '#B07030';   // Tiki Memory
+const MOCHA = '#A47864';   // signature identity
+const MOCHA_DARK = '#8B624F';
+const MOCHA_SOFT = '#D8C0B4';
+const SURFACE = '#F8F6F3';
+const BORDER = '#E7DDD7';
+const TEXT = '#211815';
+const TEXT_SECONDARY = '#6F5D55';
+const TEXT_MUTED = '#9A8880';
 const F     = { sans: "'Pretendard Variable', 'Inter', system-ui, sans-serif" };
 
 // ── 중단 내비 아이템 (순서 고정) ────────────────────────────────────────────
@@ -29,7 +31,7 @@ const NAV_ITEMS = [
     label:         '티키 데스크',
     sublabel:      '운영 현황',
     requiredRoles: ['owner', 'admin'],
-    accent:        SAGE,
+    accent:        MOCHA,
   },
   {
     id:            'tiki_memory',
@@ -37,7 +39,7 @@ const NAV_ITEMS = [
     label:         '메모리',
     sublabel:      '지식 관리',
     requiredRoles: ['owner', 'admin'],
-    accent:        AMBER,
+    accent:        MOCHA,
   },
   {
     id:            'protocol',
@@ -45,7 +47,7 @@ const NAV_ITEMS = [
     label:         '프로토콜',
     sublabel:      '응대 가이드',
     requiredRoles: ['owner', 'admin'],
-    accent:        AZURE,
+    accent:        MOCHA,
   },
   {
     id:            'procedures',
@@ -53,7 +55,7 @@ const NAV_ITEMS = [
     label:         '시술 관리',
     sublabel:      '항목·가격',
     requiredRoles: ['owner', 'admin'],
-    accent:        GOLD,
+    accent:        MOCHA,
   },
   {
     id:            'analytics',
@@ -61,7 +63,7 @@ const NAV_ITEMS = [
     label:         '통계',
     sublabel:      '분석',
     requiredRoles: ['owner', 'admin'],
-    accent:        AZURE,
+    accent:        MOCHA,
   },
 ];
 
@@ -69,16 +71,16 @@ const NAV_ITEMS = [
 function RoleBadge({ role }) {
   if (!role) return null;
   const m = {
-    owner: { label: '원장',   bg: '#AD9E9025', text: '#7A6858' },
-    admin: { label: '관리자', bg: '#5C8DC525',  text: '#3E6DA0' },
-    staff: { label: '직원',   bg: '#9CA3AF25',  text: '#6B7280' },
-  }[role] || { label: role, bg: '#9CA3AF25', text: '#6B7280' };
+    owner: { label: '원장',   bg: '#F3E8E2', text: MOCHA_DARK },
+    admin: { label: '관리자', bg: '#F3E8E2', text: MOCHA_DARK },
+    staff: { label: '직원',   bg: SURFACE,  text: TEXT_SECONDARY },
+  }[role] || { label: role, bg: SURFACE, text: TEXT_SECONDARY };
 
   return (
     <div style={{
       padding: '4px 9px', borderRadius: 999,
       background: m.bg, color: m.text,
-      fontSize: 11, fontWeight: 800,
+      fontSize: 12, fontWeight: 850,
     }}>
       {m.label}
     </div>
@@ -93,11 +95,11 @@ function LockedItem({ item, darkMode }) {
       style={{ opacity: 0.28, cursor: 'not-allowed' }}
       className="relative w-full"
     >
-      <div style={{ padding: '12px', width: '100%', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 10 }}>
+      <div style={{ padding: '13px 12px', width: '100%', display: 'flex', alignItems: 'center', gap: 11, borderRadius: 16 }}>
         <item.icon size={24} strokeWidth={1.8} color={darkMode ? '#71717A' : '#A1A1AA'} />
         <div>
-          <span style={{ fontSize: 14, fontWeight: 800, color: darkMode ? '#71717A' : '#A1A1AA', lineHeight: 1.1 }}>{item.label}</span>
-          <div style={{ fontSize: 11, fontWeight: 650, color: darkMode ? '#52525B' : '#A1A1AA', marginTop: 3 }}>{item.sublabel}</div>
+          <span style={{ fontSize: 15, fontWeight: 850, color: darkMode ? '#71717A' : '#A1A1AA', lineHeight: 1.1 }}>{item.label}</span>
+          <div style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#52525B' : '#A1A1AA', marginTop: 4 }}>{item.sublabel}</div>
         </div>
       </div>
       <span style={{ position: 'absolute', top: 13, right: 12, fontSize: 11 }}>🔒</span>
@@ -107,8 +109,8 @@ function LockedItem({ item, darkMode }) {
 
 function NavButton({ item, isActive, darkMode, onClick }) {
   const Icon = item.icon;
-  const mutedTxt = darkMode ? '#A1A1AA' : '#667085';
-  const mutedSub = darkMode ? '#71717A' : '#98A2B3';
+  const mutedTxt = darkMode ? '#D4D4D8' : TEXT_SECONDARY;
+  const mutedSub = darkMode ? '#A1A1AA' : TEXT_MUTED;
 
   return (
     <button
@@ -116,23 +118,23 @@ function NavButton({ item, isActive, darkMode, onClick }) {
       title={`${item.label} · ${item.sublabel}`}
       style={{
         width: '100%',
-        minHeight: 62,
-        padding: '11px 12px',
+        minHeight: 68,
+        padding: '12px 13px',
         display: 'flex',
         alignItems: 'center',
         gap: 11,
-        border: `1px solid ${isActive ? item.accent : 'transparent'}`,
+        border: `1px solid ${isActive ? MOCHA_SOFT : 'transparent'}`,
         cursor: 'pointer',
         transition: 'all 0.15s',
-        borderRadius: 10,
-        background: isActive ? item.accent : 'transparent',
-        color: isActive ? '#fff' : mutedTxt,
-        boxShadow: isActive ? `0 8px 20px ${item.accent}35` : 'none',
+        borderRadius: 18,
+        background: isActive ? '#F3E8E2' : 'transparent',
+        color: isActive ? MOCHA_DARK : mutedTxt,
+        boxShadow: isActive ? '0 12px 28px rgba(33, 24, 21, 0.06)' : 'none',
         textAlign: 'left',
       }}
       onMouseEnter={e => {
         if (!isActive) {
-          e.currentTarget.style.background = darkMode ? '#27272A' : '#F8FAFC';
+          e.currentTarget.style.background = darkMode ? '#27272A' : SURFACE;
           e.currentTarget.style.color = item.accent;
         }
       }}
@@ -145,23 +147,23 @@ function NavButton({ item, isActive, darkMode, onClick }) {
     >
       <span
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 9,
+          width: 40,
+          height: 40,
+          borderRadius: 14,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: isActive ? 'rgba(255,255,255,0.18)' : `${item.accent}12`,
+          background: isActive ? '#FFFFFF' : '#F3E8E2',
           flexShrink: 0,
         }}
       >
-        <Icon size={24} strokeWidth={isActive ? 2.5 : 2.1} />
+        <Icon size={25} strokeWidth={isActive ? 2.5 : 2.1} />
       </span>
       <span style={{ minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 15, fontWeight: 900, lineHeight: 1.15, color: isActive ? '#fff' : undefined }}>
+        <span style={{ display: 'block', fontSize: 16, fontWeight: 920, lineHeight: 1.12, color: isActive ? MOCHA_DARK : undefined }}>
           {item.label}
         </span>
-        <span style={{ display: 'block', fontSize: 12, fontWeight: 700, lineHeight: 1.15, marginTop: 4, color: isActive ? 'rgba(255,255,255,0.82)' : mutedSub }}>
+        <span style={{ display: 'block', fontSize: 12, fontWeight: 750, lineHeight: 1.15, marginTop: 5, color: isActive ? TEXT_SECONDARY : mutedSub }}>
           {item.sublabel}
         </span>
       </span>
@@ -173,21 +175,22 @@ function NavButton({ item, isActive, darkMode, onClick }) {
 export default function Sidebar({ activeTab, onTabChange, darkMode }) {
   const { session, role, canAccess } = useAuth();
 
-  const bg      = darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200';
-  const mutedTxt = darkMode ? '#52525B' : '#A1A1AA';
+  const bg      = darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white';
+  const mutedTxt = darkMode ? '#A1A1AA' : TEXT_MUTED;
 
   function btnStyle(isActive, accent) {
     if (isActive) return {
-      background: accent,
-      borderRadius: 14,
-      color: '#fff',
-      boxShadow: `0 4px 16px ${accent}50`,
+      background: '#F3E8E2',
+      border: `1px solid ${MOCHA_SOFT}`,
+      borderRadius: 18,
+      color: MOCHA_DARK,
+      boxShadow: '0 12px 28px rgba(33, 24, 21, 0.06)',
     };
     return {
-      background: darkMode ? `${accent}12` : `${accent}0D`,
-      border: `1px solid ${accent}28`,
-      borderRadius: 14,
-      color: accent,
+      background: darkMode ? `${accent}12` : '#FFFFFF',
+      border: `1px solid ${BORDER}`,
+      borderRadius: 18,
+      color: MOCHA_DARK,
     };
   }
 
@@ -196,22 +199,22 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
   return (
     <aside
       className={`flex flex-col ${bg} border-r shrink-0`}
-      style={{ width: 184, fontFamily: F.sans, padding: '18px 12px 14px', gap: 0 }}
+      style={{ width: 208, fontFamily: F.sans, padding: '20px 14px 16px', gap: 0, borderColor: darkMode ? undefined : BORDER }}
     >
       {/* ── 로고 ───────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <div style={{
-          width: 46, height: 46, borderRadius: 12,
+          width: 50, height: 50, borderRadius: 18,
           background: MOCHA,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: `0 8px 18px ${MOCHA}38`,
           flexShrink: 0,
         }}>
-          <Layers size={24} color="#fff" strokeWidth={2.4} />
+          <Layers size={25} color="#fff" strokeWidth={2.4} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 950, lineHeight: 1.1, color: darkMode ? '#FAFAFA' : '#101828' }}>TikiDoc</div>
-          <div style={{ fontSize: 12, fontWeight: 750, lineHeight: 1.1, marginTop: 4, color: darkMode ? '#A1A1AA' : '#667085' }}>병원 운영</div>
+          <div style={{ fontSize: 18, fontWeight: 950, lineHeight: 1.05, color: darkMode ? '#FAFAFA' : TEXT }}>TikiDoc</div>
+          <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.1, marginTop: 5, color: darkMode ? '#A1A1AA' : TEXT_SECONDARY }}>병원 운영</div>
         </div>
       </div>
 
@@ -223,18 +226,18 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
           onClick={() => onTabChange('tiki_paste')}
           title="Tiki Paste — 문의 복붙 즉시 AI 답변 3종"
           style={{
-            width: '100%', minHeight: 62, padding: '11px 12px',
+            width: '100%', minHeight: 68, padding: '12px 13px',
             display: 'flex', alignItems: 'center', gap: 11,
             border: 'none', cursor: 'pointer', transition: 'all 0.15s',
             ...btnStyle(activeTab === 'tiki_paste', MOCHA),
           }}
         >
-          <span style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activeTab === 'tiki_paste' ? 'rgba(255,255,255,0.18)' : `${MOCHA}12` }}>
-            <Sparkles size={24} strokeWidth={activeTab === 'tiki_paste' ? 2.5 : 2.1} />
+          <span style={{ width: 40, height: 40, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activeTab === 'tiki_paste' ? '#fff' : '#F3E8E2' }}>
+            <Sparkles size={25} strokeWidth={activeTab === 'tiki_paste' ? 2.5 : 2.1} />
           </span>
           <span style={{ textAlign: 'left' }}>
-            <span style={{ display: 'block', fontSize: 15, fontWeight: 900, lineHeight: 1.1 }}>Tiki Paste</span>
-            <span style={{ display: 'block', fontSize: 12, fontWeight: 700, opacity: activeTab === 'tiki_paste' ? 0.82 : 0.68, marginTop: 4 }}>문의 답변</span>
+            <span style={{ display: 'block', fontSize: 16, fontWeight: 920, lineHeight: 1.1 }}>Tiki Paste</span>
+            <span style={{ display: 'block', fontSize: 12, fontWeight: 750, opacity: activeTab === 'tiki_paste' ? 0.82 : 0.72, marginTop: 5 }}>문의 답변</span>
           </span>
         </button>
 
@@ -243,22 +246,22 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
           onClick={() => window.open('/room', '_blank')}
           title="Tiki Room — 진료실 AI 어시스턴트 (새 탭)"
           style={{
-            width: '100%', minHeight: 62, padding: '11px 12px',
+            width: '100%', minHeight: 68, padding: '12px 13px',
             display: 'flex', alignItems: 'center', gap: 11,
             border: 'none', cursor: 'pointer', transition: 'all 0.15s',
             position: 'relative',
-            ...btnStyle(false, SLATE),
+            ...btnStyle(false, MOCHA),
           }}
         >
-          <span style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${SLATE}12` }}>
-            <Monitor size={24} strokeWidth={2.1} />
+          <span style={{ width: 40, height: 40, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F3E8E2' }}>
+            <Monitor size={25} strokeWidth={2.1} />
           </span>
           <span style={{ textAlign: 'left' }}>
-            <span style={{ display: 'block', fontSize: 15, fontWeight: 900, lineHeight: 1.1 }}>Tiki Room</span>
-            <span style={{ display: 'block', fontSize: 12, fontWeight: 700, opacity: 0.68, marginTop: 4 }}>진료실 화면</span>
+            <span style={{ display: 'block', fontSize: 16, fontWeight: 920, lineHeight: 1.1 }}>Tiki Room</span>
+            <span style={{ display: 'block', fontSize: 12, fontWeight: 750, opacity: 0.72, marginTop: 5 }}>진료실 화면</span>
           </span>
           {/* 외부 링크 표시 */}
-          <span style={{ position: 'absolute', top: 12, right: 12, fontSize: 12, opacity: 0.55, color: SLATE }}>↗</span>
+          <span style={{ position: 'absolute', top: 12, right: 12, fontSize: 12, opacity: 0.55, color: MOCHA_DARK }}>↗</span>
         </button>
 
       </div>
@@ -266,7 +269,7 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
       {/* ── 구분선 ──────────────────────────────────────────────────────────── */}
       <div style={{
         width: '100%', height: 1,
-        background: darkMode ? '#3F3F46' : '#E4E4E7',
+        background: darkMode ? '#3F3F46' : BORDER,
         margin: '14px 0',
         flexShrink: 0,
       }} />
@@ -299,22 +302,22 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
             title="설정"
             onClick={() => onTabChange('settings')}
             style={{
-              width: '100%', minHeight: 58, padding: '11px 12px',
+              width: '100%', minHeight: 64, padding: '12px 13px',
               display: 'flex', alignItems: 'center', gap: 11,
               border: 'none', cursor: 'pointer', transition: 'all 0.15s',
               ...(activeTab === 'settings' ? btnStyle(true, MOCHA) : {
-                borderRadius: 10, background: 'transparent', color: mutedTxt,
+                borderRadius: 18, background: 'transparent', color: mutedTxt,
               }),
             }}
-            onMouseEnter={e => { if (activeTab !== 'settings') { e.currentTarget.style.background = darkMode ? '#27272A' : '#F9FAFB'; e.currentTarget.style.color = MOCHA; } }}
+            onMouseEnter={e => { if (activeTab !== 'settings') { e.currentTarget.style.background = darkMode ? '#27272A' : SURFACE; e.currentTarget.style.color = MOCHA_DARK; } }}
             onMouseLeave={e => { if (activeTab !== 'settings') { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = mutedTxt; } }}
           >
-            <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activeTab === 'settings' ? 'rgba(255,255,255,0.18)' : `${MOCHA}12` }}>
-              <Settings size={23} strokeWidth={activeTab === 'settings' ? 2.4 : 2.1} color={activeTab === 'settings' ? '#fff' : undefined} />
+            <span style={{ width: 40, height: 40, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: activeTab === 'settings' ? '#fff' : '#F3E8E2' }}>
+              <Settings size={24} strokeWidth={activeTab === 'settings' ? 2.4 : 2.1} color={activeTab === 'settings' ? MOCHA_DARK : undefined} />
             </span>
             <span style={{ textAlign: 'left' }}>
-              <span style={{ display: 'block', fontSize: 15, fontWeight: 900, lineHeight: 1.1, color: activeTab === 'settings' ? '#fff' : undefined }}>설정</span>
-              <span style={{ display: 'block', fontSize: 12, fontWeight: 700, marginTop: 4, color: activeTab === 'settings' ? 'rgba(255,255,255,0.82)' : darkMode ? '#71717A' : '#98A2B3' }}>운영 환경</span>
+              <span style={{ display: 'block', fontSize: 16, fontWeight: 920, lineHeight: 1.1, color: activeTab === 'settings' ? MOCHA_DARK : undefined }}>설정</span>
+              <span style={{ display: 'block', fontSize: 12, fontWeight: 750, marginTop: 5, color: activeTab === 'settings' ? TEXT_SECONDARY : darkMode ? '#71717A' : TEXT_MUTED }}>운영 환경</span>
             </span>
           </button>
         ) : (
@@ -331,10 +334,10 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              padding: '11px 10px',
-              borderRadius: 10,
-              background: darkMode ? '#18181B' : '#F9FAFB',
-              border: `1px solid ${darkMode ? '#27272A' : '#EAECF0'}`,
+              padding: '12px',
+              borderRadius: 18,
+              background: darkMode ? '#18181B' : SURFACE,
+              border: `1px solid ${darkMode ? '#27272A' : BORDER}`,
             }}
           >
             <div
@@ -345,7 +348,7 @@ export default function Sidebar({ activeTab, onTabChange, darkMode }) {
               {session.staff.initials}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 850, lineHeight: 1.1, color: darkMode ? '#FAFAFA' : '#344054' }} className="truncate">
+              <div style={{ fontSize: 14, fontWeight: 900, lineHeight: 1.1, color: darkMode ? '#FAFAFA' : TEXT }} className="truncate">
                 {session.staff.name}
               </div>
               <div style={{ marginTop: 5 }}>
