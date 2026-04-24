@@ -1,6 +1,6 @@
 # Current Engineering State
 
-Last updated: 2026-04-23
+Last updated: 2026-04-24
 
 This document is the short engineering truth snapshot for TikiDoc after the hardening pass and Batch 6A / 6B / 6C / 6D work.
 
@@ -37,6 +37,10 @@ Stable:
 - Scheduler health/degraded visibility for aftercare.
 - Light audit/actor tracking for key escalation, room, and aftercare transitions.
 - Tiki Desk operational visibility: urgency markers, escalation owner/latest actor line, SLA-derived markers, scheduler notice, and recent audit/history browse.
+- Tiki Desk UX reset Phase 1: the first screen now emphasizes today's booked order, actual arrival order, and operational next-action order with larger staff-readable metrics and patient flow cards.
+- Dashboard shell UX reset Phase 2: the staff sidebar is now a wider readable operations nav with larger icons, labels, sublabels, and clearer product/management grouping. The top bar now uses larger clinic/staff identity treatments.
+- Protocol UX reset Phase 3: the staff protocol surface now reads as an operational standards board with larger Korean copy, clear response standards, prohibited phrases, approved wording, and a visible improvement checklist.
+- Procedure Management UX reset Phase 4: the staff procedure surface now emphasizes AI-response readiness, missing fields, readable master-template import, and larger procedure editing controls.
 
 Usable but not fully clinic-ready:
 
@@ -137,6 +141,7 @@ Blocks broader rollout:
 - Provider-grade STT/TTS decision if browser-native quality is insufficient.
 - Fuller audit/history browse and export needs.
 - More polished staff/admin editing UX for non-technical operators.
+- Further staff dashboard UX refinement beyond Phase 1-4, especially My Tiki preview surfacing.
 - Multi-clinic operational configuration review beyond the current narrow knobs.
 
 Later expansion only:
@@ -178,9 +183,9 @@ Do not revert or include unrelated changes unless explicitly instructed.
 
 ## Safest Next Step
 
-The single safest next step is a release-readiness verification pass, not new feature work:
+The single safest next step is a focused Tiki Desk visual QA pass in a logged-in browser session:
 
-- run the full test/build suite
-- review route guards and DB assumptions
-- manually verify Settings -> Operations, My Tiki link QR, Tiki Desk escalation visibility, and Tiki Room room-device flow in a logged-in staff session
-- then commit/push only the intended app/docs/build changes
+- verify the command board and wider sidebar are readable on the actual staff dashboard viewport
+- verify booked / arrived / next-action columns reflect real clinic data correctly
+- verify the enlarged visit rows still fit common front-desk screens
+- then continue to My Tiki preview surfacing as the next focused follow-up phase

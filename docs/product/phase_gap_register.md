@@ -299,16 +299,30 @@ Patch before clinic-ready:
 
 ### Tiki Desk Operational Visibility
 
-- Status: `stable / pilot-ready`
+- Status: `stable / pilot-ready`, with UX reset Phase 1 implemented
 - Why not fully clinic-ready:
   - no external notification workflow and no alert center.
+  - sidebar scale, Protocol UX, Procedure Management UX, and My Tiki preview visibility still need separate UX passes.
+- What changed on 2026-04-24:
+  - Tiki Desk first screen now emphasizes booked order, actual arrival order, and operational next-action order.
+  - Staff-facing metrics and patient list rows were enlarged for front-desk readability.
+  - Staff dashboard shell now uses a wider readable sidebar, larger icons/labels, clearer product vs management grouping, and a larger clinic/staff top bar.
+  - Protocol surface now uses a clearer operational standards-board layout with response standards, prohibited phrases, approved wording, and a visible improvement checklist.
+  - Procedure Management now surfaces registered procedure count, AI-response readiness, missing fields, larger template import, and larger editing controls.
+  - The first-screen goal is operational recognition: who is booked, who arrived, who is blocked, who is room-ready, and what to do next.
 - When to do:
   - before broader rollout that requires proactive SLA notification.
+  - before calling the staff dashboard fully clinic-ready, complete the remaining visual and management-surface UX passes.
 - Priority: medium.
 - Code areas:
   - `server.js`
   - `src/lib/escalation-service.js`
+  - `client/src/lib/tikiDeskFlow.js`
   - `src/lib/audit-history.js`
+  - `client/src/components/layout/Sidebar.jsx`
+  - `client/src/pages/Dashboard.jsx`
+  - `client/src/components/protocol/ProtocolTab.jsx`
+  - `client/src/components/procedures/ProceduresTab.jsx`
   - `client/src/components/mytiki/MyTikiTab.jsx`
   - `client/src/components/settings/SettingsTab.jsx`
 

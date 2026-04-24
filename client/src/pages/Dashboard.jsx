@@ -10,7 +10,7 @@ import ProtocolTab from '../components/protocol/ProtocolTab';
 import MyTikiTab from '../components/mytiki/MyTikiTab';
 import { useAuth } from '../context/AuthContext';
 import {
-  Layers, LogOut, ChevronDown, User, Sun, Moon, Settings
+  Layers, LogOut, ChevronDown, User, Sun, Moon, Settings, MapPin
 } from 'lucide-react';
 
 // ── Top Bar ───────────────────────────────────────────────────────────────────
@@ -19,46 +19,56 @@ function TopBar({ session, onLogout, darkMode, onToggleDark, onOpenSettings }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
-    <div className={`h-12 border-b flex items-center justify-between px-5 shrink-0 z-10 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}
+    <div className={`h-[72px] border-b flex items-center justify-between px-7 shrink-0 z-10 ${darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-200'}`}
       style={{ fontFamily: "'Pretendard Variable', 'Inter', system-ui, sans-serif" }}>
-      <div className="flex items-center gap-3">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#A47764', boxShadow: '0 2px 8px rgba(164,119,100,0.4)' }}>
-          <Layers size={14} color="#fff" strokeWidth={2.2} />
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#A47764', boxShadow: '0 8px 20px rgba(164,119,100,0.28)' }}>
+          <Layers size={23} color="#fff" strokeWidth={2.4} />
         </div>
-        <span className={`text-sm font-bold ${darkMode ? 'text-zinc-100' : 'text-zinc-900'}`} style={{ letterSpacing: '-0.02em' }}>{session.clinic.name}</span>
-        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${session.clinic.planColor}`}>{session.clinic.plan}</span>
-        <span className={`text-[11px] hidden sm:block ${darkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>{session.clinic.location}</span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`text-[20px] leading-none font-black truncate ${darkMode ? 'text-zinc-100' : 'text-zinc-900'}`}>{session.clinic.name}</span>
+            <span className={`text-[12px] font-bold px-2.5 py-1 rounded-full shrink-0 ${session.clinic.planColor}`}>{session.clinic.plan}</span>
+          </div>
+          <div className={`mt-2 flex items-center gap-1.5 text-[13px] font-semibold ${darkMode ? 'text-zinc-400' : 'text-slate-500'}`}>
+            <MapPin size={14} />
+            <span className="truncate">{session.clinic.location}</span>
+          </div>
+        </div>
       </div>
 
       <div className="relative">
         <button onClick={() => setShowMenu(v => !v)}
-          className={`flex items-center gap-2 px-2.5 py-1 rounded-lg transition-colors ${darkMode ? 'hover:bg-zinc-800' : 'hover:bg-slate-50'}`}>
-          <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${session.staff.avatarColor} flex items-center justify-center text-white text-[10px] font-bold`}>
+          className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${darkMode ? 'hover:bg-zinc-800' : 'hover:bg-slate-50'}`}>
+          <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${session.staff.avatarColor} flex items-center justify-center text-white text-[14px] font-black`}>
             {session.staff.initials}
           </div>
-          <span className={`text-xs font-medium hidden sm:block ${darkMode ? 'text-zinc-300' : 'text-slate-700'}`}>{session.staff.name}</span>
-          <ChevronDown size={11} className={darkMode ? 'text-zinc-500' : 'text-slate-400'} />
+          <div className="hidden sm:block text-left">
+            <span className={`block text-[14px] leading-none font-bold ${darkMode ? 'text-zinc-200' : 'text-slate-800'}`}>{session.staff.name}</span>
+            <span className={`block text-[12px] mt-1 font-semibold ${darkMode ? 'text-zinc-500' : 'text-slate-400'}`}>{session.staff.role}</span>
+          </div>
+          <ChevronDown size={16} className={darkMode ? 'text-zinc-500' : 'text-slate-400'} />
         </button>
 
         {showMenu && (
-          <div className={`absolute right-0 top-full mt-1 rounded-xl shadow-xl border py-1 w-44 z-50 ${darkMode ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-slate-200'}`}>
+          <div className={`absolute right-0 top-full mt-2 rounded-xl shadow-xl border py-2 w-56 z-50 ${darkMode ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-slate-200'}`}>
             <button onClick={() => { setShowMenu(false); setShowProfileModal(true); }}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}>
-              <User size={12} className="text-purple-500" /> 내 정보 수정
+              className={`w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+              <User size={16} className="text-slate-500" /> 내 정보 수정
             </button>
             <button onClick={() => { onToggleDark(); setShowMenu(false); }}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}>
-              {darkMode ? <Sun size={12} className="text-amber-400" /> : <Moon size={12} className="text-slate-500" />}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+              {darkMode ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-slate-500" />}
               {darkMode ? '라이트 모드' : '다크 모드'}
             </button>
             <button onClick={() => { setShowMenu(false); onOpenSettings(); }}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}>
-              <Settings size={12} className="text-slate-500" /> 설정
+              className={`w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+              <Settings size={16} className="text-slate-500" /> 설정
             </button>
             <div className={`my-1 border-t ${darkMode ? 'border-zinc-700' : 'border-slate-100'}`} />
             <button onClick={() => { setShowMenu(false); onLogout(); }}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors">
-              <LogOut size={12} /> 로그아웃
+              className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-bold text-red-600 hover:bg-red-50 transition-colors">
+              <LogOut size={16} /> 로그아웃
             </button>
           </div>
         )}
@@ -79,7 +89,7 @@ function ProfileEditModal({ session, darkMode, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className={`w-full max-w-sm rounded-2xl shadow-2xl border ${darkMode ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-slate-200'}`}>
         <div className={`px-6 py-4 border-b ${darkMode ? 'border-zinc-700' : 'border-slate-100'}`}>
-          <h3 className={`text-sm font-semibold ${darkMode ? 'text-zinc-100' : 'text-slate-800'}`}>내 정보 수정</h3>
+          <h3 className={`text-[16px] font-bold ${darkMode ? 'text-zinc-100' : 'text-slate-800'}`}>내 정보 수정</h3>
         </div>
         <div className="px-6 py-5 space-y-4">
           <div className="flex justify-center mb-2">
@@ -88,12 +98,12 @@ function ProfileEditModal({ session, darkMode, onClose }) {
             </div>
           </div>
           <div>
-            <label className={`block text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${darkMode ? 'text-zinc-400' : 'text-slate-500'}`}>이름</label>
+            <label className={`block text-[12px] font-bold mb-1.5 ${darkMode ? 'text-zinc-400' : 'text-slate-500'}`}>이름</label>
             <input value={name} onChange={e => setName(e.target.value)}
               className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#A47764] ${darkMode ? 'bg-zinc-800 border-zinc-600 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
           </div>
           <div>
-            <label className={`block text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${darkMode ? 'text-zinc-400' : 'text-slate-500'}`}>직책</label>
+            <label className={`block text-[12px] font-bold mb-1.5 ${darkMode ? 'text-zinc-400' : 'text-slate-500'}`}>직책</label>
             <input value={role} onChange={e => setRole(e.target.value)}
               className={`w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#A47764] ${darkMode ? 'bg-zinc-800 border-zinc-600 text-zinc-100' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
           </div>

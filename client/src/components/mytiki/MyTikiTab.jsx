@@ -15,7 +15,7 @@
  *   - 단계 변경  → StagePicker inline (PATCH /api/my-tiki/visits/:id/stage)
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Users, Link2, RefreshCw, XCircle, CheckCircle2,
   AlertTriangle, Clock, Eye, Send, Plus, Search,
@@ -28,6 +28,7 @@ import QuickVisitCreate from './QuickVisitCreate';
 import CsvImportModal   from './CsvImportModal';
 import { deriveArrivalFlowState } from '../../lib/opsBoardArrival';
 import { buildQrImageUrl, shouldPollOpsBoard } from '../../lib/opsLite';
+import { buildTikiDeskCounts, buildTikiDeskFlow, getDeskNextAction } from '../../lib/tikiDeskFlow';
 import {
   AFTERCARE_FILTER_LABELS,
   ESCALATION_PRIORITY_META,
@@ -168,37 +169,37 @@ function ArrivalBadge({ arrivedAt, checkedInAt, formsReady, darkMode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
       <span
-        className="inline-flex items-center gap-0.5"
-        style={{ fontSize: 10, fontWeight: 700, color: arrivalMeta.color }}
+        className="inline-flex items-center gap-1"
+        style={{ fontSize: 12, fontWeight: 800, color: arrivalMeta.color }}
         title={`환자 도착 신호: ${new Date(arrivedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}`}
       >
-        <Navigation size={9} strokeWidth={2.5} />
+        <Navigation size={12} strokeWidth={2.5} />
         도착 {agoLabel}
       </span>
       {state === 'desk_confirmation' && (
         <span
-          className="inline-flex items-center gap-0.5"
-          style={{ fontSize: 9, fontWeight: 700, color: urgencyMeta.color }}
+          className="inline-flex items-center gap-1"
+          style={{ fontSize: 11, fontWeight: 800, color: urgencyMeta.color }}
         >
-          <LogIn size={9} strokeWidth={2.5} />
+          <LogIn size={12} strokeWidth={2.5} />
           데스크 확인 필요
         </span>
       )}
       {state === 'forms_pending' && (
         <span
-          className="inline-flex items-center gap-0.5"
-          style={{ fontSize: 9, fontWeight: 700, color: urgencyMeta.color }}
+          className="inline-flex items-center gap-1"
+          style={{ fontSize: 11, fontWeight: 800, color: urgencyMeta.color }}
         >
-          <FileText size={9} strokeWidth={2.5} />
+          <FileText size={12} strokeWidth={2.5} />
           서류 확인 필요
         </span>
       )}
       {state === 'room_ready' && (
         <span
-          className="inline-flex items-center gap-0.5"
-          style={{ fontSize: 9, fontWeight: 700, color: urgencyMeta.color }}
+          className="inline-flex items-center gap-1"
+          style={{ fontSize: 11, fontWeight: 800, color: urgencyMeta.color }}
         >
-          <CheckCircle2 size={9} strokeWidth={2.5} />
+          <CheckCircle2 size={12} strokeWidth={2.5} />
           룸 준비
         </span>
       )}
@@ -215,7 +216,7 @@ function StageBadge({ stage, onClick }) {
         color: m.color, background: m.bg, border: `1px solid ${m.color}30`,
         cursor: onClick ? 'pointer' : 'default',
       }}
-      className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap select-none"
+      className="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-bold whitespace-nowrap select-none"
     >
       {m.label}
     </span>
@@ -226,8 +227,8 @@ function LinkStatusBadge({ status }) {
   const m = LINK_META[status] || LINK_META.none;
   const Icon = m.icon;
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: m.color }}>
-      <Icon size={11} strokeWidth={2} />
+    <span className="inline-flex items-center gap-1.5 text-[12px] font-bold" style={{ color: m.color }}>
+      <Icon size={14} strokeWidth={2.3} />
       {m.label}
     </span>
   );
@@ -235,13 +236,13 @@ function LinkStatusBadge({ status }) {
 
 function FormChips({ intakeDone, consentDone }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${intakeDone ? 'text-emerald-600' : 'text-zinc-400'}`}>
-        {intakeDone ? <CheckCircle2 size={10} /> : <FileText size={10} strokeWidth={1.5} />}
+    <div className="flex flex-col gap-1">
+      <span className={`inline-flex items-center gap-1 text-[12px] font-bold ${intakeDone ? 'text-emerald-600' : 'text-zinc-400'}`}>
+        {intakeDone ? <CheckCircle2 size={13} /> : <FileText size={13} strokeWidth={1.8} />}
         문진
       </span>
-      <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${consentDone ? 'text-emerald-600' : 'text-zinc-400'}`}>
-        {consentDone ? <CheckCircle2 size={10} /> : <FileText size={10} strokeWidth={1.5} />}
+      <span className={`inline-flex items-center gap-1 text-[12px] font-bold ${consentDone ? 'text-emerald-600' : 'text-zinc-400'}`}>
+        {consentDone ? <CheckCircle2 size={13} /> : <FileText size={13} strokeWidth={1.8} />}
         동의서
       </span>
     </div>
@@ -257,12 +258,185 @@ function UnreviewedPip({ count }) {
   );
 }
 
+const DESK_TONE = {
+  urgent: { color: '#B42318', bg: '#FEF3F2', border: '#FDA29B' },
+  warn: { color: '#B54708', bg: '#FFFAEB', border: '#FEDF89' },
+  ready: { color: '#027A48', bg: '#ECFDF3', border: '#ABEFC6' },
+  steady: { color: '#175CD3', bg: '#EFF8FF', border: '#B2DDFF' },
+  info: { color: '#4E8FA0', bg: '#EDF4F6', border: '#B9D5DC' },
+  muted: { color: '#667085', bg: '#F9FAFB', border: '#EAECF0' },
+};
+
+function DeskMetric({ label, value, helper, tone = 'info', darkMode }) {
+  const m = DESK_TONE[tone] || DESK_TONE.info;
+  return (
+    <div
+      className="border"
+      style={{
+        borderColor: darkMode ? '#27272A' : m.border,
+        background: darkMode ? '#18181B' : '#FFFFFF',
+        borderRadius: 10,
+        padding: '14px 16px',
+        minHeight: 104,
+        boxShadow: darkMode ? 'none' : '0 8px 22px rgba(15, 23, 42, 0.05)',
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: 800, color: darkMode ? '#D4D4D8' : '#344054' }}>{label}</div>
+      <div style={{ marginTop: 8, fontSize: 34, lineHeight: 1, fontWeight: 900, color: m.color }}>{value}</div>
+      <div style={{ marginTop: 8, fontSize: 12, lineHeight: 1.35, fontWeight: 650, color: darkMode ? '#A1A1AA' : '#667085' }}>{helper}</div>
+    </div>
+  );
+}
+
+function FlowPatientLine({ visit, mode, darkMode }) {
+  const action = getDeskNextAction(visit);
+  const tone = DESK_TONE[action.tone] || DESK_TONE.muted;
+  const timeSource = mode === 'booked'
+    ? visit.visit_date
+    : mode === 'arrived'
+      ? visit.patient_arrived_at || visit.checked_in_at
+      : action.at || visit.visit_date;
+
+  return (
+    <div
+      className="border"
+      style={{
+        borderColor: darkMode ? '#27272A' : '#EAECF0',
+        background: darkMode ? '#111827' : '#FFFFFF',
+        borderRadius: 8,
+        padding: '12px 13px',
+        minHeight: 78,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div style={{ fontSize: 15, lineHeight: 1.2, fontWeight: 850, color: darkMode ? '#FAFAFA' : '#101828' }} className="truncate">
+            {visit.patient_flag} {visit.patient_name}
+          </div>
+          <div style={{ marginTop: 5, fontSize: 12, lineHeight: 1.3, fontWeight: 650, color: darkMode ? '#A1A1AA' : '#667085' }} className="truncate">
+            {visit.procedure_name}
+          </div>
+        </div>
+        <span
+          className="shrink-0 border"
+          style={{
+            borderColor: tone.border,
+            background: tone.bg,
+            color: tone.color,
+            borderRadius: 999,
+            padding: '5px 8px',
+            fontSize: 11,
+            fontWeight: 850,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {action.label}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-3" style={{ marginTop: 10 }}>
+        <span style={{ fontSize: 18, lineHeight: 1, fontWeight: 900, color: darkMode ? '#E4E4E7' : '#1D2939' }}>
+          {fmtVisitTime(timeSource, 'today')}
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#A1A1AA' : '#667085' }} className="truncate">
+          {mode === 'next' ? action.detail : visit.link_status === 'opened' ? 'My Tiki 열람' : LINK_META[visit.link_status]?.label || '상태 확인'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function FlowColumn({ title, subtitle, empty, visits, mode, darkMode }) {
+  return (
+    <section
+      className="border"
+      style={{
+        borderColor: darkMode ? '#27272A' : '#E5E7EB',
+        background: darkMode ? '#18181B' : '#F9FAFB',
+        borderRadius: 10,
+        padding: 14,
+        minHeight: 398,
+      }}
+    >
+      <div>
+        <h3 style={{ fontSize: 18, lineHeight: 1.2, fontWeight: 900, color: darkMode ? '#FAFAFA' : '#101828' }}>{title}</h3>
+        <p style={{ marginTop: 4, fontSize: 12, lineHeight: 1.35, fontWeight: 650, color: darkMode ? '#A1A1AA' : '#667085' }}>{subtitle}</p>
+      </div>
+      <div className="mt-4 space-y-2.5">
+        {visits.length === 0 ? (
+          <div
+            className="border border-dashed"
+            style={{
+              borderColor: darkMode ? '#3F3F46' : '#D0D5DD',
+              borderRadius: 8,
+              minHeight: 118,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: darkMode ? '#71717A' : '#98A2B3',
+              fontSize: 13,
+              fontWeight: 750,
+              textAlign: 'center',
+              padding: 18,
+            }}
+          >
+            {empty}
+          </div>
+        ) : visits.map((visit) => (
+          <FlowPatientLine key={`${mode}-${visit.id}`} visit={visit} mode={mode} darkMode={darkMode} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TikiDeskCommandBoard({ flow, counts, loading, darkMode }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-6 gap-3">
+        <DeskMetric label="오늘 예약" value={loading ? '…' : counts.total} helper="예약 시간 기준" tone="info" darkMode={darkMode} />
+        <DeskMetric label="도착 알림" value={loading ? '…' : counts.arrived} helper="저 왔어요 / 체크인" tone="warn" darkMode={darkMode} />
+        <DeskMetric label="대기 흐름" value={loading ? '…' : counts.waiting} helper="확인·서류·룸 대기" tone="steady" darkMode={darkMode} />
+        <DeskMetric label="서류 필요" value={loading ? '…' : counts.formsNeeded} helper="문진·동의서 확인" tone="urgent" darkMode={darkMode} />
+        <DeskMetric label="룸 이동 가능" value={loading ? '…' : counts.roomReady} helper="바로 배정 가능" tone="ready" darkMode={darkMode} />
+        <DeskMetric label="즉시 확인" value={loading ? '…' : counts.needsAttention} helper="데스크가 먼저 볼 일" tone="urgent" darkMode={darkMode} />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <FlowColumn
+          title="예약 순서"
+          subtitle="오늘 예정된 방문 시간"
+          empty="예약된 방문이 없습니다"
+          visits={flow.booked}
+          mode="booked"
+          darkMode={darkMode}
+        />
+        <FlowColumn
+          title="도착 순서"
+          subtitle="환자가 도착을 알린 실제 순서"
+          empty="아직 도착 알림이 없습니다"
+          visits={flow.arrived}
+          mode="arrived"
+          darkMode={darkMode}
+        />
+        <FlowColumn
+          title="지금 할 일"
+          subtitle="데스크가 먼저 처리할 순서"
+          empty="지금 처리할 일이 없습니다"
+          visits={flow.nextActions}
+          mode="next"
+          darkMode={darkMode}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── CheckInCell ───────────────────────────────────────────────────────────────
 function CheckInCell({ visitId, checkedInAt, loading, darkMode, onCheckIn }) {
   if (checkedInAt) {
     return (
-      <span className="inline-flex items-center gap-1 text-emerald-600 text-[11px] font-semibold">
-        <Check size={11} strokeWidth={2.5} />
+      <span className="inline-flex items-center gap-1.5 text-emerald-600 text-[13px] font-bold">
+        <Check size={14} strokeWidth={2.6} />
         {fmtTime(checkedInAt)}
       </span>
     );
@@ -271,12 +445,12 @@ function CheckInCell({ visitId, checkedInAt, loading, darkMode, onCheckIn }) {
     <button
       onClick={() => onCheckIn(visitId)}
       disabled={loading}
-      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-white transition-all disabled:opacity-50"
-      style={{ background: SAGE, boxShadow: `0 1px 4px ${SAGE}40` }}
+      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-bold text-white transition-all disabled:opacity-50"
+      style={{ background: SAGE, boxShadow: `0 6px 14px ${SAGE}30` }}
     >
       {loading
-        ? <Loader2 size={9} className="animate-spin" />
-        : <LogIn size={9} strokeWidth={2.5} />
+        ? <Loader2 size={13} className="animate-spin" />
+        : <LogIn size={13} strokeWidth={2.5} />
       }
       체크인
     </button>
@@ -298,8 +472,8 @@ function RoomAssignmentCell({
   if (visit.room) {
     return (
       <div className="flex flex-col gap-1">
-        <span className="inline-flex items-center gap-1 text-[10px] font-semibold" style={{ color: TEAL }}>
-          <DoorOpen size={10} />
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-bold" style={{ color: TEAL }}>
+          <DoorOpen size={14} />
           {visit.room}
         </span>
         <div className="flex flex-wrap gap-1">
@@ -308,7 +482,7 @@ function RoomAssignmentCell({
               key={room.id}
               onClick={() => onAssignRoom(visit.id, room.id)}
               disabled={assigning}
-              className="px-1.5 py-0.5 rounded-md text-[9px] font-bold border disabled:opacity-50"
+              className="px-2 py-1 rounded-md text-[11px] font-bold border disabled:opacity-50"
               style={{ borderColor: `${TEAL}50`, color: TEAL, background: darkMode ? '#18181B' : '#F8FCFD' }}
             >
               {room.name}
@@ -317,7 +491,7 @@ function RoomAssignmentCell({
           <button
             onClick={() => onClearRoom(visit.id)}
             disabled={assigning}
-            className="px-1.5 py-0.5 rounded-md text-[9px] font-bold border disabled:opacity-50"
+            className="px-2 py-1 rounded-md text-[11px] font-bold border disabled:opacity-50"
             style={{ borderColor: '#FCA5A5', color: '#DC2626', background: darkMode ? '#1C1917' : '#FEF2F2' }}
           >
             방 비우기
@@ -330,8 +504,8 @@ function RoomAssignmentCell({
   if (!roomReady) {
     return (
       <div className="flex flex-col gap-0.5">
-        <span className="text-[10px] font-semibold text-zinc-400">대기</span>
-        <span className="text-[9px] text-zinc-400">
+        <span className="text-[13px] font-bold text-zinc-400">대기</span>
+        <span className="text-[11px] font-semibold text-zinc-400">
           {!visit.checked_in_at ? '체크인 필요' : !visit.intake_done || !visit.consent_done ? '서류 완료 필요' : '단계 대기'}
         </span>
       </div>
@@ -340,21 +514,21 @@ function RoomAssignmentCell({
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[9px] font-bold" style={{ color: '#16A34A' }}>룸 배정 가능</span>
+      <span className="text-[12px] font-black" style={{ color: '#16A34A' }}>룸 배정 가능</span>
       <div className="flex flex-wrap gap-1">
         {freeRooms.slice(0, 2).map((room) => (
           <button
             key={room.id}
             onClick={() => onAssignRoom(visit.id, room.id)}
             disabled={assigning}
-            className="px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white disabled:opacity-50"
+            className="px-2.5 py-1.5 rounded-md text-[11px] font-bold text-white disabled:opacity-50"
             style={{ background: TEAL }}
           >
             {room.name}
           </button>
         ))}
         {freeRooms.length === 0 && (
-          <span className="text-[9px] font-semibold text-zinc-400">빈 방 없음</span>
+          <span className="text-[11px] font-semibold text-zinc-400">빈 방 없음</span>
         )}
       </div>
     </div>
@@ -620,17 +794,17 @@ function VisitRow({
   const isCheckedIn = !!visit.checked_in_at;
 
   return (
-    <div className={`flex items-center gap-2 px-4 py-2.5 border-b transition-colors ${rowBg} ${isCheckedIn ? 'border-l-2' : ''}`}
+    <div className={`flex items-center gap-4 px-5 py-4 border-b transition-colors ${rowBg} ${isCheckedIn ? 'border-l-4' : ''}`}
          style={isCheckedIn ? { borderLeftColor: SAGE } : {}}>
 
       {/* Patient + time */}
-      <div style={{ width: 128, flexShrink: 0 }}>
-        <div className={`text-[12px] font-semibold ${textP} flex items-center gap-1 truncate`}>
+      <div style={{ width: 190, flexShrink: 0 }}>
+        <div className={`text-[16px] font-black ${textP} flex items-center gap-1.5 truncate`}>
           <span>{visit.patient_flag}</span>
           <span className="truncate">{visit.patient_name}</span>
           {visit.unreviewed_forms > 0 && <UnreviewedPip count={visit.unreviewed_forms} />}
         </div>
-        <div className={`text-[10px] mt-0.5 font-medium ${isCheckedIn ? 'text-emerald-600' : textS}`}>
+        <div className={`text-[13px] mt-1 font-bold ${isCheckedIn ? 'text-emerald-600' : textS}`}>
           {timeLabel}
         </div>
         <ArrivalBadge
@@ -643,11 +817,12 @@ function VisitRow({
 
       {/* Procedure */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span className={`text-[11px] ${textP} truncate block`}>{visit.procedure_name}</span>
+        <span className={`text-[14px] font-bold ${textP} truncate block`}>{visit.procedure_name}</span>
+        <span className={`text-[12px] mt-1 font-semibold ${textS} truncate block`}>{getDeskNextAction(visit).detail}</span>
       </div>
 
       {/* Stage */}
-      <div style={{ width: 80, flexShrink: 0 }} className="relative" ref={stageRef}>
+      <div style={{ width: 108, flexShrink: 0 }} className="relative" ref={stageRef}>
         <StageBadge stage={visit.stage} onClick={() => setShowStage(v => !v)} />
         {showStage && (
           <StagePicker
@@ -661,12 +836,12 @@ function VisitRow({
       </div>
 
       {/* Forms */}
-      <div style={{ width: 60, flexShrink: 0 }}>
+      <div style={{ width: 88, flexShrink: 0 }}>
         <FormChips intakeDone={visit.intake_done} consentDone={visit.consent_done} />
       </div>
 
       {/* Room */}
-      <div style={{ width: 188, flexShrink: 0 }}>
+      <div style={{ width: 220, flexShrink: 0 }}>
         <RoomAssignmentCell
           visit={visit}
           rooms={rooms}
@@ -678,12 +853,12 @@ function VisitRow({
       </div>
 
       {/* Link status */}
-      <div style={{ width: 64, flexShrink: 0 }}>
+      <div style={{ width: 96, flexShrink: 0 }}>
         <LinkStatusBadge status={visit.link_status} />
       </div>
 
       {/* Actions */}
-      <div style={{ width: 124, flexShrink: 0 }} className="flex items-center gap-1 justify-end">
+      <div style={{ width: 168, flexShrink: 0 }} className="flex items-center gap-1.5 justify-end">
         {/* Check-in */}
         <CheckInCell
           visitId={visit.id}
@@ -698,19 +873,19 @@ function VisitRow({
           <button
             onClick={() => onAction('generate', visit)}
             title="링크 발급"
-            className="p-1 rounded-md transition-colors text-zinc-400 hover:text-teal-600 hover:bg-teal-50"
+            className="p-2 rounded-md transition-colors text-zinc-400 hover:text-teal-600 hover:bg-teal-50"
           >
-            <Link2 size={13} />
+            <Link2 size={17} />
           </button>
         )}
         {canGenerate && isCheckedIn && (
           <button
             onClick={() => onAction('generate', visit)}
             title="링크 발급"
-            className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-[10px] font-semibold text-white transition-all"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-[12px] font-bold text-white transition-all"
             style={{ background: TEAL }}
           >
-            <Link2 size={9} />
+            <Link2 size={13} />
             링크
           </button>
         )}
@@ -718,9 +893,9 @@ function VisitRow({
           <button
             onClick={() => onAction('revoke', visit)}
             title="링크 폐기"
-            className="p-1 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            className="p-2 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"
           >
-            <XCircle size={12} />
+            <XCircle size={16} />
           </button>
         )}
 
@@ -728,9 +903,9 @@ function VisitRow({
         <button
           onClick={() => onAction('detail', visit)}
           title="상세"
-          className={`p-1 rounded-md transition-colors ${darkMode ? 'text-zinc-600 hover:bg-zinc-700' : 'text-zinc-300 hover:bg-zinc-100'}`}
+          className={`p-2 rounded-md transition-colors ${darkMode ? 'text-zinc-600 hover:bg-zinc-700' : 'text-zinc-300 hover:bg-zinc-100'}`}
         >
-          <ChevronRight size={13} />
+          <ChevronRight size={17} />
         </button>
       </div>
     </div>
@@ -1339,6 +1514,9 @@ export default function MyTikiTab({ darkMode }) {
       return new Date(a.visit_date) - new Date(b.visit_date);
     });
 
+  const deskCounts = useMemo(() => buildTikiDeskCounts(visits), [visits]);
+  const deskFlow = useMemo(() => buildTikiDeskFlow(visits, 4), [visits]);
+
   const groupedEscalations = escalations.reduce((acc, item) => {
     const key = escalationGroupBy === 'priority'
       ? item.priority
@@ -1651,62 +1829,68 @@ export default function MyTikiTab({ darkMode }) {
     <div className={`flex-1 flex flex-col overflow-hidden ${bg}`} style={{ fontFamily: F.sans }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className={`px-6 py-4 border-b ${headerBg} ${borderCls} shrink-0`}>
+      <div className={`px-7 py-6 border-b ${headerBg} ${borderCls} shrink-0`}>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <ClipboardCheck size={15} style={{ color: TEAL }} />
-              <h1 className={`text-sm font-bold ${textP}`}>티키 데스크</h1>
-              <span className={`text-[11px] font-medium ${textS}`}>— {todayLabel}</span>
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center justify-center"
+                style={{ width: 42, height: 42, borderRadius: 10, background: TEAL, boxShadow: `0 10px 24px ${TEAL}35` }}
+              >
+                <ClipboardCheck size={22} color="#fff" strokeWidth={2.6} />
+              </div>
+              <div>
+                <h1 className={`text-[28px] leading-none font-black ${textP}`}>오늘 운영</h1>
+                <p className={`text-[14px] mt-2 font-semibold ${textS}`}>Tiki Desk · {todayLabel}</p>
+              </div>
             </div>
-            <p className={`text-[11px] mt-0.5 ${textS}`}>코디네이터 운영 현황 · 체크인 · TikiBell 트리아지 · 룸 현황</p>
+            <p className={`text-[14px] mt-4 font-semibold ${textS}`}>예약 순서, 실제 도착 순서, 지금 처리할 일을 한 화면에서 봅니다.</p>
             {shouldPollOpsBoard(dateRange) && (
-              <p className={`text-[10px] mt-1 ${textS}`}>오늘 보기에서는 20초마다 가볍게 새로고침됩니다.</p>
+              <p className={`text-[12px] mt-1 font-medium ${textS}`}>오늘 보기는 20초마다 자동 새로고침됩니다.</p>
             )}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowCsvImport(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${darkMode ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800' : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}
+              className={`flex items-center gap-2 px-4 py-3 rounded-lg text-[13px] font-bold border transition-colors ${darkMode ? 'border-zinc-700 text-zinc-200 hover:bg-zinc-800' : 'border-zinc-200 text-zinc-700 hover:bg-zinc-50'}`}
               title="CSV 일괄 가져오기"
             >
               CSV 가져오기
             </button>
             <button
               onClick={() => setShowQuickCreate(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white"
-              style={{ background: TEAL, boxShadow: `0 1px 6px ${TEAL}40` }}
+              className="flex items-center gap-2 px-4 py-3 rounded-lg text-[13px] font-bold text-white"
+              style={{ background: TEAL, boxShadow: `0 8px 20px ${TEAL}35` }}
             >
-              <Plus size={11} strokeWidth={2.5} /> 새 환자
+              <Plus size={16} strokeWidth={2.6} /> 새 환자
             </button>
             <button
               onClick={fetchVisits}
-              className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'text-zinc-400 hover:bg-zinc-800' : 'text-zinc-400 hover:bg-zinc-100'}`}
+              className={`p-3 rounded-lg transition-colors ${darkMode ? 'text-zinc-300 hover:bg-zinc-800' : 'text-zinc-500 hover:bg-zinc-100'}`}
               title="새로고침"
             >
-              <RefreshCw size={14} />
+              <RefreshCw size={18} />
             </button>
           </div>
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-6 gap-2 mt-4">
-          <SummaryCard label="방문 수"     value={loading ? '…' : summary.total}        color={TEAL}    sub={dateRange === 'today' ? '오늘' : DATE_RANGES.find(d => d.key === dateRange)?.label} darkMode={darkMode} />
-          <SummaryCard label="폼 미완료"   value={loading ? '…' : summary.formsPending}  color="#D09262" sub="문진·동의서"      darkMode={darkMode} />
-          <SummaryCard label="도착 신호"   value={loading ? '…' : summary.arrived}       color="#D09262" sub="환자 자가 도착"   darkMode={darkMode} />
-          <SummaryCard label="체크인 완료" value={loading ? '…' : summary.checkedIn}     color={SAGE}    sub="데스크 확인"     darkMode={darkMode} />
-          <SummaryCard label="룸 준비"     value={loading ? '…' : summary.roomReady}     color="#16A34A" sub="체크인+서류 완료" darkMode={darkMode} />
-          <SummaryCard label="활성 링크"   value={loading ? '…' : summary.activeLinks}   color="#5B72A8" sub="발송·열람됨"     darkMode={darkMode} />
+        <div className="mt-6">
+          <TikiDeskCommandBoard
+            flow={deskFlow}
+            counts={deskCounts}
+            loading={loading}
+            darkMode={darkMode}
+          />
         </div>
 
         {attentionItems.length > 0 && (
-          <div className={`mt-2 rounded-xl border px-3 py-2 text-[11px] font-semibold ${darkMode ? 'border-amber-800 bg-amber-950/40 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          <div className={`mt-4 rounded-xl border px-4 py-3 text-[13px] font-bold ${darkMode ? 'border-amber-800 bg-amber-950/40 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
             주의 필요 · {attentionItems.join(' · ')}
           </div>
         )}
 
         {aftercareScheduler?.status === 'degraded' && (
-          <div className={`mt-2 rounded-xl border px-3 py-2 text-[11px] ${darkMode ? 'border-amber-800 bg-amber-950/40 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          <div className={`mt-3 rounded-xl border px-4 py-3 text-[13px] font-semibold ${darkMode ? 'border-amber-800 bg-amber-950/40 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
             사후관리 스케줄러 이상 · 백그라운드 발송이 지연될 수 있습니다.
           </div>
         )}
@@ -2060,7 +2244,7 @@ export default function MyTikiTab({ darkMode }) {
       </div>
 
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
-      <div className={`flex items-center gap-3 px-6 py-2.5 border-b ${headerBg} ${borderCls} shrink-0`}>
+      <div className={`flex items-center gap-3 px-7 py-3.5 border-b ${headerBg} ${borderCls} shrink-0`}>
 
         {/* Date tabs */}
         <div className="flex items-center gap-1 mr-2">
@@ -2070,7 +2254,7 @@ export default function MyTikiTab({ darkMode }) {
               <button
                 key={dr.key}
                 onClick={() => setDateRange(dr.key)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all border`}
+                className={`px-4 py-2 rounded-lg text-[13px] font-bold transition-all border`}
                 style={active
                   ? { background: TEAL, color: '#fff', border: `1px solid ${TEAL}` }
                   : { background: 'transparent', color: darkMode ? '#A1A1AA' : '#6B7280', border: `1px solid ${darkMode ? '#3F3F46' : '#E5E7EB'}` }
@@ -2085,8 +2269,8 @@ export default function MyTikiTab({ darkMode }) {
         <div className={`w-px h-5 ${darkMode ? 'bg-zinc-700' : 'bg-zinc-200'} shrink-0`} />
 
         {/* Search */}
-        <div className="relative flex-1 max-w-xs">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+        <div className="relative flex-1 max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -2094,7 +2278,7 @@ export default function MyTikiTab({ darkMode }) {
             style={{ outline: 'none' }}
             onFocus={e => e.target.style.boxShadow = `0 0 0 2px ${TEAL}40`}
             onBlur={e => e.target.style.boxShadow = ''}
-            className={`w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border ${inputBg}`}
+            className={`w-full pl-10 pr-3 py-2.5 text-[13px] font-semibold rounded-lg border ${inputBg}`}
           />
         </div>
 
@@ -2108,7 +2292,7 @@ export default function MyTikiTab({ darkMode }) {
               <button
                 key={s}
                 onClick={() => setStageFilter(s)}
-                className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition-all`}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-all`}
                 style={active
                   ? { background: color, color: '#fff', border: `1px solid ${color}` }
                   : { background: 'transparent', color: darkMode ? '#71717A' : '#9CA3AF', border: `1px solid ${darkMode ? '#3F3F46' : '#E5E7EB'}` }
@@ -2122,20 +2306,20 @@ export default function MyTikiTab({ darkMode }) {
       </div>
 
       {/* ── Table header ────────────────────────────────────────────────────── */}
-      <div className={`flex items-center gap-2 px-4 py-1.5 border-b shrink-0 ${darkMode ? 'border-zinc-800' : 'border-zinc-100'}`}>
+      <div className={`flex items-center gap-4 px-5 py-3 border-b shrink-0 ${darkMode ? 'border-zinc-800' : 'border-zinc-100'}`}>
         {[
-          { label: '환자',   w: 128 },
+          { label: '환자',   w: 190 },
           { label: '시술',   flex: 1 },
-          { label: '단계',   w: 80 },
-          { label: '서류',   w: 60 },
-          { label: '방',     w: 188 },
-          { label: '링크',   w: 64 },
-          { label: '액션',   w: 124, align: 'right' },
+          { label: '단계',   w: 108 },
+          { label: '서류',   w: 88 },
+          { label: '방',     w: 220 },
+          { label: '링크',   w: 96 },
+          { label: '액션',   w: 168, align: 'right' },
         ].map(col => (
           <div
             key={col.label}
             style={{ width: col.w, flex: col.flex, flexShrink: col.flex ? undefined : 0, textAlign: col.align }}
-            className={`text-[9px] font-bold uppercase tracking-widest ${textS}`}
+            className={`text-[11px] font-black ${textS}`}
           >
             {col.label}
           </div>

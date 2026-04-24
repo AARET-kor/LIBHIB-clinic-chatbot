@@ -1,6 +1,6 @@
 # TikiDoc Product Decisions
 
-Last updated: 2026-04-23
+Last updated: 2026-04-24
 
 ## Product Surface Naming
 
@@ -61,6 +61,11 @@ Display copy should use these names. Internal routes, schema fields, metadata va
 ### Tiki Desk
 
 - `Tiki Desk` is the staff / clinic operations surface.
+- Tiki Desk should feel like an operational command board, not a generic dashboard.
+- The first screen should prioritize:
+  - booked order
+  - actual arrival order
+  - operational next-action order
 - It should surface operational attention clearly:
   - arrivals
   - forms
@@ -70,6 +75,11 @@ Display copy should use these names. Internal routes, schema fields, metadata va
   - scheduler degraded state
   - recent audit/history snippets
 - It is not currently a full command center, alert center, audit dashboard, or admin CMS.
+- Phase 1 UX reset is implemented for the Tiki Desk first screen: larger metrics, larger patient rows, and a clearer booked / arrived / next-action board.
+- Phase 2 dashboard shell reset is implemented for the staff sidebar and top bar: wider navigation, larger icons, larger labels, clearer product/management grouping, and stronger clinic/staff identity.
+- Phase 3 Protocol UX reset is implemented as a read/scan-oriented standards board with clearer Korean copy, response standards, prohibited phrases, approved wording, and an improvement checklist.
+- Phase 4 Procedure Management UX reset is implemented around operational readiness: registered procedure count, AI-response readiness, missing-field visibility, larger master-template import, and larger editing controls.
+- My Tiki preview surfacing remains separate follow-up work.
 
 ### Escalation
 
